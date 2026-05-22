@@ -186,6 +186,46 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
   const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<string | null>(null);
 
+  const [chatLoading, setChatLoading] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      },
+      confirmText,
+      cancelText,
+    });
+  };
+
+  const showAlert = (title: string, message: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),
+      confirmText: 'OK',
+      cancelText: '',
+    });
+  };
+
   // Swipe gesture states and refs
   const [activeSwipeMessageId, setActiveSwipeMessageId] = useState<string | null>(null);
   const [swipeOffset, setSwipeOffset] = useState<number>(0);
@@ -250,41 +290,72 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   };
 
   const handleUnsendMessage = async (messageId: string) => {
-    if (!confirm('Are you sure you want to delete this message for everyone?')) return;
-    try {
-      const res = await fetch(`/api/messages?messageId=${messageId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
-      } else {
-        alert(data.error || 'Failed to delete message');
-      }
-    } catch (err) {
-      console.error('Error deleting message:', err);
-      alert('Error deleting message');
-    }
+    showConfirm(
+      'Unsend Message',
+      'Are you sure you want to delete this message for everyone?',
+      async () => {
+        try {
+          const res = await fetch(`/api/messages?messageId=${messageId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg._id === messageId
+                  ? {
+                      ...msg,
+                      isUnsent: true,
+                      content: 'This message was unsent.',
+                      fileUrl: null,
+                      fileType: null,
+                      fileName: null,
+                      fileSize: null,
+                      duration: null,
+                      reactions: [],
+                      replyTo: null,
+                    }
+                  : msg
+              )
+            );
+          } else {
+            showAlert('Error', data.error || 'Failed to delete message');
+          }
+        } catch (err) {
+          console.error('Error deleting message:', err);
+          showAlert('Error', 'Error deleting message');
+        }
+      },
+      'Unsend',
+      'Cancel'
+    );
   };
 
   const handleDeleteWholeChat = async () => {
     if (!selectedUser) return;
-    if (!confirm(`Are you sure you want to clear the entire chat history for ${selectedUser.name}? This action cannot be undone.`)) return;
-    try {
-      const res = await fetch(`/api/messages?userId=${selectedUser.id}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setMessages([]);
-        fetchUsers();
-      } else {
-        alert(data.error || 'Failed to clear chat');
-      }
-    } catch (err) {
-      console.error('Error clearing chat:', err);
-      alert('Error clearing chat');
-    }
+    showConfirm(
+      'Clear Chat History',
+      `Are you sure you want to clear the entire chat history for ${selectedUser.name}? This action cannot be undone.`,
+      async () => {
+        try {
+          const res = await fetch(`/api/messages?userId=${selectedUser.id}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMessages([]);
+            fetchUsers();
+          } else {
+            showAlert('Error', data.error || 'Failed to clear chat');
+          }
+        } catch (err) {
+          console.error('Error clearing chat:', err);
+          showAlert('Error', 'Error clearing chat');
+        }
+      },
+      'Clear Chat',
+      'Cancel'
+    );
   };
 
   const scrollToMessage = (msgId: string) => {
@@ -399,6 +470,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     }
 
     const fetchMessages = async () => {
+      setChatLoading(true);
+      setMessages([]);
       try {
         const res = await fetch(`/api/messages?userId=${selectedUser.id}`);
         const data = await res.json();
@@ -408,6 +481,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         }
       } catch (err) {
         console.error('Error fetching conversation messages:', err);
+      } finally {
+        setChatLoading(false);
       }
     };
 
@@ -416,7 +491,11 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
   // Click listener to close emoji picker when clicking outside
   useEffect(() => {
-    const handleDocumentClick = () => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.emoji-reaction-picker') || target.closest('.msg-action-btn')) {
+        return;
+      }
       setActiveEmojiPickerMessageId(null);
     };
     document.addEventListener('click', handleDocumentClick);
@@ -460,7 +539,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         if (data.isChatCleared) {
           const msgChatUserId = data.chatUserId?.toString();
           if (selectedUser && msgChatUserId === selectedUser.id) {
-            setMessages([]);
+            setMessages(data.systemMessage ? [data.systemMessage] : []);
           }
           fetchUsers();
           return;
@@ -1131,226 +1210,250 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
             {/* Messages Feed */}
             <div className="messages-container">
-              {messages.map((msg) => {
-                const isUserMessage = msg.senderId._id === selectedUser.id || msg.senderId === selectedUser.id;
-                const senderRole = msg.senderId.role;
-                const hasImageOnly = msg.fileType === 'image' && !msg.content;
-                
-                const isSelectedUserOnline = !!onlineUsers[selectedUser.id];
-
-                const reactions = msg.reactions || [];
-                const groupedReactions: { emoji: string; count: number; hasMyReaction: boolean }[] = [];
-                reactions.forEach((reaction: any) => {
-                  const rUserId = reaction.userId?._id || reaction.userId;
-                  const isMyReaction = rUserId === currentUser.id;
-                  const existing = groupedReactions.find((gr) => gr.emoji === reaction.emoji);
-                  if (existing) {
-                    existing.count += 1;
-                    if (isMyReaction) {
-                      existing.hasMyReaction = true;
-                    }
-                  } else {
-                    groupedReactions.push({
-                      emoji: reaction.emoji,
-                      count: 1,
-                      hasMyReaction: isMyReaction,
-                    });
+              {chatLoading ? (
+                <div className="chat-loading-state">
+                  <div className="spinner"></div>
+                  <p>Loading messages...</p>
+                </div>
+              ) : (
+                messages.map((msg) => {
+                  if (msg.isSystem) {
+                    return (
+                      <div key={msg._id} className="system-message-row">
+                        <div className="system-message-content">
+                          {msg.content}
+                        </div>
+                      </div>
+                    );
                   }
-                });
 
-                return (
-                  <div
-                    key={msg._id}
-                    id={`msg-${msg._id}`}
-                    className={`message-bubble-row ${isUserMessage ? 'received' : 'sent'}`}
-                  >
-                    {/* Emoji picker overlay */}
-                    {activeEmojiPickerMessageId === msg._id && (
-                      <div className="emoji-reaction-picker" onClick={(e) => e.stopPropagation()}>
-                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
-                          <button
-                            key={emoji}
-                            type="button"
-                            className="reaction-emoji-btn"
-                            onClick={() => {
-                              handleReactToMessage(msg._id, emoji);
-                              setActiveEmojiPickerMessageId(null);
-                            }}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  const isUserMessage = msg.senderId._id === selectedUser.id || msg.senderId === selectedUser.id;
+                  const senderRole = msg.senderId.role;
+                  const hasImageOnly = msg.fileType === 'image' && !msg.content;
+                  
+                  const isSelectedUserOnline = !!onlineUsers[selectedUser.id];
 
-                     <div 
-                       className="message-bubble-wrapper"
-                       onTouchStart={(e) => handleTouchStart(e, msg)}
-                       onTouchMove={(e) => handleTouchMove(e, msg)}
-                       onTouchEnd={(e) => handleTouchEnd(e, msg)}
-                     >
-                       {/* Hover actions */}
-                       <div className="message-actions-overlay">
-                         <button
-                           type="button"
-                           className="msg-action-btn delete-btn"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             handleUnsendMessage(msg._id);
-                           }}
-                           title="Delete message"
-                         >
-                           <Trash2 size={14} />
-                         </button>
-                         <button
-                           type="button"
-                           className="msg-action-btn"
-                           onClick={() => setReplyingToMessage(msg)}
-                           title="Reply to message"
-                         >
-                           <CornerUpLeft size={14} />
-                         </button>
-                         <button
-                           type="button"
-                           className="msg-action-btn"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setActiveEmojiPickerMessageId(activeEmojiPickerMessageId === msg._id ? null : msg._id);
-                           }}
-                           title="React to message"
-                         >
-                           <Smile size={14} />
-                         </button>
-                       </div>
-                      {activeSwipeMessageId === msg._id && swipeOffset > 10 && (
-                        <div 
-                          className="swipe-reply-indicator"
-                          style={{
-                            opacity: Math.min(swipeOffset / 50, 1),
-                            transform: `translateY(-50%) scale(${Math.min(swipeOffset / 50, 1)})`
-                          }}
-                        >
-                          <CornerUpLeft size={16} />
-                        </div>
-                      )}
-                      <div 
-                        className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''}`}
-                        style={{
-                          transform: activeSwipeMessageId === msg._id ? `translateX(${swipeOffset}px)` : undefined,
-                          transition: activeSwipeMessageId === msg._id ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
-                        }}
-                      >
-                      {!isUserMessage && (
-                        <span className="message-sender-name" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                          {msg.senderId.name} ({senderRole === 'super_admin' ? 'Super Admin' : 'Admin'})
-                        </span>
-                      )}
+                  const reactions = msg.reactions || [];
+                  const groupedReactions: { emoji: string; count: number; hasMyReaction: boolean }[] = [];
+                  reactions.forEach((reaction: any) => {
+                    const rUserId = reaction.userId?._id || reaction.userId;
+                    const isMyReaction = rUserId === currentUser.id;
+                    const existing = groupedReactions.find((gr) => gr.emoji === reaction.emoji);
+                    if (existing) {
+                      existing.count += 1;
+                      if (isMyReaction) {
+                        existing.hasMyReaction = true;
+                      }
+                    } else {
+                      groupedReactions.push({
+                        emoji: reaction.emoji,
+                        count: 1,
+                        hasMyReaction: isMyReaction,
+                      });
+                    }
+                  });
 
-                      {/* Reply Reference Quote */}
-                      {msg.replyTo && (
-                        <div 
-                          className="message-reply-quote" 
-                          onClick={() => scrollToMessage(msg.replyTo._id || msg.replyTo)}
-                        >
-                          <span className="reply-quote-sender">
-                            {msg.replyTo.senderId?.name || 'Message'}
-                          </span>
-                          <span className="reply-quote-content">
-                            {msg.replyTo.fileType === 'image' && '📷 Image '}
-                            {msg.replyTo.fileType === 'voice' && '🎵 Voice Message '}
-                            {msg.replyTo.fileType === 'document' && '📄 Document '}
-                            {msg.replyTo.content || ''}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Rich Media Content rendering */}
-                      {msg.fileUrl && (
-                        <div style={{ marginBottom: msg.content ? '6px' : '0px' }}>
-                          {msg.fileType === 'image' && (
-                            <div className="message-media-image-container">
-                              <img 
-                                src={msg.fileUrl} 
-                                alt={msg.fileName || 'Image'} 
-                                className="message-media-image" 
-                                onClick={() => {
-                                  setLightboxImage(msg.fileUrl);
-                                  setLightboxTitle(msg.fileName || 'Image');
-                                }}
-                              />
-                            </div>
-                          )}
-                          {msg.fileType === 'voice' && (
-                            <CustomAudioPlayer 
-                              src={msg.fileUrl} 
-                              duration={msg.duration} 
-                              senderName={msg.senderId?.name || (isUserMessage ? selectedUser.name : currentUser.name)}
-                              senderAvatar={msg.senderId?.avatar}
-                            />
-                          )}
-                          {msg.fileType === 'document' && (
-                            <div className="document-card">
-                              <div className="document-icon-wrapper">
-                                <FileText size={20} />
-                              </div>
-                              <div className="document-info-block">
-                                <span className="document-card-name" title={msg.fileName}>{msg.fileName}</span>
-                                <span className="document-card-size">
-                                  {msg.fileSize ? `${(msg.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'Unknown size'}
-                                </span>
-                              </div>
-                              <a 
-                                href={msg.fileUrl} 
-                                download={msg.fileName} 
-                                className="document-download-action"
-                                title="Download document"
-                              >
-                                <Download size={16} />
-                              </a>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {msg.content && <span className="message-text">{msg.content}</span>}
-                      
-                      <div className="message-bubble-meta">
-                        <span className="message-time">{formatTime(msg.createdAt)}</span>
-                        {!isUserMessage && (
-                          <span className="message-ticks">
-                            {msg.isRead ? (
-                              <CheckCheck size={15} className="tick-read" />
-                            ) : isSelectedUserOnline ? (
-                              <CheckCheck size={15} className="tick-delivered" />
-                            ) : (
-                              <Check size={15} className="tick-sent" />
-                            )}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Reaction pills */}
-                      {groupedReactions.length > 0 && (
-                        <div className="reaction-pills-container">
-                          {groupedReactions.map((gr) => (
+                  return (
+                    <div
+                      key={msg._id}
+                      id={`msg-${msg._id}`}
+                      className={`message-bubble-row ${isUserMessage ? 'received' : 'sent'}`}
+                    >
+                      {/* Emoji picker overlay */}
+                      {activeEmojiPickerMessageId === msg._id && (
+                        <div className="emoji-reaction-picker" onClick={(e) => e.stopPropagation()}>
+                          {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
                             <button
-                              key={gr.emoji}
+                              key={emoji}
                               type="button"
-                              className={`reaction-pill ${gr.hasMyReaction ? 'my-reaction' : ''}`}
-                              onClick={() => handleReactToMessage(msg._id, gr.emoji)}
-                              title={gr.hasMyReaction ? "Remove reaction" : "React with this emoji"}
+                              className="reaction-emoji-btn"
+                              onClick={() => {
+                                handleReactToMessage(msg._id, emoji);
+                                setActiveEmojiPickerMessageId(null);
+                              }}
                             >
-                              <span>{gr.emoji}</span>
-                              <span className="reaction-pill-count">{gr.count}</span>
+                              {emoji}
                             </button>
                           ))}
                         </div>
                       )}
+
+                       <div 
+                         className="message-bubble-wrapper"
+                         onTouchStart={(e) => handleTouchStart(e, msg)}
+                         onTouchMove={(e) => handleTouchMove(e, msg)}
+                         onTouchEnd={(e) => handleTouchEnd(e, msg)}
+                       >
+                         {/* Hover actions */}
+                         {!msg.isUnsent && (
+                           <div className="message-actions-overlay">
+                             <button
+                               type="button"
+                               className="msg-action-btn delete-btn"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 handleUnsendMessage(msg._id);
+                               }}
+                               title="Delete message"
+                             >
+                               <Trash2 size={14} />
+                             </button>
+                             <button
+                               type="button"
+                               className="msg-action-btn"
+                               onClick={() => setReplyingToMessage(msg)}
+                               title="Reply to message"
+                             >
+                               <CornerUpLeft size={14} />
+                             </button>
+                             <button
+                               type="button"
+                               className="msg-action-btn"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setActiveEmojiPickerMessageId(activeEmojiPickerMessageId === msg._id ? null : msg._id);
+                               }}
+                               title="React to message"
+                             >
+                               <Smile size={14} />
+                             </button>
+                           </div>
+                         )}
+                        {activeSwipeMessageId === msg._id && swipeOffset > 10 && (
+                          <div 
+                            className="swipe-reply-indicator"
+                            style={{
+                              opacity: Math.min(swipeOffset / 50, 1),
+                              transform: `translateY(-50%) scale(${Math.min(swipeOffset / 50, 1)})`
+                            }}
+                          >
+                            <CornerUpLeft size={16} />
+                          </div>
+                        )}
+                        <div 
+                          className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''} ${msg.isUnsent ? 'unsent-bubble' : ''}`}
+                          style={{
+                            transform: activeSwipeMessageId === msg._id ? `translateX(${swipeOffset}px)` : undefined,
+                            transition: activeSwipeMessageId === msg._id ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                          }}
+                          onDoubleClick={() => {
+                            if (!msg.isUnsent) {
+                              handleReactToMessage(msg._id, '❤️');
+                            }
+                          }}
+                        >
+                        {!isUserMessage && (
+                          <span className="message-sender-name" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
+                            {msg.senderId.name} ({senderRole === 'super_admin' ? 'Super Admin' : 'Admin'})
+                          </span>
+                        )}
+
+                        {/* Reply Reference Quote */}
+                        {msg.replyTo && (
+                          <div 
+                            className="message-reply-quote" 
+                            onClick={() => scrollToMessage(msg.replyTo._id || msg.replyTo)}
+                          >
+                            <span className="reply-quote-sender">
+                              {msg.replyTo.senderId?.name || 'Message'}
+                            </span>
+                            <span className="reply-quote-content">
+                              {msg.replyTo.fileType === 'image' && '📷 Image '}
+                              {msg.replyTo.fileType === 'voice' && '🎵 Voice Message '}
+                              {msg.replyTo.fileType === 'document' && '📄 Document '}
+                              {msg.replyTo.content || ''}
+                            </span>
+                          </div>
+                        )}
+                        
+                        {/* Rich Media Content rendering */}
+                        {msg.fileUrl && (
+                          <div style={{ marginBottom: msg.content ? '6px' : '0px' }}>
+                            {msg.fileType === 'image' && (
+                              <div className="message-media-image-container">
+                                <img 
+                                  src={msg.fileUrl} 
+                                  alt={msg.fileName || 'Image'} 
+                                  className="message-media-image" 
+                                  onClick={() => {
+                                    setLightboxImage(msg.fileUrl);
+                                    setLightboxTitle(msg.fileName || 'Image');
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {msg.fileType === 'voice' && (
+                              <CustomAudioPlayer 
+                                src={msg.fileUrl} 
+                                duration={msg.duration} 
+                                senderName={msg.senderId?.name || (isUserMessage ? selectedUser.name : currentUser.name)}
+                                senderAvatar={msg.senderId?.avatar}
+                              />
+                            )}
+                            {msg.fileType === 'document' && (
+                              <div className="document-card">
+                                <div className="document-icon-wrapper">
+                                  <FileText size={20} />
+                                </div>
+                                <div className="document-info-block">
+                                  <span className="document-card-name" title={msg.fileName}>{msg.fileName}</span>
+                                  <span className="document-card-size">
+                                    {msg.fileSize ? `${(msg.fileSize / (1024 * 1024)).toFixed(2)} MB` : 'Unknown size'}
+                                  </span>
+                                </div>
+                                <a 
+                                  href={msg.fileUrl} 
+                                  download={msg.fileName} 
+                                  className="document-download-action"
+                                  title="Download document"
+                                >
+                                  <Download size={16} />
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        {msg.content && <span className="message-text">{msg.content}</span>}
+                        
+                        <div className="message-bubble-meta">
+                          <span className="message-time">{formatTime(msg.createdAt)}</span>
+                          {!isUserMessage && (
+                            <span className="message-ticks">
+                              {msg.isRead ? (
+                                <CheckCheck size={15} className="tick-read" />
+                              ) : isSelectedUserOnline ? (
+                                <CheckCheck size={15} className="tick-delivered" />
+                              ) : (
+                                <Check size={15} className="tick-sent" />
+                              )}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Reaction pills */}
+                        {!msg.isUnsent && groupedReactions.length > 0 && (
+                          <div className="reaction-pills-container">
+                            {groupedReactions.map((gr) => (
+                              <button
+                                key={gr.emoji}
+                                type="button"
+                                className={`reaction-pill ${gr.hasMyReaction ? 'my-reaction' : ''}`}
+                                onClick={() => handleReactToMessage(msg._id, gr.emoji)}
+                                title={gr.hasMyReaction ? "Remove reaction" : "React with this emoji"}
+                              >
+                                <span>{gr.emoji}</span>
+                                <span className="reaction-pill-count">{gr.count}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
               <div ref={messagesEndRef} />
             </div>
 
@@ -1571,6 +1674,32 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               className="lightbox-image" 
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {confirmModal.isOpen && (
+        <div className="custom-modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+          <div className="custom-modal-content glass warning-modal" onClick={e => e.stopPropagation()}>
+            <div className={`modal-header ${confirmModal.cancelText ? 'warning' : ''}`}>
+              <span className="modal-title">{confirmModal.title}</span>
+              <button type="button" className="modal-close-btn" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>{confirmModal.message}</p>
+            </div>
+            <div className="modal-actions">
+              {confirmModal.cancelText && (
+                <button type="button" className="btn-secondary" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                  {confirmModal.cancelText}
+                </button>
+              )}
+              <button type="button" className="btn-danger" onClick={confirmModal.onConfirm}>
+                {confirmModal.confirmText || 'OK'}
+              </button>
+            </div>
           </div>
         </div>
       )}

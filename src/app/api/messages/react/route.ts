@@ -25,12 +25,17 @@ export async function POST(req: NextRequest) {
 
     const reactions = message.reactions || [];
     const existingIndex = reactions.findIndex(
-      (r: any) => r.userId.toString() === payload.userId && r.emoji === emoji
+      (r: any) => r.userId.toString() === payload.userId
     );
 
     if (existingIndex > -1) {
-      // Toggle off: remove the reaction
-      reactions.splice(existingIndex, 1);
+      if (reactions[existingIndex].emoji === emoji) {
+        // Toggle off: remove the reaction
+        reactions.splice(existingIndex, 1);
+      } else {
+        // Update reaction to new emoji
+        reactions[existingIndex].emoji = emoji;
+      }
     } else {
       // Toggle on: add the reaction
       reactions.push({ userId: payload.userId, emoji });

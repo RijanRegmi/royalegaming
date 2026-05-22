@@ -157,18 +157,33 @@ export async function DELETE(req: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
-      // Delete the message
-      await Message.deleteOne({ _id: messageId });
+      // Soft delete/unsend the message
+      await Message.updateOne(
+        { _id: messageId },
+        {
+          $set: {
+            isUnsent: true,
+            content: 'This message was unsent.',
+            fileUrl: null,
+            fileType: null,
+            fileName: null,
+            fileSize: null,
+            duration: null,
+            reactions: [],
+            replyTo: null
+          }
+        }
+      );
 
       // Clean up references to this message in replyTo
       await Message.updateMany({ replyTo: messageId }, { $set: { replyTo: null } });
 
+      const updatedMessage = await Message.findById(messageId)
+        .populate('senderId', 'name email role avatar')
+        .populate('recipientId', 'name email role avatar');
+
       // Broadcast update
-      chatEmitter.emit('message_update', {
-        _id: messageId,
-        chatUserId: message.chatUserId.toString(),
-        isDeleted: true
-      });
+      chatEmitter.emit('message_update', updatedMessage);
 
       return NextResponse.json({ success: true, messageId });
     } else {
@@ -190,10 +205,26 @@ export async function DELETE(req: NextRequest) {
       // Delete all messages in the chat
       await Message.deleteMany({ chatUserId });
 
-      // Broadcast clear chat event
+      // Insert system trace message
+      const systemMessage = new Message({
+        senderId: payload.userId,
+        recipientId: chatUserId,
+        chatUserId,
+        content: payload.role === 'user' ? 'Chat history cleared.' : 'Chat history cleared by admin.',
+        isSystem: true,
+        isRead: true,
+      });
+      await systemMessage.save();
+
+      const populatedSystemMsg = await Message.findById(systemMessage._id)
+        .populate('senderId', 'name email role avatar')
+        .populate('recipientId', 'name email role avatar');
+
+      // Broadcast clear chat event with system trace message
       chatEmitter.emit('message_update', {
         chatUserId,
-        isChatCleared: true
+        isChatCleared: true,
+        systemMessage: populatedSystemMsg
       });
 
       return NextResponse.json({ success: true, chatUserId });

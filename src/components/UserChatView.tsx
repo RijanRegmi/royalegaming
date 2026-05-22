@@ -182,6 +182,45 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
   const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<string | null>(null);
 
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      },
+      confirmText,
+      cancelText,
+    });
+  };
+
+  const showAlert = (title: string, message: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),
+      confirmText: 'OK',
+      cancelText: '',
+    });
+  };
+
   // Swipe gesture states and refs
   const [activeSwipeMessageId, setActiveSwipeMessageId] = useState<string | null>(null);
   const [swipeOffset, setSwipeOffset] = useState<number>(0);
@@ -246,39 +285,70 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   };
 
   const handleUnsendMessage = async (messageId: string) => {
-    if (!confirm('Are you sure you want to unsend this message?')) return;
-    try {
-      const res = await fetch(`/api/messages?messageId=${messageId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
-      } else {
-        alert(data.error || 'Failed to unsend message');
-      }
-    } catch (err) {
-      console.error('Error unsending message:', err);
-      alert('Error unsending message');
-    }
+    showConfirm(
+      'Unsend Message',
+      'Are you sure you want to delete this message for everyone?',
+      async () => {
+        try {
+          const res = await fetch(`/api/messages?messageId=${messageId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg._id === messageId
+                  ? {
+                      ...msg,
+                      isUnsent: true,
+                      content: 'This message was unsent.',
+                      fileUrl: null,
+                      fileType: null,
+                      fileName: null,
+                      fileSize: null,
+                      duration: null,
+                      reactions: [],
+                      replyTo: null,
+                    }
+                  : msg
+              )
+            );
+          } else {
+            showAlert('Error', data.error || 'Failed to delete message');
+          }
+        } catch (err) {
+          console.error('Error deleting message:', err);
+          showAlert('Error', 'Error deleting message');
+        }
+      },
+      'Unsend',
+      'Cancel'
+    );
   };
 
   const handleDeleteWholeChat = async () => {
-    if (!confirm('Are you sure you want to delete the entire chat history? This action cannot be undone.')) return;
-    try {
-      const res = await fetch('/api/messages', {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setMessages([]);
-      } else {
-        alert(data.error || 'Failed to delete chat');
-      }
-    } catch (err) {
-      console.error('Error deleting chat:', err);
-      alert('Error deleting chat');
-    }
+    showConfirm(
+      'Clear Chat History',
+      'Are you sure you want to delete the entire chat history? This action cannot be undone.',
+      async () => {
+        try {
+          const res = await fetch('/api/messages', {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMessages([]);
+          } else {
+            showAlert('Error', data.error || 'Failed to clear chat');
+          }
+        } catch (err) {
+          console.error('Error clearing chat:', err);
+          showAlert('Error', 'Error clearing chat');
+        }
+      },
+      'Clear Chat',
+      'Cancel'
+    );
   };
 
   const scrollToMessage = (msgId: string) => {
@@ -387,7 +457,9 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
   // Click listener to close emoji picker when clicking outside
   useEffect(() => {
-    const handleDocumentClick = () => {
+    const handleDocumentClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.emoji-reaction-picker') || target.closest('.msg-action-btn')) return;
       setActiveEmojiPickerMessageId(null);
     };
     document.addEventListener('click', handleDocumentClick);
@@ -429,7 +501,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         }
 
         if (data.isChatCleared) {
-          setMessages([]);
+          setMessages(data.systemMessage ? [data.systemMessage] : []);
           return;
         }
 
@@ -477,7 +549,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 }
                 const rxCountPrev = existing.reactions?.length || 0;
                 const rxCountNew = newMsg.reactions?.length || 0;
-                if (existing.isRead !== newMsg.isRead || rxCountPrev !== rxCountNew) {
+                if (existing.isRead !== newMsg.isRead || rxCountPrev !== rxCountNew || existing.isUnsent !== newMsg.isUnsent || existing.content !== newMsg.content) {
                   hasChanges = true;
                   return newMsg;
                 }
@@ -578,7 +650,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
     } catch (err) {
       console.error('Error starting audio recording:', err);
-      alert('Could not access microphone. Please check browser permissions.');
+      showAlert('Microphone Error', 'Could not access microphone. Please check browser permissions.');
     }
   };
 
@@ -867,6 +939,16 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           </div>
         ) : (
           messages.map((msg) => {
+            if (msg.isSystem) {
+              return (
+                <div key={msg._id} className="system-message-row">
+                  <div className="system-message-content">
+                    {msg.content}
+                  </div>
+                </div>
+              );
+            }
+
             const isMe = msg.senderId._id === currentUser.id || msg.senderId === currentUser.id;
             const senderRole = msg.senderId.role;
             const isSenderAdmin = senderRole === 'admin' || senderRole === 'super_admin';
@@ -928,40 +1010,42 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   onTouchEnd={(e) => handleTouchEnd(e, msg)}
                 >
                   {/* Hover actions */}
-                  <div className="message-actions-overlay">
-                    {isMe && (
+                  {!msg.isUnsent && (
+                    <div className="message-actions-overlay">
+                      {isMe && (
+                        <button
+                          type="button"
+                          className="msg-action-btn delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUnsendMessage(msg._id);
+                          }}
+                          title="Unsend message"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
                       <button
                         type="button"
-                        className="msg-action-btn delete-btn"
+                        className="msg-action-btn"
+                        onClick={() => setReplyingToMessage(msg)}
+                        title="Reply to message"
+                      >
+                        <CornerUpLeft size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="msg-action-btn"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleUnsendMessage(msg._id);
+                          setActiveEmojiPickerMessageId(activeEmojiPickerMessageId === msg._id ? null : msg._id);
                         }}
-                        title="Unsend message"
+                        title="React to message"
                       >
-                        <Trash2 size={14} />
+                        <Smile size={14} />
                       </button>
-                    )}
-                    <button
-                      type="button"
-                      className="msg-action-btn"
-                      onClick={() => setReplyingToMessage(msg)}
-                      title="Reply to message"
-                    >
-                      <CornerUpLeft size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="msg-action-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActiveEmojiPickerMessageId(activeEmojiPickerMessageId === msg._id ? null : msg._id);
-                      }}
-                      title="React to message"
-                    >
-                      <Smile size={14} />
-                    </button>
-                  </div>
+                    </div>
+                  )}
                   {activeSwipeMessageId === msg._id && swipeOffset > 10 && (
                     <div 
                       className="swipe-reply-indicator"
@@ -974,10 +1058,15 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                     </div>
                   )}
                   <div 
-                    className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''}`}
+                    className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''} ${msg.isUnsent ? 'unsent-bubble' : ''}`}
                     style={{
                       transform: activeSwipeMessageId === msg._id ? `translateX(${swipeOffset}px)` : undefined,
                       transition: activeSwipeMessageId === msg._id ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    }}
+                    onDoubleClick={() => {
+                      if (!msg.isUnsent) {
+                        handleReactToMessage(msg._id, '❤️');
+                      }
                     }}
                   >
                   {!isMe && (
@@ -1070,7 +1159,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   </div>
 
                   {/* Reaction pills */}
-                  {groupedReactions.length > 0 && (
+                  {!msg.isUnsent && groupedReactions.length > 0 && (
                     <div className="reaction-pills-container">
                       {groupedReactions.map((gr) => (
                         <button
@@ -1253,6 +1342,32 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               className="lightbox-image" 
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {confirmModal.isOpen && (
+        <div className="custom-modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+          <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className={`modal-header ${confirmModal.cancelText ? 'warning' : ''}`}>
+              <span className="modal-title">{confirmModal.title}</span>
+              <button type="button" className="modal-close-btn" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>{confirmModal.message}</p>
+            </div>
+            <div className="modal-actions">
+              {confirmModal.cancelText && (
+                <button type="button" className="btn-secondary" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                  {confirmModal.cancelText}
+                </button>
+              )}
+              <button type="button" className="btn-danger" onClick={confirmModal.onConfirm}>
+                {confirmModal.confirmText || 'OK'}
+              </button>
+            </div>
           </div>
         </div>
       )}

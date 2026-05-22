@@ -16,6 +16,8 @@ const MessageSchema = new Schema({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     emoji: { type: String, required: true }
   }],
+  isUnsent: { type: Boolean, default: false },
+  isSystem: { type: Boolean, default: false },
 }, { timestamps: true });
 
 const Message = models.Message || model('Message', MessageSchema);
