@@ -127,3 +127,79 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// DELETE: Unsend a message or clear the entire chat
+export async function DELETE(req: NextRequest) {
+  try {
+    const payload = getUserFromRequest(req);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const messageId = searchParams.get('messageId');
+
+    if (messageId) {
+      // Unsend a specific message
+      const message = await Message.findById(messageId);
+      if (!message) {
+        return NextResponse.json({ error: 'Message not found' }, { status: 404 });
+      }
+
+      // Check permissions
+      // Users can only delete their own messages.
+      // Admins/Super admins can delete any message.
+      const isSender = message.senderId.toString() === payload.userId;
+      const isAdmin = payload.role === 'admin' || payload.role === 'super_admin';
+
+      if (!isSender && !isAdmin) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      // Delete the message
+      await Message.deleteOne({ _id: messageId });
+
+      // Clean up references to this message in replyTo
+      await Message.updateMany({ replyTo: messageId }, { $set: { replyTo: null } });
+
+      // Broadcast update
+      chatEmitter.emit('message_update', {
+        _id: messageId,
+        chatUserId: message.chatUserId.toString(),
+        isDeleted: true
+      });
+
+      return NextResponse.json({ success: true, messageId });
+    } else {
+      // Clear the whole chat
+      let chatUserId = '';
+
+      if (payload.role === 'user') {
+        // Users can only delete their own chat
+        chatUserId = payload.userId;
+      } else {
+        // Admins can specify which user's chat to delete
+        const targetUserId = searchParams.get('userId');
+        if (!targetUserId) {
+          return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
+        }
+        chatUserId = targetUserId;
+      }
+
+      // Delete all messages in the chat
+      await Message.deleteMany({ chatUserId });
+
+      // Broadcast clear chat event
+      chatEmitter.emit('message_update', {
+        chatUserId,
+        isChatCleared: true
+      });
+
+      return NextResponse.json({ success: true, chatUserId });
+    }
+  } catch (error: any) {
+    console.error('Delete message/chat error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}

@@ -2280,5 +2280,76 @@ button, input, select, textarea {
   animation: bubbleFlash 1.5s ease-in-out;
 }
 
+/* Swipe-to-Reply & Deletion Styles */
+.message-bubble-wrapper {
+  position: relative;
+  display: flex;
+  max-width: 60%;
+  width: 100%;
+}
+
+.message-bubble-row.sent .message-bubble-wrapper {
+  justify-content: flex-end;
+}
+
+.message-bubble-row.received .message-bubble-wrapper {
+  justify-content: flex-start;
+}
+
+@media (max-width: 768px) {
+  .message-bubble-wrapper {
+    max-width: 80%;
+  }
+}
+
+.message-bubble-wrapper .message-bubble {
+  max-width: 100% !important;
+  width: 100%;
+  z-index: 2;
+  position: relative;
+}
+
+.swipe-reply-indicator {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: var(--accent-color, #ff4b6b);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.msg-action-btn.delete-btn {
+  color: #ff4b6b !important;
+  border-color: rgba(234, 0, 56, 0.2) !important;
+}
+
+.msg-action-btn.delete-btn:hover {
+  background: rgba(234, 0, 56, 0.1) !important;
+  color: #ff3355 !important;
+  border-color: rgba(234, 0, 56, 0.5) !important;
+  transform: scale(1.08);
+}
+
+.icon-btn.delete-chat-btn {
+  color: #ff4b6b !important;
+}
+
+.icon-btn.delete-chat-btn:hover {
+  background: rgba(234, 0, 56, 0.1) !important;
+  color: #ff3355 !important;
+}
+
+
 
 

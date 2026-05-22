@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile } from 'lucide-react';
+import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2 } from 'lucide-react';
 
 interface UserChatViewProps {
   currentUser: {
@@ -182,6 +182,105 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
   const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<string | null>(null);
 
+  // Swipe gesture states and refs
+  const [activeSwipeMessageId, setActiveSwipeMessageId] = useState<string | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState<number>(0);
+  const touchStartXRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
+  const isSwipingRef = useRef<boolean>(false);
+  const isScrollLockedRef = useRef<boolean>(false);
+
+  const handleTouchStart = (e: React.TouchEvent, msg: any) => {
+    touchStartXRef.current = e.touches[0].clientX;
+    touchStartYRef.current = e.touches[0].clientY;
+    isSwipingRef.current = false;
+    isScrollLockedRef.current = false;
+    setActiveSwipeMessageId(msg._id);
+    setSwipeOffset(0);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent, msg: any) => {
+    if (activeSwipeMessageId !== msg._id) return;
+
+    const diffX = e.touches[0].clientX - touchStartXRef.current;
+    const diffY = e.touches[0].clientY - touchStartYRef.current;
+
+    // Determine lock (horizontal swipe vs vertical scroll)
+    if (!isSwipingRef.current && !isScrollLockedRef.current) {
+      if (Math.abs(diffX) > 10 && Math.abs(diffX) > Math.abs(diffY)) {
+        isSwipingRef.current = true;
+      } else if (Math.abs(diffY) > 10 && Math.abs(diffY) > Math.abs(diffX)) {
+        isScrollLockedRef.current = true;
+      }
+    }
+
+    if (isSwipingRef.current) {
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      
+      // Swipe right only
+      if (diffX > 0) {
+        const maxSwipe = 75;
+        let offset = diffX;
+        if (offset > maxSwipe) {
+          offset = maxSwipe + (offset - maxSwipe) * 0.15;
+        }
+        setSwipeOffset(offset);
+      } else {
+        setSwipeOffset(0);
+      }
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent, msg: any) => {
+    if (activeSwipeMessageId === msg._id) {
+      if (isSwipingRef.current && swipeOffset >= 50) {
+        setReplyingToMessage(msg);
+      }
+    }
+    setSwipeOffset(0);
+    setTimeout(() => {
+      setActiveSwipeMessageId(null);
+    }, 250);
+  };
+
+  const handleUnsendMessage = async (messageId: string) => {
+    if (!confirm('Are you sure you want to unsend this message?')) return;
+    try {
+      const res = await fetch(`/api/messages?messageId=${messageId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
+      } else {
+        alert(data.error || 'Failed to unsend message');
+      }
+    } catch (err) {
+      console.error('Error unsending message:', err);
+      alert('Error unsending message');
+    }
+  };
+
+  const handleDeleteWholeChat = async () => {
+    if (!confirm('Are you sure you want to delete the entire chat history? This action cannot be undone.')) return;
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessages([]);
+      } else {
+        alert(data.error || 'Failed to delete chat');
+      }
+    } catch (err) {
+      console.error('Error deleting chat:', err);
+      alert('Error deleting chat');
+    }
+  };
+
   const scrollToMessage = (msgId: string) => {
     const element = document.getElementById(`msg-${msgId}`);
     if (element) {
@@ -329,8 +428,17 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           return;
         }
 
+        if (data.isChatCleared) {
+          setMessages([]);
+          return;
+        }
+
         // Append or update message in-place
         if (data._id) {
+          if (data.isDeleted) {
+            setMessages((prev) => prev.filter((msg) => msg._id !== data._id));
+            return;
+          }
           setMessages((prev) => {
             const exists = prev.some((msg) => msg._id === data._id);
             if (exists) {
@@ -733,6 +841,9 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
+            <Trash2 size={20} />
+          </button>
           {currentUser.role === 'super_admin' && (
             <button className="icon-btn" title="Go to Admin Panel" onClick={() => router.push('/admin')}>
               <Shield size={20} />
@@ -812,6 +923,19 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
                 {/* Hover actions */}
                 <div className="message-actions-overlay">
+                  {isMe && (
+                    <button
+                      type="button"
+                      className="msg-action-btn delete-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleUnsendMessage(msg._id);
+                      }}
+                      title="Unsend message"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="msg-action-btn"
@@ -833,7 +957,30 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   </button>
                 </div>
 
-                <div className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''}`}>
+                <div 
+                  className="message-bubble-wrapper"
+                  onTouchStart={(e) => handleTouchStart(e, msg)}
+                  onTouchMove={(e) => handleTouchMove(e, msg)}
+                  onTouchEnd={(e) => handleTouchEnd(e, msg)}
+                >
+                  {activeSwipeMessageId === msg._id && swipeOffset > 10 && (
+                    <div 
+                      className="swipe-reply-indicator"
+                      style={{
+                        opacity: Math.min(swipeOffset / 50, 1),
+                        transform: `translateY(-50%) scale(${Math.min(swipeOffset / 50, 1)})`
+                      }}
+                    >
+                      <CornerUpLeft size={16} />
+                    </div>
+                  )}
+                  <div 
+                    className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''}`}
+                    style={{
+                      transform: activeSwipeMessageId === msg._id ? `translateX(${swipeOffset}px)` : undefined,
+                      transition: activeSwipeMessageId === msg._id ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    }}
+                  >
                   {!isMe && (
                     <span className="message-sender-name">
                       {msg.senderId.name} ({senderRole === 'super_admin' ? 'Super Admin' : 'Admin'})
@@ -941,6 +1088,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                     </div>
                   )}
                 </div>
+              </div>
               </div>
             );
           })
