@@ -1,7 +1,7 @@
 'use strict';
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2 } from 'lucide-react';
 
@@ -403,6 +403,11 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const eventSourceRef = useRef<EventSource | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const selectedUserRef = useRef(selectedUser);
+  useEffect(() => {
+    selectedUserRef.current = selectedUser;
+  }, [selectedUser]);
+
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -439,7 +444,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   }, []);
 
   // Fetch users list
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
@@ -456,7 +461,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchUsers();
@@ -536,9 +541,11 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           return;
         }
 
+        const currentSelected = selectedUserRef.current;
+
         if (data.isChatCleared) {
           const msgChatUserId = data.chatUserId?.toString();
-          if (selectedUser && msgChatUserId === selectedUser.id) {
+          if (currentSelected && msgChatUserId === currentSelected.id) {
             setMessages(data.systemMessage ? [data.systemMessage] : []);
           }
           fetchUsers();
@@ -547,7 +554,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
         if (data.isDeleted) {
           const msgChatUserId = data.chatUserId?.toString();
-          if (selectedUser && msgChatUserId === selectedUser.id) {
+          if (currentSelected && msgChatUserId === currentSelected.id) {
             setMessages((prev) => prev.filter((msg) => msg._id !== data._id));
           }
           fetchUsers();
@@ -559,7 +566,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         const msgSenderId = data.senderId?._id || data.senderId;
 
         // 1. If message belongs to the currently active conversation, append it
-        if (selectedUser && msgChatUserId === selectedUser.id) {
+        if (currentSelected && msgChatUserId === currentSelected.id) {
           setMessages((prev) => {
             const exists = prev.some((msg) => msg._id === data._id);
             if (exists) {
@@ -568,14 +575,14 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             return [...prev, data];
           });
 
-          if (msgSenderId === selectedUser.id) {
-            fetch(`/api/messages?userId=${selectedUser.id}`);
+          if (msgSenderId === currentSelected.id) {
+            fetch(`/api/messages?userId=${currentSelected.id}`);
           }
         }
 
         // 2. Refresh the sidebar users to bubble latest messages and counts
         setUsers((prevUsers) => {
-          const isSenderActive = selectedUser && msgChatUserId === selectedUser.id;
+          const isSenderActive = currentSelected && msgChatUserId === currentSelected.id;
           const userIdx = prevUsers.findIndex((u) => u.id === msgChatUserId);
 
           const updatedUserObj = userIdx !== -1 ? { ...prevUsers[userIdx] } : null;
@@ -605,7 +612,10 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       }
     };
 
-  }, [selectedUser]);
+    return () => {
+      sse.close();
+    };
+  }, []);
 
   // Fallback polling for serverless environment (Vercel)
   useEffect(() => {
@@ -1124,9 +1134,12 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   {!!onlineUsers[u.id] && <span className="sidebar-online-badge" />}
                 </div>
                 <div className="convo-details">
-                  <div className="convo-row">
-                    <span className="convo-name">{u.name}</span>
-                    <span className="convo-time">
+                  <div className="convo-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{u.name}</span>
+                    <span className={`role-badge ${u.role}`} style={{ fontSize: '8px', padding: '1px 4px', textTransform: 'uppercase', flexShrink: 0, marginTop: 0 }}>
+                      {u.role === 'super_admin' ? 'Super Admin' : u.role === 'admin' ? 'Admin' : 'User'}
+                    </span>
+                    <span className="convo-time" style={{ marginLeft: 'auto', flexShrink: 0 }}>
                       {u.lastMessage ? formatTime(u.lastMessage.createdAt) : ''}
                     </span>
                   </div>
@@ -1179,7 +1192,12 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   )}
                 </div>
                 <div className="chat-user-details">
-                  <span className="chat-user-name">{selectedUser.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span className="chat-user-name">{selectedUser.name}</span>
+                    <span className={`role-badge ${selectedUser.role}`} style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0 }}>
+                      {selectedUser.role === 'super_admin' ? 'Super Admin' : selectedUser.role === 'admin' ? 'Admin' : 'User'}
+                    </span>
+                  </div>
                   <span className="chat-user-status">
                     {onlineUsers[selectedUser.id] ? (
                       <span style={{ color: 'var(--success-color)' }}>● Online</span>

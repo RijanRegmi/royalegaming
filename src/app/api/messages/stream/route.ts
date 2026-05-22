@@ -96,7 +96,10 @@ export async function GET(req: NextRequest) {
 
       // Listen for message updates (reactions, read status, replies)
       onMessageUpdate = (message: any) => {
-        if (payload.role === 'user' && message.chatUserId.toString() !== payload.userId) {
+        if (message.isChatCleared && message.clearedByUserId !== payload.userId) {
+          return;
+        }
+        if (payload.role === 'user' && message.chatUserId?.toString() !== payload.userId) {
           return;
         }
         try {

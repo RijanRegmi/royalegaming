@@ -30,7 +30,15 @@ export async function GET(req: NextRequest) {
       chatUserId = targetUserId;
     }
 
-    const messages = await Message.find({ chatUserId })
+    const messages = await Message.find({
+      chatUserId,
+      deletedFor: { $ne: payload.userId },
+      $or: [
+        { systemMessageFor: { $exists: false } },
+        { systemMessageFor: null },
+        { systemMessageFor: payload.userId }
+      ]
+    })
       .populate('senderId', 'name email role avatar')
       .populate('recipientId', 'name email role avatar')
       .populate({
@@ -44,12 +52,12 @@ export async function GET(req: NextRequest) {
     // If it's an admin viewing, mark the user's messages as read.
     if (payload.role === 'user') {
       await Message.updateMany(
-        { chatUserId, senderId: { $ne: payload.userId }, isRead: false },
+        { chatUserId, senderId: { $ne: payload.userId }, isRead: false, deletedFor: { $ne: payload.userId } },
         { $set: { isRead: true } }
       );
     } else {
       await Message.updateMany(
-        { chatUserId, senderId: chatUserId, isRead: false },
+        { chatUserId, senderId: chatUserId, isRead: false, deletedFor: { $ne: payload.userId } },
         { $set: { isRead: true } }
       );
     }
@@ -202,10 +210,13 @@ export async function DELETE(req: NextRequest) {
         chatUserId = targetUserId;
       }
 
-      // Delete all messages in the chat
-      await Message.deleteMany({ chatUserId });
+      // Soft delete all messages in the chat for this user
+      await Message.updateMany(
+        { chatUserId },
+        { $addToSet: { deletedFor: payload.userId } }
+      );
 
-      // Insert system trace message
+      // Insert system trace message specifically for this user
       const systemMessage = new Message({
         senderId: payload.userId,
         recipientId: chatUserId,
@@ -213,6 +224,7 @@ export async function DELETE(req: NextRequest) {
         content: payload.role === 'user' ? 'Chat history cleared.' : 'Chat history cleared by admin.',
         isSystem: true,
         isRead: true,
+        systemMessageFor: payload.userId,
       });
       await systemMessage.save();
 
@@ -224,6 +236,7 @@ export async function DELETE(req: NextRequest) {
       chatEmitter.emit('message_update', {
         chatUserId,
         isChatCleared: true,
+        clearedByUserId: payload.userId,
         systemMessage: populatedSystemMsg
       });
 

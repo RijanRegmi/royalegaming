@@ -15,13 +15,21 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    // Find all users who are regular 'user' (we can also include other admins if we want, but users only chat with admins)
-    const users = await User.find({ role: 'user' }).select('-password');
+    // Find all users except the currently logged-in admin/super_admin
+    const users = await User.find({ _id: { $ne: payload.userId } }).select('-password');
 
     // For each user, fetch the latest message in their chat thread and unread message count
     const usersWithActivity = await Promise.all(
       users.map(async (user) => {
-        const lastMessage = await Message.findOne({ chatUserId: user._id })
+        const lastMessage = await Message.findOne({
+          chatUserId: user._id,
+          deletedFor: { $ne: payload.userId },
+          $or: [
+            { systemMessageFor: { $exists: false } },
+            { systemMessageFor: null },
+            { systemMessageFor: payload.userId }
+          ]
+        })
           .sort({ createdAt: -1 })
           .populate('senderId', 'name role');
 
@@ -29,6 +37,7 @@ export async function GET(req: NextRequest) {
           chatUserId: user._id,
           senderId: user._id, // Message was sent by the user to the admin team
           isRead: false,
+          deletedFor: { $ne: payload.userId },
         });
 
         return {

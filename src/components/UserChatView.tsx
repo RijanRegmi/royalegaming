@@ -528,6 +528,9 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       console.warn('SSE connection warning, reconnecting...', err);
     };
 
+    return () => {
+      sse.close();
+    };
   }, []);
 
   // Fallback polling for serverless environment (Vercel)

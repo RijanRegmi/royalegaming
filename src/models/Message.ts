@@ -18,6 +18,8 @@ const MessageSchema = new Schema({
   }],
   isUnsent: { type: Boolean, default: false },
   isSystem: { type: Boolean, default: false },
+  deletedFor: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }],
+  systemMessageFor: { type: Schema.Types.ObjectId, ref: 'User', default: null },
 }, { timestamps: true });
 
 const Message = models.Message || model('Message', MessageSchema);
