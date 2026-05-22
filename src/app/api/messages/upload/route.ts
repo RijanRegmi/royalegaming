@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
     const content = formData.get('content') as string | null;
     const bodyChatUserId = formData.get('chatUserId') as string | null;
     const durationStr = formData.get('duration') as string | null;
+    const replyTo = formData.get('replyTo') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file was provided' }, { status: 400 });
@@ -95,6 +96,7 @@ export async function POST(req: NextRequest) {
       fileName: originalName,
       fileSize: file.size,
       duration,
+      replyTo: replyTo || null,
     });
 
     await newMessage.save();
@@ -102,7 +104,11 @@ export async function POST(req: NextRequest) {
     // Populate sender info for the SSE stream
     const populatedMessage = await Message.findById(newMessage._id)
       .populate('senderId', 'name email role avatar')
-      .populate('recipientId', 'name email role avatar');
+      .populate('recipientId', 'name email role avatar')
+      .populate({
+        path: 'replyTo',
+        populate: { path: 'senderId', select: 'name' }
+      });
 
     // Broadcast the new message in real-time
     chatEmitter.emit('message', populatedMessage);

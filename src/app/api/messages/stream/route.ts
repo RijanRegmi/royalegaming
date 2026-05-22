@@ -10,65 +10,119 @@ export async function GET(req: NextRequest) {
     return new Response('Unauthorized', { status: 401 });
   }
 
+  if (!(global as any).onlineUsers) {
+    (global as any).onlineUsers = new Map<string, { count: number; role: string }>();
+  }
+
   const encoder = new TextEncoder();
   let keepAliveInterval: ReturnType<typeof setInterval> | undefined;
   let onMessage: ((message: any) => void) | undefined;
+  let onMessageUpdate: ((message: any) => void) | undefined;
+  let onPresence: ((presence: any) => void) | undefined;
+  let cleaned = false;
+
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+
+    if (keepAliveInterval) {
+      clearInterval(keepAliveInterval);
+    }
+    if (onMessage) chatEmitter.off('message', onMessage);
+    if (onMessageUpdate) chatEmitter.off('message_update', onMessageUpdate);
+    if (onPresence) chatEmitter.off('presence', onPresence);
+
+    // Decrement connection count for this user
+    const onlineUsers = (global as any).onlineUsers;
+    const userRecord = onlineUsers.get(payload.userId);
+    if (userRecord) {
+      if (userRecord.count <= 1) {
+        onlineUsers.delete(payload.userId);
+        chatEmitter.emit('presence', { userId: payload.userId, role: payload.role, online: false });
+      } else {
+        onlineUsers.set(payload.userId, { count: userRecord.count - 1, role: payload.role });
+      }
+    }
+  };
 
   const stream = new ReadableStream({
     start(controller) {
       try {
-        // Send an initial handshake
+        const onlineUsers = (global as any).onlineUsers;
+        const userRecord = onlineUsers.get(payload.userId) || { count: 0, role: payload.role };
+        onlineUsers.set(payload.userId, { count: userRecord.count + 1, role: payload.role });
+
+        // Retrieve current list of online users to return in handshake
+        const onlineUsersList = Array.from(onlineUsers.entries()).map(([id, info]: any) => ({
+          userId: id,
+          role: info.role
+        }));
+
+        // Send handshake
         controller.enqueue(encoder.encode('retry: 1500\n\n'));
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ connected: true, userId: payload.userId, role: payload.role })}\n\n`));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ 
+          connected: true, 
+          userId: payload.userId, 
+          role: payload.role,
+          onlineUsers: onlineUsersList
+        })}\n\n`));
+
+        if (userRecord.count === 0) {
+          // Broadcast user going online
+          chatEmitter.emit('presence', { userId: payload.userId, role: payload.role, online: true });
+        }
       } catch (err) {
         console.error('SSE initialization error:', err);
       }
 
-      // Keep-alive heartbeat to prevent timeouts (every 15 seconds)
+      // Heartbeat
       keepAliveInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(': ping\n\n'));
         } catch (err) {
-          if (keepAliveInterval) {
-            clearInterval(keepAliveInterval);
-          }
+          cleanup();
         }
       }, 15000);
 
-      // Event handler callback
+      // Listen for message broadcasts
       onMessage = (message: any) => {
-        // If the recipient is a user, only stream messages belonging to their conversation
         if (payload.role === 'user' && message.chatUserId.toString() !== payload.userId) {
           return;
         }
-        // Admins and Super Admins receive all message events to update sidebar feeds and current chat panes
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`));
-        } catch (e) {
-          // Stream might be closed already or controller closed
+        } catch (e) {}
+      };
+
+      // Listen for message updates (reactions, read status, replies)
+      onMessageUpdate = (message: any) => {
+        if (payload.role === 'user' && message.chatUserId.toString() !== payload.userId) {
+          return;
         }
+        try {
+          const plainMsg = message.toJSON ? message.toJSON() : message;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ ...plainMsg, isUpdate: true })}\n\n`));
+        } catch (e) {}
+      };
+
+      // Listen for presence notifications
+      onPresence = (presence: any) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'presence', ...presence })}\n\n`));
+        } catch (e) {}
       };
 
       chatEmitter.on('message', onMessage);
+      chatEmitter.on('message_update', onMessageUpdate);
+      chatEmitter.on('presence', onPresence);
     },
     cancel() {
-      if (keepAliveInterval) {
-        clearInterval(keepAliveInterval);
-      }
-      if (onMessage) {
-        chatEmitter.off('message', onMessage);
-      }
+      cleanup();
     },
   });
 
-  // Listen for client disconnect/abort
   req.signal.addEventListener('abort', () => {
-    if (keepAliveInterval) {
-      clearInterval(keepAliveInterval);
-    }
-    if (onMessage) {
-      chatEmitter.off('message', onMessage);
-    }
+    cleanup();
   });
 
   return new Response(stream, {

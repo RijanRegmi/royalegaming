@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2 } from 'lucide-react';
+import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile } from 'lucide-react';
 
 interface AdminChatViewProps {
   currentUser: {
@@ -182,6 +182,42 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
 
+  const [onlineUsers, setOnlineUsers] = useState<Record<string, string>>({});
+  const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
+  const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<string | null>(null);
+
+  const scrollToMessage = (msgId: string) => {
+    const element = document.getElementById(`msg-${msgId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const bubble = element.querySelector('.message-bubble');
+      if (bubble) {
+        bubble.classList.add('highlight-flash');
+        setTimeout(() => {
+          bubble.classList.remove('highlight-flash');
+        }, 1500);
+      }
+    }
+  };
+
+  const handleReactToMessage = async (messageId: string, emoji: string) => {
+    try {
+      const res = await fetch('/api/messages/react', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messageId, emoji }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setMessages((prev) =>
+          prev.map((msg) => (msg._id === messageId ? data.message : msg))
+        );
+      }
+    } catch (err) {
+      console.error('Error reacting to message:', err);
+    }
+  };
+
   // File Attachment States
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [filePreview, setFilePreview] = useState<string | null>(null);
@@ -277,6 +313,17 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     fetchMessages();
   }, [selectedUser]);
 
+  // Click listener to close emoji picker when clicking outside
+  useEffect(() => {
+    const handleDocumentClick = () => {
+      setActiveEmojiPickerMessageId(null);
+    };
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, []);
+
   // Listen to Server-Sent Events (SSE) for real-time updates
   useEffect(() => {
     const sse = new EventSource(`/api/messages/stream?t=${Date.now()}`);
@@ -285,7 +332,29 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     sse.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.connected) return;
+        if (data.connected) {
+          if (data.onlineUsers) {
+            const usersMap: Record<string, string> = {};
+            data.onlineUsers.forEach((u: any) => {
+              usersMap[u.userId] = u.role;
+            });
+            setOnlineUsers(usersMap);
+          }
+          return;
+        }
+
+        if (data.type === 'presence') {
+          setOnlineUsers((prev) => {
+            const next = { ...prev };
+            if (data.online) {
+              next[data.userId] = data.role;
+            } else {
+              delete next[data.userId];
+            }
+            return next;
+          });
+          return;
+        }
 
         const msgChatUserId = data.chatUserId.toString();
         const msgSenderId = data.senderId._id || data.senderId;
@@ -294,7 +363,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         if (selectedUser && msgChatUserId === selectedUser.id) {
           setMessages((prev) => {
             const exists = prev.some((msg) => msg._id === data._id);
-            if (exists) return prev;
+            if (exists) {
+              return prev.map((msg) => (msg._id === data._id ? data : msg));
+            }
             return [...prev, data];
           });
 
@@ -363,10 +434,24 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             const data = await res.json();
             if (res.ok && data.success) {
               setMessages((prev) => {
-                const existingIds = new Set(prev.map((m) => m._id));
-                const newMsgs = data.messages.filter((m: any) => !existingIds.has(m._id));
-                if (newMsgs.length > 0) {
-                  return [...prev, ...newMsgs];
+                const prevMap = new Map(prev.map((msg) => [msg._id, msg]));
+                let hasChanges = false;
+                const merged = data.messages.map((newMsg: any) => {
+                  const existing = prevMap.get(newMsg._id);
+                  if (!existing) {
+                    hasChanges = true;
+                    return newMsg;
+                  }
+                  const rxCountPrev = existing.reactions?.length || 0;
+                  const rxCountNew = newMsg.reactions?.length || 0;
+                  if (existing.isRead !== newMsg.isRead || rxCountPrev !== rxCountNew) {
+                    hasChanges = true;
+                    return newMsg;
+                  }
+                  return existing;
+                });
+                if (merged.length !== prev.length || hasChanges) {
+                  return merged;
                 }
                 return prev;
               });
@@ -512,6 +597,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       formData.append('type', 'voice');
       formData.append('duration', duration.toString());
       formData.append('chatUserId', selectedUser.id);
+      if (replyingToMessage) {
+        formData.append('replyTo', replyingToMessage._id);
+      }
 
       const res = await fetch('/api/messages/upload', {
         method: 'POST',
@@ -525,7 +613,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
       setMessages((prev) => {
         const exists = prev.some((msg) => msg._id === data.message._id);
-        if (exists) return prev;
+        if (exists) {
+          return prev.map((msg) => (msg._id === data.message._id ? data.message : msg));
+        }
         return [...prev, data.message];
       });
 
@@ -546,6 +636,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         }
         return prev;
       });
+      setReplyingToMessage(null);
     } catch (err) {
       console.error('Error sending voice message:', err);
     } finally {
@@ -572,6 +663,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         formData.append('file', selectedFile!);
         formData.append('type', fileType!);
         formData.append('chatUserId', selectedUser.id);
+        if (replyingToMessage) {
+          formData.append('replyTo', replyingToMessage._id);
+        }
         if (hasText) {
           formData.append('content', inputText.trim());
         }
@@ -588,7 +682,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
         setMessages((prev) => {
           const exists = prev.some((msg) => msg._id === data.message._id);
-          if (exists) return prev;
+          if (exists) {
+            return prev.map((msg) => (msg._id === data.message._id ? data.message : msg));
+          }
           return [...prev, data.message];
         });
 
@@ -619,6 +715,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           body: JSON.stringify({
             content: inputText.trim(),
             chatUserId: selectedUser.id,
+            replyTo: replyingToMessage ? replyingToMessage._id : undefined
           }),
         });
 
@@ -629,7 +726,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
         setMessages((prev) => {
           const exists = prev.some((msg) => msg._id === data.message._id);
-          if (exists) return prev;
+          if (exists) {
+            return prev.map((msg) => (msg._id === data.message._id ? data.message : msg));
+          }
           return [...prev, data.message];
         });
 
@@ -652,6 +751,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         });
         setInputText('');
       }
+      setReplyingToMessage(null);
     } catch (err) {
       console.error('Error sending message:', err);
     } finally {
@@ -814,12 +914,15 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 className={`conversation-item ${selectedUser?.id === u.id ? 'active' : ''}`}
                 onClick={() => setSelectedUser(u)}
               >
-                <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px' }}>
-                  {u.avatar ? (
-                    <img src={u.avatar} alt={u.name} className="avatar-image" />
-                  ) : (
-                    getInitials(u.name)
-                  )}
+                <div className="sidebar-avatar-container">
+                  <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px' }}>
+                    {u.avatar ? (
+                      <img src={u.avatar} alt={u.name} className="avatar-image" />
+                    ) : (
+                      getInitials(u.name)
+                    )}
+                  </div>
+                  {!!onlineUsers[u.id] && <span className="sidebar-online-badge" />}
                 </div>
                 <div className="convo-details">
                   <div className="convo-row">
@@ -878,7 +981,13 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 </div>
                 <div className="chat-user-details">
                   <span className="chat-user-name">{selectedUser.name}</span>
-                  <span className="chat-user-status">{selectedUser.email}</span>
+                  <span className="chat-user-status">
+                    {onlineUsers[selectedUser.id] ? (
+                      <span style={{ color: 'var(--success-color)' }}>● Online</span>
+                    ) : (
+                      selectedUser.email
+                    )}
+                  </span>
                 </div>
               </div>
               <div>
@@ -899,17 +1008,100 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 const isUserMessage = msg.senderId._id === selectedUser.id || msg.senderId === selectedUser.id;
                 const senderRole = msg.senderId.role;
                 const hasImageOnly = msg.fileType === 'image' && !msg.content;
+                
+                const isSelectedUserOnline = !!onlineUsers[selectedUser.id];
+
+                const reactions = msg.reactions || [];
+                const groupedReactions: { emoji: string; count: number; hasMyReaction: boolean }[] = [];
+                reactions.forEach((reaction: any) => {
+                  const rUserId = reaction.userId?._id || reaction.userId;
+                  const isMyReaction = rUserId === currentUser.id;
+                  const existing = groupedReactions.find((gr) => gr.emoji === reaction.emoji);
+                  if (existing) {
+                    existing.count += 1;
+                    if (isMyReaction) {
+                      existing.hasMyReaction = true;
+                    }
+                  } else {
+                    groupedReactions.push({
+                      emoji: reaction.emoji,
+                      count: 1,
+                      hasMyReaction: isMyReaction,
+                    });
+                  }
+                });
 
                 return (
                   <div
                     key={msg._id}
+                    id={`msg-${msg._id}`}
                     className={`message-bubble-row ${isUserMessage ? 'received' : 'sent'}`}
                   >
+                    {/* Emoji picker overlay */}
+                    {activeEmojiPickerMessageId === msg._id && (
+                      <div className="emoji-reaction-picker" onClick={(e) => e.stopPropagation()}>
+                        {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+                          <button
+                            key={emoji}
+                            type="button"
+                            className="reaction-emoji-btn"
+                            onClick={() => {
+                              handleReactToMessage(msg._id, emoji);
+                              setActiveEmojiPickerMessageId(null);
+                            }}
+                          >
+                            {emoji}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Hover actions */}
+                    <div className="message-actions-overlay">
+                      <button
+                        type="button"
+                        className="msg-action-btn"
+                        onClick={() => setReplyingToMessage(msg)}
+                        title="Reply to message"
+                      >
+                        <CornerUpLeft size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="msg-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveEmojiPickerMessageId(activeEmojiPickerMessageId === msg._id ? null : msg._id);
+                        }}
+                        title="React to message"
+                      >
+                        <Smile size={14} />
+                      </button>
+                    </div>
+
                     <div className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''}`}>
                       {!isUserMessage && (
                         <span className="message-sender-name" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
                           {msg.senderId.name} ({senderRole === 'super_admin' ? 'Super Admin' : 'Admin'})
                         </span>
+                      )}
+
+                      {/* Reply Reference Quote */}
+                      {msg.replyTo && (
+                        <div 
+                          className="message-reply-quote" 
+                          onClick={() => scrollToMessage(msg.replyTo._id || msg.replyTo)}
+                        >
+                          <span className="reply-quote-sender">
+                            {msg.replyTo.senderId?.name || 'Message'}
+                          </span>
+                          <span className="reply-quote-content">
+                            {msg.replyTo.fileType === 'image' && '📷 Image '}
+                            {msg.replyTo.fileType === 'voice' && '🎵 Voice Message '}
+                            {msg.replyTo.fileType === 'document' && '📄 Document '}
+                            {msg.replyTo.content || ''}
+                          </span>
+                        </div>
                       )}
                       
                       {/* Rich Media Content rendering */}
@@ -964,7 +1156,36 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                       
                       <div className="message-bubble-meta">
                         <span className="message-time">{formatTime(msg.createdAt)}</span>
+                        {!isUserMessage && (
+                          <span className="message-ticks">
+                            {msg.isRead ? (
+                              <CheckCheck size={15} className="tick-read" />
+                            ) : isSelectedUserOnline ? (
+                              <CheckCheck size={15} className="tick-delivered" />
+                            ) : (
+                              <Check size={15} className="tick-sent" />
+                            )}
+                          </span>
+                        )}
                       </div>
+
+                      {/* Reaction pills */}
+                      {groupedReactions.length > 0 && (
+                        <div className="reaction-pills-container">
+                          {groupedReactions.map((gr) => (
+                            <button
+                              key={gr.emoji}
+                              type="button"
+                              className={`reaction-pill ${gr.hasMyReaction ? 'my-reaction' : ''}`}
+                              onClick={() => handleReactToMessage(msg._id, gr.emoji)}
+                              title={gr.hasMyReaction ? "Remove reaction" : "React with this emoji"}
+                            >
+                              <span>{gr.emoji}</span>
+                              <span className="reaction-pill-count">{gr.count}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -994,7 +1215,32 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               </div>
             )}
 
-            {/* Chat Reply Input */}
+            {/* Reply Preview Bar */}
+            {replyingToMessage && (
+              <div className="reply-preview-bar">
+                <div className="reply-preview-content">
+                  <span className="reply-preview-title">
+                    Replying to {replyingToMessage.senderId._id === currentUser.id || replyingToMessage.senderId === currentUser.id ? 'yourself' : replyingToMessage.senderId.name}
+                  </span>
+                  <span className="reply-preview-text">
+                    {replyingToMessage.fileType === 'image' && '📷 Image '}
+                    {replyingToMessage.fileType === 'voice' && '🎵 Voice Message '}
+                    {replyingToMessage.fileType === 'document' && '📄 Document '}
+                    {replyingToMessage.content || ''}
+                  </span>
+                </div>
+                <button 
+                  type="button" 
+                  className="reply-preview-close" 
+                  onClick={() => setReplyingToMessage(null)}
+                  title="Cancel reply"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            )}
+
+            {/* Chat Input Form */}
             <form className="chat-input-bar" onSubmit={handleSendMessage}>
               <input 
                 type="file" 

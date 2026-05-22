@@ -33,6 +33,10 @@ export async function GET(req: NextRequest) {
     const messages = await Message.find({ chatUserId })
       .populate('senderId', 'name email role avatar')
       .populate('recipientId', 'name email role avatar')
+      .populate({
+        path: 'replyTo',
+        populate: { path: 'senderId', select: 'name' }
+      })
       .sort({ createdAt: 1 });
 
     // Mark messages as read:
@@ -66,7 +70,7 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
-    const { content, chatUserId: bodyChatUserId } = await req.json();
+    const { content, chatUserId: bodyChatUserId, replyTo } = await req.json();
 
     if (!content || !content.trim()) {
       return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });
@@ -100,6 +104,7 @@ export async function POST(req: NextRequest) {
       chatUserId,
       content,
       isRead: false,
+      replyTo: replyTo || null,
     });
 
     await newMessage.save();
@@ -107,7 +112,11 @@ export async function POST(req: NextRequest) {
     // Populate sender info for the SSE broadcast
     const populatedMessage = await Message.findById(newMessage._id)
       .populate('senderId', 'name email role avatar')
-      .populate('recipientId', 'name email role avatar');
+      .populate('recipientId', 'name email role avatar')
+      .populate({
+        path: 'replyTo',
+        populate: { path: 'senderId', select: 'name' }
+      });
 
     // Broadcast the new message
     chatEmitter.emit('message', populatedMessage);

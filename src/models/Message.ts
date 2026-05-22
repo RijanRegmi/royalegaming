@@ -11,6 +11,11 @@ const MessageSchema = new Schema({
   fileName: { type: String }, // Original file name
   fileSize: { type: Number }, // In bytes
   duration: { type: Number }, // Dynamic duration for voice recordings in seconds
+  replyTo: { type: Schema.Types.ObjectId, ref: 'Message', default: null },
+  reactions: [{
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    emoji: { type: String, required: true }
+  }],
 }, { timestamps: true });
 
 const Message = models.Message || model('Message', MessageSchema);
