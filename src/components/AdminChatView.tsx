@@ -1183,46 +1183,45 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                       </div>
                     )}
 
-                    {/* Hover actions */}
-                    <div className="message-actions-overlay">
-                      <button
-                        type="button"
-                        className="msg-action-btn delete-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUnsendMessage(msg._id);
-                        }}
-                        title="Delete message"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="msg-action-btn"
-                        onClick={() => setReplyingToMessage(msg)}
-                        title="Reply to message"
-                      >
-                        <CornerUpLeft size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="msg-action-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveEmojiPickerMessageId(activeEmojiPickerMessageId === msg._id ? null : msg._id);
-                        }}
-                        title="React to message"
-                      >
-                        <Smile size={14} />
-                      </button>
-                    </div>
-
-                    <div 
-                      className="message-bubble-wrapper"
-                      onTouchStart={(e) => handleTouchStart(e, msg)}
-                      onTouchMove={(e) => handleTouchMove(e, msg)}
-                      onTouchEnd={(e) => handleTouchEnd(e, msg)}
-                    >
+                     <div 
+                       className="message-bubble-wrapper"
+                       onTouchStart={(e) => handleTouchStart(e, msg)}
+                       onTouchMove={(e) => handleTouchMove(e, msg)}
+                       onTouchEnd={(e) => handleTouchEnd(e, msg)}
+                     >
+                       {/* Hover actions */}
+                       <div className="message-actions-overlay">
+                         <button
+                           type="button"
+                           className="msg-action-btn delete-btn"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handleUnsendMessage(msg._id);
+                           }}
+                           title="Delete message"
+                         >
+                           <Trash2 size={14} />
+                         </button>
+                         <button
+                           type="button"
+                           className="msg-action-btn"
+                           onClick={() => setReplyingToMessage(msg)}
+                           title="Reply to message"
+                         >
+                           <CornerUpLeft size={14} />
+                         </button>
+                         <button
+                           type="button"
+                           className="msg-action-btn"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setActiveEmojiPickerMessageId(activeEmojiPickerMessageId === msg._id ? null : msg._id);
+                           }}
+                           title="React to message"
+                         >
+                           <Smile size={14} />
+                         </button>
+                       </div>
                       {activeSwipeMessageId === msg._id && swipeOffset > 10 && (
                         <div 
                           className="swipe-reply-indicator"

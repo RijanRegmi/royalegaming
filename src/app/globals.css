@@ -2106,14 +2106,14 @@ button, input, select, textarea {
 
 .message-bubble-row.sent .message-actions-overlay {
   left: auto;
-  right: calc(60% + 20px); /* Position it to the left of the sent bubble */
+  right: calc(100% + 8px); /* Position it to the left of the sent bubble */
   flex-direction: row-reverse;
   transform: translateY(-50%) translateX(10px);
 }
 
 .message-bubble-row.received .message-actions-overlay {
   right: auto;
-  left: calc(60% + 20px); /* Position it to the right of the received bubble */
+  left: calc(100% + 8px); /* Position it to the right of the received bubble */
   transform: translateY(-50%) translateX(-10px);
 }
 
@@ -2121,12 +2121,6 @@ button, input, select, textarea {
   /* Smaller max width on mobile so actions don't clip */
   .message-bubble {
     max-width: 80%;
-  }
-  .message-bubble-row.sent .message-actions-overlay {
-    right: calc(80% + 10px);
-  }
-  .message-bubble-row.received .message-actions-overlay {
-    left: calc(80% + 10px);
   }
 }
 
@@ -2285,7 +2279,7 @@ button, input, select, textarea {
   position: relative;
   display: flex;
   max-width: 60%;
-  width: 100%;
+  width: fit-content;
 }
 
 .message-bubble-row.sent .message-bubble-wrapper {
@@ -2304,7 +2298,7 @@ button, input, select, textarea {
 
 .message-bubble-wrapper .message-bubble {
   max-width: 100% !important;
-  width: 100%;
+  width: auto;
   z-index: 2;
   position: relative;
 }
