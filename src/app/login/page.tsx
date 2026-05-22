@@ -358,22 +358,6 @@ export default function LoginPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '12px' }}>
           <div ref={googleBtnRef} id="google-signin-btn"></div>
-          <button 
-            type="button" 
-            className="guest-btn" 
-            onClick={handleGuestLogin}
-            disabled={loading}
-          >
-            Continue as Guest (Demo)
-          </button>
-          <button 
-            type="button" 
-            className="mock-google-btn" 
-            onClick={handleMockGoogleLogin}
-            disabled={loading}
-          >
-            Mock Google Sign-In (Dev Mode)
-          </button>
         </div>
 
         <div className="auth-switch-text">
