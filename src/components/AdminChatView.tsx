@@ -335,9 +335,51 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       }
     };
 
-    return () => {
-      if (sse) sse.close();
-    };
+  }, [selectedUser]);
+
+  // Fallback polling for serverless environment (Vercel)
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      // 1. Fetch users list silently to update sidebar (unread counts, last messages)
+      const pollUsers = async () => {
+        try {
+          const res = await fetch('/api/admin/users');
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setUsers(data.users);
+          }
+        } catch (err) {
+          console.warn('Silent user poll failed:', err);
+        }
+      };
+
+      pollUsers();
+
+      // 2. Fetch messages if there is a selected user conversation
+      if (selectedUser) {
+        const pollMessages = async () => {
+          try {
+            const res = await fetch(`/api/messages?userId=${selectedUser.id}`);
+            const data = await res.json();
+            if (res.ok && data.success) {
+              setMessages((prev) => {
+                const existingIds = new Set(prev.map((m) => m._id));
+                const newMsgs = data.messages.filter((m: any) => !existingIds.has(m._id));
+                if (newMsgs.length > 0) {
+                  return [...prev, ...newMsgs];
+                }
+                return prev;
+              });
+            }
+          } catch (err) {
+            console.warn('Silent messages poll failed:', err);
+          }
+        };
+        pollMessages();
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
   }, [selectedUser]);
 
   // Scroll to bottom

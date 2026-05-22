@@ -277,9 +277,33 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       console.warn('SSE connection warning, reconnecting...', err);
     };
 
-    return () => {
-      if (sse) sse.close();
-    };
+  }, []);
+
+  // Fallback polling for serverless environment (Vercel)
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      const fetchSilent = async () => {
+        try {
+          const res = await fetch('/api/messages');
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMessages((prev) => {
+              const existingIds = new Set(prev.map((m) => m._id));
+              const newMsgs = data.messages.filter((m: any) => !existingIds.has(m._id));
+              if (newMsgs.length > 0) {
+                return [...prev, ...newMsgs];
+              }
+              return prev;
+            });
+          }
+        } catch (err) {
+          console.warn('Silent messages poll failed:', err);
+        }
+      };
+      fetchSilent();
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
   }, []);
 
   // Scroll to bottom
