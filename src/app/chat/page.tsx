@@ -11,6 +11,29 @@ export default function ChatPage() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
+  // Visual Viewport Height handler for mobile keyboard compatibility
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.visualViewport) {
+        document.documentElement.style.setProperty('--viewport-height', `${window.visualViewport.height}px`);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('scroll', handleResize);
+      handleResize();
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('scroll', handleResize);
+      }
+      document.documentElement.style.removeProperty('--viewport-height');
+    };
+  }, []);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
