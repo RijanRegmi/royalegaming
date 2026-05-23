@@ -693,7 +693,7 @@ button, input, select, textarea {
 /* Messages Pane */
 .messages-container {
   flex: 1;
-  padding: 20px;
+  padding: 50px 20px 20px 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -2164,6 +2164,11 @@ button, input, select, textarea {
   z-index: 100;
   animation: popEmoji 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   top: -45px;
+}
+
+.emoji-reaction-picker.picker-bottom {
+  top: auto !important;
+  bottom: -45px !important;
 }
 
 .message-bubble-row.sent .emoji-reaction-picker {

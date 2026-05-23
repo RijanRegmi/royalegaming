@@ -231,6 +231,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   const touchStartYRef = useRef<number>(0);
   const isSwipingRef = useRef<boolean>(false);
   const isScrollLockedRef = useRef<boolean>(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleTouchStart = (e: React.TouchEvent, msg: any) => {
     touchStartXRef.current = e.touches[0].clientX;
@@ -239,6 +240,18 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     isScrollLockedRef.current = false;
     setActiveSwipeMessageId(msg._id);
     setSwipeOffset(0);
+
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+    }
+    longPressTimerRef.current = setTimeout(() => {
+      if (!msg.isUnsent) {
+        setActiveEmojiPickerMessageId(msg._id);
+        if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+          window.navigator.vibrate(50);
+        }
+      }
+    }, 600);
   };
 
   const handleTouchMove = (e: React.TouchEvent, msg: any) => {
@@ -246,6 +259,14 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
     const diffX = e.touches[0].clientX - touchStartXRef.current;
     const diffY = e.touches[0].clientY - touchStartYRef.current;
+
+    // Cancel long press if the user moves their finger significantly
+    if (Math.abs(diffX) > 10 || Math.abs(diffY) > 10) {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+    }
 
     // Determine lock (horizontal swipe vs vertical scroll)
     if (!isSwipingRef.current && !isScrollLockedRef.current) {
@@ -276,6 +297,11 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   };
 
   const handleTouchEnd = (e: React.TouchEvent, msg: any) => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+
     if (activeSwipeMessageId === msg._id) {
       if (isSwipingRef.current && swipeOffset >= 50) {
         setReplyingToMessage(msg);
@@ -963,7 +989,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
             <p>Type a message below to contact the administration team. An admin will get back to you shortly.</p>
           </div>
         ) : (
-          messages.map((msg) => {
+          messages.map((msg, index) => {
             if (msg.isSystem) {
               return (
                 <div key={msg._id} className="system-message-row">
@@ -1011,7 +1037,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               >
                 {/* Emoji picker overlay */}
                 {activeEmojiPickerMessageId === msg._id && (
-                  <div className="emoji-reaction-picker" onClick={(e) => e.stopPropagation()}>
+                  <div className={`emoji-reaction-picker ${index <= 1 ? 'picker-bottom' : ''}`} onClick={(e) => e.stopPropagation()}>
                     {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
                       <button
                         key={emoji}
@@ -1033,6 +1059,27 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   onTouchStart={(e) => handleTouchStart(e, msg)}
                   onTouchMove={(e) => handleTouchMove(e, msg)}
                   onTouchEnd={(e) => handleTouchEnd(e, msg)}
+                  onMouseDown={(e) => {
+                    if (e.button !== 0) return; // Left click only
+                    if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = setTimeout(() => {
+                      if (!msg.isUnsent) {
+                        setActiveEmojiPickerMessageId(msg._id);
+                      }
+                    }, 600);
+                  }}
+                  onMouseUp={() => {
+                    if (longPressTimerRef.current) {
+                      clearTimeout(longPressTimerRef.current);
+                      longPressTimerRef.current = null;
+                    }
+                  }}
+                  onMouseLeave={() => {
+                    if (longPressTimerRef.current) {
+                      clearTimeout(longPressTimerRef.current);
+                      longPressTimerRef.current = null;
+                    }
+                  }}
                 >
                   {/* Hover actions */}
                   {!msg.isUnsent && (
