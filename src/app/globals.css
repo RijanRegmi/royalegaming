@@ -2833,6 +2833,120 @@ button, input, select, textarea {
   gap: 16px;
 }
 
+@media (max-width: 640px) {
+  /* Navbar adjustments */
+  .lobby-navbar {
+    padding: 12px 14px !important;
+  }
+  
+  .lobby-logo-text {
+    font-size: 16px !important;
+  }
+  
+  .lobby-logo-icon {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 8px !important;
+  }
+  
+  .lobby-logo-sub {
+    font-size: 7.5px !important;
+    letter-spacing: 0.6px !important;
+  }
+
+  .lobby-nav-actions {
+    gap: 6px !important;
+  }
+  
+  .lobby-btn-chat, .lobby-btn-primary {
+    padding: 7px 10px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+    gap: 4px !important;
+  }
+  
+  .lobby-btn-secondary {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Hero title font size adjustment to prevent text clipping */
+  .lobby-hero {
+    margin: 24px auto 16px auto !important;
+    padding: 0 8px !important;
+  }
+  
+  .lobby-hero h2 {
+    font-size: 26px !important;
+    letter-spacing: -0.5px !important;
+    line-height: 1.2 !important;
+  }
+  
+  .lobby-hero p {
+    font-size: 12.5px !important;
+    line-height: 1.5 !important;
+  }
+
+  /* Grid layout adjustment */
+  .lobby-grid-layout {
+    gap: 12px !important;
+    margin-top: 24px !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  
+  /* Lobby card adjustments */
+  .lobby-card {
+    padding: 10px !important;
+    border-radius: 14px !important;
+  }
+  
+  .lobby-card-img-container {
+    border-radius: 10px !important;
+    margin-bottom: 8px !important;
+  }
+  
+  .lobby-card-title {
+    font-size: 13px !important;
+    margin-bottom: 10px !important;
+  }
+  
+  .lobby-play-button {
+    padding: 8px !important;
+    font-size: 10px !important;
+    border-radius: 8px !important;
+  }
+  
+  /* Chat FAB adjustment */
+  .lobby-chat-fab {
+    width: 48px !important;
+    height: 48px !important;
+  }
+  
+  .lobby-chat-widget {
+    bottom: 60px !important; /* Move up so it doesn't overlap the bottom bar button */
+    right: 16px !important;
+  }
+  
+  /* Bottom Announcement Bar - Hide text on mobile and center button */
+  .lobby-announcement-bar {
+    padding: 10px 14px !important;
+    justify-content: center !important;
+    gap: 0 !important;
+  }
+  
+  .lobby-announcement-bar span {
+    display: none !important;
+  }
+  
+  .lobby-announcement-bar button {
+    width: 100% !important;
+    text-align: center !important;
+    justify-content: center !important;
+  }
+}
+
+
 
 
 
