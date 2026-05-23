@@ -87,7 +87,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Google login failed');
       }
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -121,7 +121,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Mock Google login failed');
       }
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -142,7 +142,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Guest login failed');
       }
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -171,7 +171,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Invalid credentials');
       }
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -205,7 +205,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      router.push(redirectUrl);
+      window.location.href = redirectUrl;
     } catch (err: any) {
       setError(err.message);
       setLoading(false);

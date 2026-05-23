@@ -9,6 +9,7 @@ interface GameItem {
   name: string;
   image: string;
   link: string;
+  agentLink?: string;
 }
 
 export default function Home() {
@@ -18,6 +19,7 @@ export default function Home() {
   const [authenticated, setAuthenticated] = useState<boolean>(false);
   const [loadingGames, setLoadingGames] = useState<boolean>(true);
   const [verifyingAuth, setVerifyingAuth] = useState<boolean>(true);
+  const [linkMode, setLinkMode] = useState<'player' | 'agent'>('player');
 
   // Fetch games and verify authentication
   useEffect(() => {
@@ -71,7 +73,7 @@ export default function Home() {
       if (res.ok) {
         setUser(null);
         setAuthenticated(false);
-        router.refresh();
+        window.location.href = '/';
       }
     } catch (err) {
       console.error('Logout error:', err);
@@ -151,6 +153,39 @@ export default function Home() {
           </p>
         </section>
 
+        {/* Link Mode Switcher */}
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 800,
+            color: '#a855f7',
+            textTransform: 'uppercase',
+            letterSpacing: '2px',
+            marginBottom: '16px',
+            textShadow: '0 0 15px rgba(168, 85, 247, 0.4)'
+          }}>
+            Game Links
+          </h2>
+          <div className="lobby-mode-container">
+            <div className="lobby-mode-switcher">
+              <button
+                type="button"
+                onClick={() => setLinkMode('player')}
+                className={`lobby-mode-btn ${linkMode === 'player' ? 'active' : ''}`}
+              >
+                <span>Player Links</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLinkMode('agent')}
+                className={`lobby-mode-btn ${linkMode === 'agent' ? 'active' : ''}`}
+              >
+                <span>Agent Links</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Game Lobby Grid */}
         <main>
           {loadingGames ? (
@@ -185,7 +220,10 @@ export default function Home() {
 
                   {/* Play Button */}
                   <button
-                    onClick={() => window.open(game.link, '_blank')}
+                    onClick={() => {
+                      const targetLink = linkMode === 'agent' && game.agentLink ? game.agentLink : game.link;
+                      window.open(targetLink, '_blank');
+                    }}
                     className="lobby-play-button"
                   >
                     PLAY NOW

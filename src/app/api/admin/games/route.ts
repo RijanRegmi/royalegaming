@@ -54,6 +54,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const name = formData.get('name') as string | null;
     const link = formData.get('link') as string | null;
+    const agentLink = formData.get('agentLink') as string | null;
     const file = formData.get('file') as File | null;
     const imageUrl = formData.get('imageUrl') as string | null;
 
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
     const newGame = new Game({
       name: name.trim(),
       link: link.trim(),
+      agentLink: agentLink ? agentLink.trim() : link.trim(),
       image: finalImageUrl,
     });
 
@@ -101,6 +103,7 @@ export async function PUT(req: NextRequest) {
     const id = formData.get('id') as string | null;
     const name = formData.get('name') as string | null;
     const link = formData.get('link') as string | null;
+    const agentLink = formData.get('agentLink') as string | null;
     const file = formData.get('file') as File | null;
     const imageUrl = formData.get('imageUrl') as string | null;
 
@@ -115,6 +118,7 @@ export async function PUT(req: NextRequest) {
 
     if (name) gameToUpdate.name = name.trim();
     if (link) gameToUpdate.link = link.trim();
+    if (agentLink !== null && agentLink !== undefined) gameToUpdate.agentLink = agentLink.trim();
 
     if (file) {
       const buffer = Buffer.from(await file.arrayBuffer());

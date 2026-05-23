@@ -1090,11 +1090,11 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             </div>
           </div>
           <div className="sidebar-actions">
-            <button className="icon-btn" title="Go to Lobby Front" onClick={() => router.push('/')}>
+            <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
               <Gamepad2 size={18} />
             </button>
             {currentUser.role === 'super_admin' && (
-              <button className="icon-btn" title="Admin Settings" onClick={() => router.push('/admin')}>
+              <button className="icon-btn" title="Admin Settings" onClick={() => window.location.href = '/admin'}>
                 <Shield size={18} />
               </button>
             )}

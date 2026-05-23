@@ -916,14 +916,14 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button className="icon-btn" title="Go to Lobby Front" onClick={() => router.push('/')}>
+          <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
             <Gamepad2 size={20} />
           </button>
           <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
             <Trash2 size={20} />
           </button>
           {currentUser.role === 'super_admin' && (
-            <button className="icon-btn" title="Go to Admin Panel" onClick={() => router.push('/admin')}>
+            <button className="icon-btn" title="Go to Admin Panel" onClick={() => window.location.href = '/admin'}>
               <Shield size={20} />
             </button>
           )}

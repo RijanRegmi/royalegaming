@@ -31,21 +31,21 @@ export async function seedGames() {
     const count = await Game.countDocuments();
     if (count === 0) {
       const defaultGames = [
-        { name: 'FireKirin', image: '/games/fire_kirin.png', link: 'https://firekirin.xyz/' },
-        { name: 'OrionStar', image: '/games/orion_stars.png', link: 'https://orionstars.club/' },
-        { name: 'Juwa', image: '/games/fire_kirin.png', link: 'https://juwa.xyz/' },
-        { name: 'Game Vault', image: '/games/orion_stars.png', link: 'https://gamevault.vip/' },
-        { name: 'VegasSweep', image: '/games/ultra_panda.png', link: 'https://vegassweeps.com/' },
-        { name: 'MilkyWay', image: '/games/orion_stars.png', link: 'https://milkywayapp.xyz/' },
-        { name: 'Ultra Panda', image: '/games/ultra_panda.png', link: 'https://ultrapanda.xyz/' },
-        { name: 'Cash Frenzy', image: '/games/fire_kirin.png', link: 'https://cashfrenzy.xyz/' },
-        { name: 'V Blink', image: '/games/orion_stars.png', link: 'https://vblink.xyz/' },
-        { name: 'River Sweeps', image: '/games/ultra_panda.png', link: 'https://riversweeps.org/' },
-        { name: 'HighStake', image: '/games/fire_kirin.png', link: 'https://highstake.xyz/' },
-        { name: 'Vegas X', image: '/games/orion_stars.png', link: 'https://vegas-x.org/' },
+        { name: 'FireKirin', image: '/games/fire_kirin.png', link: 'https://firekirin.xyz/', agentLink: 'https://agent.firekirin.xyz/' },
+        { name: 'OrionStar', image: '/games/orion_stars.png', link: 'https://orionstars.club/', agentLink: 'https://agent.orionstars.club/' },
+        { name: 'Juwa', image: '/games/fire_kirin.png', link: 'https://juwa.xyz/', agentLink: 'https://agent.juwa.xyz/' },
+        { name: 'Game Vault', image: '/games/orion_stars.png', link: 'https://gamevault.vip/', agentLink: 'https://agent.gamevault.vip/' },
+        { name: 'VegasSweep', image: '/games/ultra_panda.png', link: 'https://vegassweeps.com/', agentLink: 'https://agent.vegassweeps.com/' },
+        { name: 'MilkyWay', image: '/games/orion_stars.png', link: 'https://milkywayapp.xyz/', agentLink: 'https://agent.milkywayapp.xyz/' },
+        { name: 'Ultra Panda', image: '/games/ultra_panda.png', link: 'https://ultrapanda.xyz/', agentLink: 'https://agent.ultrapanda.xyz/' },
+        { name: 'Cash Frenzy', image: '/games/fire_kirin.png', link: 'https://cashfrenzy.xyz/', agentLink: 'https://agent.cashfrenzy.xyz/' },
+        { name: 'V Blink', image: '/games/orion_stars.png', link: 'https://vblink.xyz/', agentLink: 'https://agent.vblink.xyz/' },
+        { name: 'River Sweeps', image: '/games/ultra_panda.png', link: 'https://riversweeps.org/', agentLink: 'https://agent.riversweeps.org/' },
+        { name: 'HighStake', image: '/games/fire_kirin.png', link: 'https://highstake.xyz/', agentLink: 'https://agent.highstake.xyz/' },
+        { name: 'Vegas X', image: '/games/orion_stars.png', link: 'https://vegas-x.org/', agentLink: 'https://agent.vegas-x.org/' },
       ];
       await Game.insertMany(defaultGames);
-      console.log('Seeded 12 default games');
+      console.log('Seeded 12 default games with agent links');
     }
   } catch (error) {
     console.error('Error seeding games:', error);

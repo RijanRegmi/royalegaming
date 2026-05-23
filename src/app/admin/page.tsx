@@ -53,6 +53,7 @@ export default function AdminSettingsPage() {
   const [editingGame, setEditingGame] = useState<any>(null); // null for create, game object for edit
   const [gameName, setGameName] = useState('');
   const [gameLink, setGameLink] = useState('');
+  const [gameAgentLink, setGameAgentLink] = useState('');
   const [gameImageUrl, setGameImageUrl] = useState('');
   const [gameImageFile, setGameImageFile] = useState<File | null>(null);
   const [gameImagePreview, setGameImagePreview] = useState('');
@@ -218,6 +219,7 @@ export default function AdminSettingsPage() {
     setEditingGame(null);
     setGameName('');
     setGameLink('');
+    setGameAgentLink('');
     setGameImageUrl('');
     setGameImagePreview('');
     setGameImageFile(null);
@@ -229,6 +231,7 @@ export default function AdminSettingsPage() {
     setEditingGame(game);
     setGameName(game.name);
     setGameLink(game.link);
+    setGameAgentLink(game.agentLink || '');
     setGameImageUrl(game.image);
     setGameImagePreview(game.image);
     setGameImageFile(null);
@@ -271,6 +274,7 @@ export default function AdminSettingsPage() {
       const formData = new FormData();
       formData.append('name', gameName);
       formData.append('link', gameLink);
+      formData.append('agentLink', gameAgentLink);
 
       if (gameImageFile) {
         formData.append('file', gameImageFile);
@@ -303,6 +307,7 @@ export default function AdminSettingsPage() {
 
       setGameName('');
       setGameLink('');
+      setGameAgentLink('');
       setGameImageFile(null);
       setGameImageUrl('');
       setGameImagePreview('');
@@ -404,7 +409,7 @@ export default function AdminSettingsPage() {
             Manage game lobby platforms, user support routing, and administrator roles
           </p>
         </div>
-        <button className="btn-secondary" onClick={() => router.push('/')}>
+        <button className="btn-secondary" onClick={() => window.location.href = '/'}>
           <ArrowLeft size={16} /> Back to Lobby Front
         </button>
       </header>
@@ -705,7 +710,7 @@ export default function AdminSettingsPage() {
                 <tr>
                   <th>Game Name</th>
                   <th>Image File / URL</th>
-                  <th>Game Redirect Link</th>
+                  <th>Game Redirect Links</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -748,19 +753,44 @@ export default function AdminSettingsPage() {
                       </span>
                     </td>
                     <td>
-                      <a 
-                        href={game.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer" 
-                        style={{ 
-                          color: 'var(--accent-color)', 
-                          fontSize: '13px', 
-                          textDecoration: 'underline',
-                          wordBreak: 'break-all'
-                        }}
-                      >
-                        {game.link}
-                      </a>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Player:</span>
+                          <a 
+                            href={game.link} 
+                            target="_blank" 
+                            rel="noopener noreferrer" 
+                            style={{ 
+                              color: 'var(--accent-color)', 
+                              fontSize: '12px', 
+                              textDecoration: 'underline',
+                              wordBreak: 'break-all'
+                            }}
+                          >
+                            {game.link}
+                          </a>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Agent:</span>
+                          {game.agentLink ? (
+                            <a 
+                              href={game.agentLink} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              style={{ 
+                                color: 'var(--super-admin-color)', 
+                                fontSize: '12px', 
+                                textDecoration: 'underline',
+                                wordBreak: 'break-all'
+                              }}
+                            >
+                              {game.agentLink}
+                            </a>
+                          ) : (
+                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>None (Falls back to Player Link)</span>
+                          )}
+                        </div>
+                      </div>
                     </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '8px' }}>
@@ -995,6 +1025,21 @@ export default function AdminSettingsPage() {
                       onChange={(e) => setGameLink(e.target.value)}
                       disabled={savingGame}
                       required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Agent Link URL</label>
+                  <div className="input-wrapper">
+                    <Globe size={16} className="input-icon" />
+                    <input
+                      type="url"
+                      placeholder="https://agent.firekirin.xyz/ (or admin/agent link)"
+                      className="form-input"
+                      value={gameAgentLink}
+                      onChange={(e) => setGameAgentLink(e.target.value)}
+                      disabled={savingGame}
                     />
                   </div>
                 </div>

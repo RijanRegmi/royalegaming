@@ -2946,6 +2946,58 @@ button, input, select, textarea {
   }
 }
 
+/* ----------------------------------------------------
+   Iteration 7: Slanted Link Mode Switcher (Player/Agent)
+   ---------------------------------------------------- */
+.lobby-mode-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.lobby-mode-switcher {
+  display: flex;
+  background: rgba(6, 11, 24, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  padding: 4px;
+  gap: 12px;
+}
+
+.lobby-mode-btn {
+  position: relative;
+  padding: 10px 24px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border: 1px solid rgba(168, 85, 247, 0.5);
+  background: rgba(168, 85, 247, 0.05);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+  transform: skewX(-15deg);
+  border-radius: 2px;
+}
+
+.lobby-mode-btn span {
+  display: inline-block;
+  transform: skewX(15deg); /* Undo the skew for text */
+}
+
+.lobby-mode-btn.active {
+  background: linear-gradient(135deg, #a855f7 0%, #d946ef 100%);
+  border-color: transparent;
+  color: #ffffff;
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.4);
+}
+
+.lobby-mode-btn:hover:not(.active) {
+  background: rgba(168, 85, 247, 0.2);
+  color: #ffffff;
+  border-color: #a855f7;
+}
+
 
 
 
