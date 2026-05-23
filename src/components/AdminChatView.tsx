@@ -360,6 +360,31 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     );
   };
 
+  const handleDeleteMessageForMe = async (messageId: string) => {
+    showConfirm(
+      'Delete Message',
+      'Are you sure you want to delete this message for yourself?',
+      async () => {
+        try {
+          const res = await fetch(`/api/messages?messageId=${messageId}&forMe=true`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
+          } else {
+            showAlert('Error', data.error || 'Failed to delete message');
+          }
+        } catch (err) {
+          console.error('Error deleting message:', err);
+          showAlert('Error', 'Error deleting message');
+        }
+      },
+      'Delete',
+      'Cancel'
+    );
+  };
+
   const handleDeleteWholeChat = async () => {
     if (!selectedUser) return;
     showConfirm(
@@ -431,6 +456,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevMessagesLengthRef = useRef<number>(0);
+  const prevSelectedUserIdRef = useRef<string | null>(null);
 
   const selectedUserRef = useRef(selectedUser);
   useEffect(() => {
@@ -785,10 +812,15 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     return () => clearInterval(pollInterval);
   }, [selectedUser]);
 
-  // Scroll to bottom
+  // Scroll to bottom only when switching conversations or when a new message is added
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    const hasUserChanged = selectedUser?.id !== prevSelectedUserIdRef.current;
+    if (hasUserChanged || messages.length > prevMessagesLengthRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevMessagesLengthRef.current = messages.length;
+    prevSelectedUserIdRef.current = selectedUser?.id || null;
+  }, [messages, selectedUser]);
 
   // File Handlers
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1443,9 +1475,13 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                                className="msg-action-btn delete-btn"
                                onClick={(e) => {
                                  e.stopPropagation();
-                                 handleUnsendMessage(msg._id);
+                                 if (!isUserMessage) {
+                                   handleUnsendMessage(msg._id);
+                                 } else {
+                                   handleDeleteMessageForMe(msg._id);
+                                 }
                                }}
-                               title="Delete message"
+                               title={!isUserMessage ? "Unsend message" : "Delete message"}
                              >
                                <Trash2 size={14} />
                              </button>

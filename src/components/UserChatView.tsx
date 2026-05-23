@@ -355,6 +355,31 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     );
   };
 
+  const handleDeleteMessageForMe = async (messageId: string) => {
+    showConfirm(
+      'Delete Message',
+      'Are you sure you want to delete this message for yourself?',
+      async () => {
+        try {
+          const res = await fetch(`/api/messages?messageId=${messageId}&forMe=true`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMessages((prev) => prev.filter((msg) => msg._id !== messageId));
+          } else {
+            showAlert('Error', data.error || 'Failed to delete message');
+          }
+        } catch (err) {
+          console.error('Error deleting message:', err);
+          showAlert('Error', 'Error deleting message');
+        }
+      },
+      'Delete',
+      'Cancel'
+    );
+  };
+
   const handleDeleteWholeChat = async () => {
     showConfirm(
       'Clear Chat History',
@@ -459,6 +484,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevMessagesLengthRef = useRef<number>(0);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -619,9 +645,12 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     return () => clearInterval(pollInterval);
   }, []);
 
-  // Scroll to bottom
+  // Scroll to bottom only when a new message is added
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messages.length > prevMessagesLengthRef.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+    prevMessagesLengthRef.current = messages.length;
   }, [messages]);
 
   // File Handlers
@@ -1084,19 +1113,21 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   {/* Hover actions */}
                   {!msg.isUnsent && (
                     <div className="message-actions-overlay">
-                      {isMe && (
-                        <button
-                          type="button"
-                          className="msg-action-btn delete-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
+                      <button
+                        type="button"
+                        className="msg-action-btn delete-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (isMe) {
                             handleUnsendMessage(msg._id);
-                          }}
-                          title="Unsend message"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
+                          } else {
+                            handleDeleteMessageForMe(msg._id);
+                          }
+                        }}
+                        title={isMe ? "Unsend message" : "Delete message"}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                       <button
                         type="button"
                         className="msg-action-btn"

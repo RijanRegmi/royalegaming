@@ -153,13 +153,34 @@ export async function DELETE(req: NextRequest) {
     const messageId = searchParams.get('messageId');
 
     if (messageId) {
-      // Unsend a specific message
+      // Unsend or delete a specific message
       const message = await Message.findById(messageId);
       if (!message) {
         return NextResponse.json({ error: 'Message not found' }, { status: 404 });
       }
 
-      // Check permissions
+      const forMe = searchParams.get('forMe') === 'true';
+
+      if (forMe) {
+        // Delete only for oneself
+        const isParticipant = 
+          payload.role === 'admin' || 
+          payload.role === 'super_admin' || 
+          message.chatUserId.toString() === payload.userId;
+
+        if (!isParticipant) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
+        await Message.updateOne(
+          { _id: messageId },
+          { $addToSet: { deletedFor: payload.userId } }
+        );
+
+        return NextResponse.json({ success: true, messageId, deletedForMe: true });
+      }
+
+      // Check permissions for unsend (delete for everyone)
       // Users can only delete their own messages.
       // Admins/Super admins can delete any message.
       const isSender = message.senderId.toString() === payload.userId;
