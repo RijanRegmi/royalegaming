@@ -115,7 +115,7 @@ export default function Home() {
                 </span>
               </div>
               
-              {user.role === 'super_admin' && (
+              {(user.role === 'super_admin' || user.role === 'admin') && (
                 <button onClick={() => router.push('/admin')} className="lobby-btn-secondary">
                   Control Room
                 </button>
