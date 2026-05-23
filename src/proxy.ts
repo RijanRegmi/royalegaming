@@ -77,15 +77,8 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 4. Redirect root URL to /chat if authenticated.
-  // If unauthenticated, allow serving the root page '/' which performs client-side guest auto-login.
+  // 4. Root URL '/' is allowed for both authenticated and unauthenticated users.
   if (pathname === '/') {
-    if (token) {
-      const payload = decodeJwt(token);
-      if (payload) {
-        return NextResponse.redirect(new URL('/chat', request.url));
-      }
-    }
     return NextResponse.next();
   }
 
