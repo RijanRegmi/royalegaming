@@ -120,6 +120,17 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     fetchDashboardData();
     fetchGames();
+
+    // Allow document scrolling for admin dashboard page
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
   }, [router]);
 
   // Handle user roles changes (users tab)
