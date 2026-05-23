@@ -745,7 +745,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : currentUser.role === 'super_admin' ? (
         <div className="admin-stats-grid">
           <div className="stat-card glass">
             <div className="stat-icon-wrapper users" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>
@@ -779,7 +779,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
 
       {/* Primary Tab Contents */}
       {activeTab === 'users' && currentUser.role === 'super_admin' ? (

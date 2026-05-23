@@ -154,37 +154,39 @@ export default function Home() {
         </section>
 
         {/* Link Mode Switcher */}
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-          <h2 style={{
-            fontSize: '24px',
-            fontWeight: 800,
-            color: '#a855f7',
-            textTransform: 'uppercase',
-            letterSpacing: '2px',
-            marginBottom: '16px',
-            textShadow: '0 0 15px rgba(168, 85, 247, 0.4)'
-          }}>
-            Game Links
-          </h2>
-          <div className="lobby-mode-container">
-            <div className={`lobby-mode-switcher ${linkMode}-active`}>
-              <button
-                type="button"
-                onClick={() => setLinkMode('player')}
-                className={`lobby-mode-btn ${linkMode === 'player' ? 'active-player' : ''}`}
-              >
-                <span>Player Links</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setLinkMode('agent')}
-                className={`lobby-mode-btn ${linkMode === 'agent' ? 'active-agent' : ''}`}
-              >
-                <span>Agent Links</span>
-              </button>
+        {authenticated && (user?.role === 'super_admin' || user?.role === 'admin') && (
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <h2 style={{
+              fontSize: '24px',
+              fontWeight: 800,
+              color: '#a855f7',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              marginBottom: '16px',
+              textShadow: '0 0 15px rgba(168, 85, 247, 0.4)'
+            }}>
+              Game Links
+            </h2>
+            <div className="lobby-mode-container">
+              <div className={`lobby-mode-switcher ${linkMode}-active`}>
+                <button
+                  type="button"
+                  onClick={() => setLinkMode('player')}
+                  className={`lobby-mode-btn ${linkMode === 'player' ? 'active-player' : ''}`}
+                >
+                  <span>Player Links</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLinkMode('agent')}
+                  className={`lobby-mode-btn ${linkMode === 'agent' ? 'active-agent' : ''}`}
+                >
+                  <span>Agent Links</span>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Game Lobby Grid */}
         <main>
@@ -221,6 +223,10 @@ export default function Home() {
                   {/* Play Button */}
                   <button
                     onClick={() => {
+                      if (!authenticated) {
+                        router.push('/login');
+                        return;
+                      }
                       const targetLink = linkMode === 'agent' && game.agentLink ? game.agentLink : game.link;
                       window.open(targetLink, '_blank');
                     }}
