@@ -3014,6 +3014,44 @@ button, input, select, textarea {
   box-shadow: 0 6px 18px rgba(5, 168, 133, 0.5) !important;
 }
 
+/* Collapse empty or unfilled AdSense banners automatically to remove large blank spaces.
+   We hide them by default and only display them when the Google script sets the status to "filled". */
+.adsbygoogle {
+  display: none !important;
+}
+.adsbygoogle[data-ad-status="filled"] {
+  display: block !important;
+}
+
+.adsense-banner-container {
+  display: none !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.adsense-banner-container:has(ins[data-ad-status="filled"]) {
+  display: block !important;
+  height: auto !important;
+  margin: 20px 0 !important;
+}
+
+/* Collapse empty grid feed cards */
+.adsense-feed-card {
+  display: none !important;
+  min-height: 0 !important;
+  height: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none !important;
+}
+.adsense-feed-card:has(ins[data-ad-status="filled"]) {
+  display: flex !important;
+  min-height: 320px !important;
+  height: auto !important;
+  padding: 16px !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+}
+
 
 
 
