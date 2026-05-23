@@ -69,8 +69,8 @@ export function proxy(request: NextRequest) {
       return response;
     }
     
-    if (payload.role !== 'super_admin') {
-      // User is not super_admin, redirect to main chat
+    if (payload.role !== 'super_admin' && payload.role !== 'admin') {
+      // User is not authorized, redirect to main support chat
       return NextResponse.redirect(new URL('/chat', request.url));
     }
     

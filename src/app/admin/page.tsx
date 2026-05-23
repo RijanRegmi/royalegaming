@@ -20,14 +20,18 @@ import {
   Edit2, 
   Trash2, 
   Globe, 
-  Image as ImageIcon 
+  Image as ImageIcon,
+  Copy,
+  Check,
+  Key
 } from 'lucide-react';
+
 
 export default function AdminSettingsPage() {
   const router = useRouter();
   
   // Tab control
-  const [activeTab, setActiveTab] = useState<'users' | 'games'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'games' | 'credentials'>('users');
   
   // Common states
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -59,6 +63,18 @@ export default function AdminSettingsPage() {
   const [gameImagePreview, setGameImagePreview] = useState('');
   const [savingGame, setSavingGame] = useState(false);
 
+  // --- Secure Credentials management states ---
+  const [credentials, setCredentials] = useState<any[]>([]);
+  const [loadingCredentials, setLoadingCredentials] = useState<boolean>(true);
+  const [showCredentialModal, setShowCredentialModal] = useState<boolean>(false);
+  const [editingCredential, setEditingCredential] = useState<any>(null); // null for create, credential object for edit
+  const [credGameName, setCredGameName] = useState('');
+  const [credGameId, setCredGameId] = useState('');
+  const [credPassword, setCredPassword] = useState('');
+  const [savingCredential, setSavingCredential] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<'gameId' | 'password' | null>(null);
+
   // Fetch admin dashboard details (users profiles)
   const fetchDashboardData = async () => {
     setLoading(true);
@@ -73,26 +89,31 @@ export default function AdminSettingsPage() {
         return;
       }
       
-      if (authData.user.role !== 'super_admin') {
-        router.push('/chat'); // Redirect normal admins or users away
+      if (authData.user.role !== 'super_admin' && authData.user.role !== 'admin') {
+        router.push('/chat'); // Redirect normal players away
         return;
       }
       
       setCurrentUser(authData.user);
 
-      // 2. Fetch all profiles
-      const profilesRes = await fetch('/api/admin/all-profiles');
-      const profilesData = await profilesRes.json();
-      
-      if (profilesRes.ok && profilesData.success) {
-        const sanitized = profilesData.profiles.map((p: any) => ({
-          ...p,
-          _id: p._id || p.id,
-          id: p.id || p._id,
-        }));
-        setProfiles(sanitized);
+      // 2. Fetch all profiles (only if super_admin)
+      if (authData.user.role === 'super_admin') {
+        const profilesRes = await fetch('/api/admin/all-profiles');
+        const profilesData = await profilesRes.json();
+        
+        if (profilesRes.ok && profilesData.success) {
+          const sanitized = profilesData.profiles.map((p: any) => ({
+            ...p,
+            _id: p._id || p.id,
+            id: p.id || p._id,
+          }));
+          setProfiles(sanitized);
+        } else {
+          throw new Error('Failed to fetch system profiles');
+        }
       } else {
-        throw new Error('Failed to fetch system profiles');
+        // Automatically default standard admins to credentials tab
+        setActiveTab('credentials');
       }
     } catch (err) {
       console.error('Error fetching admin dashboard data:', err);
@@ -118,9 +139,135 @@ export default function AdminSettingsPage() {
     }
   };
 
+  // Fetch secure credentials
+  const fetchCredentials = async () => {
+    setLoadingCredentials(true);
+    try {
+      const res = await fetch('/api/admin/credentials');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setCredentials(data.credentials);
+      }
+    } catch (err) {
+      console.error('Error fetching credentials:', err);
+    } finally {
+      setLoadingCredentials(false);
+    }
+  };
+
+  const handleCopyToClipboard = async (text: string, id: string, field: 'gameId' | 'password') => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedId(id);
+      setCopiedField(field);
+      setTimeout(() => {
+        setCopiedId(null);
+        setCopiedField(null);
+      }, 2000);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
+
+  const openCreateCredentialModal = () => {
+    setEditingCredential(null);
+    setCredGameName('');
+    setCredGameId('');
+    setCredPassword('');
+    setShowCredentialModal(true);
+    setFeedback(null);
+  };
+
+  const openEditCredentialModal = (cred: any) => {
+    setEditingCredential(cred);
+    setCredGameName(cred.gameName);
+    setCredGameId(cred.gameId);
+    setCredPassword(cred.password);
+    setShowCredentialModal(true);
+    setFeedback(null);
+  };
+
+  const handleSaveCredential = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!credGameName || !credGameId || !credPassword) {
+      setFeedback({ type: 'error', message: 'Game Name, Game ID, and Password are required' });
+      return;
+    }
+
+    setSavingCredential(true);
+    setFeedback(null);
+
+    try {
+      let res;
+      const body = {
+        gameName: credGameName,
+        gameId: credGameId,
+        password: credPassword,
+      };
+
+      if (editingCredential) {
+        res = await fetch('/api/admin/credentials', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, id: editingCredential._id }),
+        });
+      } else {
+        res = await fetch('/api/admin/credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save credential');
+      }
+
+      await fetchCredentials();
+
+      setCredGameName('');
+      setCredGameId('');
+      setCredPassword('');
+      setEditingCredential(null);
+      setShowCredentialModal(false);
+
+      setFeedback({
+        type: 'success',
+        message: `Successfully ${editingCredential ? 'updated' : 'created'} secure credential for ${credGameName}!`,
+      });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
+    } finally {
+      setSavingCredential(false);
+    }
+  };
+
+  const handleDeleteCredential = async (credId: string) => {
+    if (!window.confirm('Are you sure you want to delete this secure game credential? This action cannot be undone!')) return;
+
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/credentials?id=${credId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete credential');
+      }
+
+      setCredentials((prev) => prev.filter((c) => c._id !== credId));
+      setFeedback({ type: 'success', message: 'Successfully deleted secure game credential!' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
     fetchGames();
+    fetchCredentials();
 
     // Allow document scrolling for admin dashboard page
     const originalBodyOverflow = document.body.style.overflow;
@@ -439,26 +586,28 @@ export default function AdminSettingsPage() {
           paddingBottom: '10px' 
         }}
       >
-        <button
-          className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
-          onClick={() => setActiveTab('users')}
-          style={{
-            padding: '10px 18px',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            borderBottom: activeTab === 'users' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
-            color: activeTab === 'users' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            background: 'none',
-            outline: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s'
-          }}
-        >
-          <Users size={16} /> User Accounts
-        </button>
+        {currentUser.role === 'super_admin' && (
+          <button
+            className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`}
+            onClick={() => setActiveTab('users')}
+            style={{
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: activeTab === 'users' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+              color: activeTab === 'users' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: 'none',
+              outline: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Users size={16} /> User Accounts
+          </button>
+        )}
         <button
           className={`tab-btn ${activeTab === 'games' ? 'active' : ''}`}
           onClick={() => {
@@ -482,10 +631,33 @@ export default function AdminSettingsPage() {
         >
           <Gamepad2 size={16} /> Lobby Game Platforms
         </button>
+        <button
+          className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`}
+          onClick={() => {
+            setActiveTab('credentials');
+            fetchCredentials();
+          }}
+          style={{
+            padding: '10px 18px',
+            fontSize: '14px',
+            fontWeight: 600,
+            cursor: 'pointer',
+            borderBottom: activeTab === 'credentials' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+            color: activeTab === 'credentials' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            background: 'none',
+            outline: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            transition: 'all 0.2s'
+          }}
+        >
+          <Key size={16} /> Game Accounts (Secure)
+        </button>
       </div>
 
       {/* Stats Cards (Dynamic based on Tab) */}
-      {activeTab === 'users' ? (
+      {activeTab === 'users' && currentUser.role === 'super_admin' ? (
         <div className="admin-stats-grid">
           <div className="stat-card glass">
             <div className="stat-icon-wrapper users">
@@ -517,7 +689,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : activeTab === 'games' ? (
         <div className="admin-stats-grid">
           <div className="stat-card glass">
             <div className="stat-icon-wrapper users" style={{ background: 'rgba(168, 85, 247, 0.1)', color: 'var(--super-admin-color)' }}>
@@ -549,10 +721,44 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
+      ) : (
+        <div className="admin-stats-grid">
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper users" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>
+              <Key size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Secure Credentials</div>
+              <div className="stat-number">{credentials.length}</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper admins" style={{ background: 'rgba(37, 211, 102, 0.1)', color: 'var(--success-color)' }}>
+              <Lock size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Access Level</div>
+              <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>
+                {currentUser.role === 'super_admin' ? 'Read / Write' : 'Read Only'}
+              </div>
+            </div>
+          </div>
+
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper messages" style={{ background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444' }}>
+              <Shield size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Security Status</div>
+              <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>Encrypted</div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Primary Tab Contents */}
-      {activeTab === 'users' ? (
+      {activeTab === 'users' && currentUser.role === 'super_admin' ? (
         <div className="admin-table-container glass">
           <div
             style={{
@@ -660,7 +866,7 @@ export default function AdminSettingsPage() {
             </tbody>
           </table>
         </div>
-      ) : (
+      ) : activeTab === 'games' ? (
         /* Games Directory Grid view */
         <div className="admin-table-container glass">
           <div
@@ -674,22 +880,24 @@ export default function AdminSettingsPage() {
           >
             <span style={{ fontWeight: 600 }}>Lobby Game Platforms</span>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button
-                className="btn-primary"
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  width: 'auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  margin: 0,
-                  boxShadow: 'none'
-                }}
-                onClick={openCreateModal}
-              >
-                <Plus size={16} /> Add Game Card
-              </button>
+              {currentUser.role === 'super_admin' && (
+                <button
+                  className="btn-primary"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    width: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    margin: 0,
+                    boxShadow: 'none'
+                  }}
+                  onClick={openCreateModal}
+                >
+                  <Plus size={16} /> Add Game Card
+                </button>
+              )}
               <button className="icon-btn" title="Refresh data" onClick={fetchGames}>
                 <RefreshCw size={16} />
               </button>
@@ -793,25 +1001,250 @@ export default function AdminSettingsPage() {
                       </div>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        <button 
-                          className="icon-btn" 
-                          title="Edit Game Details" 
-                          onClick={() => openEditModal(game)}
-                          style={{ color: 'var(--accent-color)' }}
+                      {currentUser.role === 'super_admin' ? (
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button 
+                            className="icon-btn" 
+                            title="Edit Game Details" 
+                            onClick={() => openEditModal(game)}
+                            style={{ color: 'var(--accent-color)' }}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            className="icon-btn" 
+                            title="Delete Platform" 
+                            onClick={() => handleDeleteGame(game._id)}
+                            style={{ color: 'var(--error-color)' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>View Only</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : (
+        /* Game Accounts (Secure) tab view */
+        <div className="admin-table-container glass">
+          <div
+            style={{
+              padding: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid var(--border-color)',
+            }}
+          >
+            <div>
+              <span style={{ fontWeight: 600, display: 'block' }}>Secure Game Credentials</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                {currentUser.role === 'super_admin' 
+                  ? 'Manage and assign game accounts' 
+                  : 'View and copy credentials for players (Read-only)'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              {currentUser.role === 'super_admin' && (
+                <button
+                  className="btn-primary"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    width: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    margin: 0,
+                    boxShadow: 'none',
+                    background: '#eab308',
+                    borderColor: '#eab308',
+                    color: '#0f172a'
+                  }}
+                  onClick={openCreateCredentialModal}
+                >
+                  <Plus size={16} /> Add Game ID
+                </button>
+              )}
+              <button className="icon-btn" title="Refresh data" onClick={fetchCredentials}>
+                <RefreshCw size={16} />
+              </button>
+            </div>
+          </div>
+
+          {loadingCredentials ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <div className="spinner"></div>
+            </div>
+          ) : credentials.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+              No game credentials found.
+            </div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Game Name</th>
+                  <th>Game ID / Username</th>
+                  <th>Password</th>
+                  <th>Last Updated</th>
+                  {currentUser.role === 'super_admin' && <th style={{ textAlign: 'right' }}>Actions</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {credentials.map((cred) => (
+                  <tr key={cred._id}>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          background: '#eab308',
+                          boxShadow: '0 0 8px #eab308'
+                        }}></div>
+                        <span style={{ fontWeight: 600 }}>{cred.gameName}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <code style={{ 
+                          fontFamily: 'monospace', 
+                          background: 'rgba(255,255,255,0.06)', 
+                          padding: '4px 8px', 
+                          borderRadius: '4px',
+                          fontSize: '13px',
+                          color: '#e2e8f0',
+                          border: '1px solid rgba(255,255,255,0.1)'
+                        }}>{cred.gameId}</code>
+                        <button
+                          className="icon-btn"
+                          title="Copy Username"
+                          onClick={() => handleCopyToClipboard(cred.gameId, cred._id, 'gameId')}
+                          style={{ 
+                            padding: '4px', 
+                            background: 'rgba(255,255,255,0.05)', 
+                            border: '1px solid rgba(255,255,255,0.1)', 
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative'
+                          }}
                         >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          className="icon-btn" 
-                          title="Delete Platform" 
-                          onClick={() => handleDeleteGame(game._id)}
-                          style={{ color: 'var(--error-color)' }}
-                        >
-                          <Trash2 size={16} />
+                          {copiedId === cred._id && copiedField === 'gameId' ? (
+                            <>
+                              <Check size={14} style={{ color: 'var(--success-color)' }} />
+                              <span style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: '50%',
+                                transform: 'translateX(-50%) translateY(-4px)',
+                                background: '#1e293b',
+                                color: '#fff',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                pointerEvents: 'none',
+                                zIndex: 10
+                              }}>Copied!</span>
+                            </>
+                          ) : (
+                            <Copy size={14} style={{ color: 'var(--text-secondary)' }} />
+                          )}
                         </button>
                       </div>
                     </td>
+                    <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <code style={{ 
+                          fontFamily: 'monospace', 
+                          background: 'rgba(255,255,255,0.06)', 
+                          padding: '4px 8px', 
+                          borderRadius: '4px',
+                          fontSize: '13px',
+                          color: '#e2e8f0',
+                          border: '1px solid rgba(255,255,255,0.1)'
+                        }}>{cred.password}</code>
+                        <button
+                          className="icon-btn"
+                          title="Copy Password"
+                          onClick={() => handleCopyToClipboard(cred.password, cred._id, 'password')}
+                          style={{ 
+                            padding: '4px', 
+                            background: 'rgba(255,255,255,0.05)', 
+                            border: '1px solid rgba(255,255,255,0.1)', 
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative'
+                          }}
+                        >
+                          {copiedId === cred._id && copiedField === 'password' ? (
+                            <>
+                              <Check size={14} style={{ color: 'var(--success-color)' }} />
+                              <span style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: '50%',
+                                transform: 'translateX(-50%) translateY(-4px)',
+                                background: '#1e293b',
+                                color: '#fff',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                whiteSpace: 'nowrap',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+                                pointerEvents: 'none',
+                                zIndex: 10
+                              }}>Copied!</span>
+                            </>
+                          ) : (
+                            <Copy size={14} style={{ color: 'var(--text-secondary)' }} />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                    <td>
+                      {new Date(cred.updatedAt || cred.createdAt).toLocaleDateString([], {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })}
+                    </td>
+                    {currentUser.role === 'super_admin' && (
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button 
+                            className="icon-btn" 
+                            title="Edit Credential" 
+                            onClick={() => openEditCredentialModal(cred)}
+                            style={{ color: 'var(--accent-color)' }}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            className="icon-btn" 
+                            title="Delete Credential" 
+                            onClick={() => handleDeleteCredential(cred._id)}
+                            style={{ color: 'var(--error-color)' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -1137,6 +1570,97 @@ export default function AdminSettingsPage() {
                   disabled={savingGame}
                 >
                   {savingGame ? 'Saving...' : editingGame ? 'Save Changes' : 'Create Game'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Game Credential Add/Edit Modal */}
+      {showCredentialModal && (
+        <div className="modal-overlay" onClick={() => setShowCredentialModal(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h2>{editingCredential ? 'Edit Secure Credential' : 'Add Secure Credential'}</h2>
+              <button className="icon-btn" onClick={() => setShowCredentialModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveCredential}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                <div className="form-group">
+                  <label>Game Name *</label>
+                  <div className="input-wrapper">
+                    <Gamepad2 size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      list="game-platforms-list"
+                      placeholder="Select or type platform (e.g. FireKirin)"
+                      className="form-input"
+                      value={credGameName}
+                      onChange={(e) => setCredGameName(e.target.value)}
+                      disabled={savingCredential}
+                      required
+                    />
+                    <datalist id="game-platforms-list">
+                      {games.map(g => (
+                        <option key={g._id} value={g.name} />
+                      ))}
+                    </datalist>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Game ID / Username *</label>
+                  <div className="input-wrapper">
+                    <Users size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="e.g. PLAYER007"
+                      className="form-input"
+                      value={credGameId}
+                      onChange={(e) => setCredGameId(e.target.value)}
+                      disabled={savingCredential}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Password *</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Play@123"
+                      className="form-input"
+                      value={credPassword}
+                      onChange={(e) => setCredPassword(e.target.value)}
+                      disabled={savingCredential}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px' }}
+                  onClick={() => setShowCredentialModal(false)}
+                  disabled={savingCredential}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ width: 'auto', padding: '8px 20px', margin: 0, background: '#eab308', borderColor: '#eab308', color: '#0f172a' }}
+                  disabled={savingCredential}
+                >
+                  {savingCredential ? 'Saving...' : editingCredential ? 'Save Changes' : 'Create Credential'}
                 </button>
               </div>
             </form>
