@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2 } from 'lucide-react';
+import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2 } from 'lucide-react';
 
 interface UserChatViewProps {
   currentUser: {
@@ -916,6 +916,9 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
+          <button className="icon-btn" title="Go to Lobby Front" onClick={() => router.push('/')}>
+            <Gamepad2 size={20} />
+          </button>
           <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
             <Trash2 size={20} />
           </button>

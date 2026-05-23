@@ -52,6 +52,17 @@ export default function Home() {
 
     fetchGames();
     checkAuth();
+
+    // Allow document scrolling for lobby page
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -71,12 +82,12 @@ export default function Home() {
     if (authenticated) {
       router.push('/chat');
     } else {
-      router.push('/login');
+      router.push('/login?redirect=/chat');
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0c0f12] via-[#10141a] to-[#080a0d] text-[#e9edef] overflow-y-auto relative pb-20">
+    <div className="h-screen bg-gradient-to-br from-[#0c0f12] via-[#10141a] to-[#080a0d] text-[#e9edef] overflow-y-auto relative pb-20">
       {/* Dynamic glow decoration */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-900/10 rounded-full blur-[120px] pointer-events-none -z-10" />
       <div className="absolute bottom-10 right-1/4 w-[400px] h-[400px] bg-teal-900/10 rounded-full blur-[100px] pointer-events-none -z-10" />

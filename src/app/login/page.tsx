@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [activeTab, setActiveTab] = useState<'signin' | 'register'>('signin');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
+  const [redirectUrl, setRedirectUrl] = useState('/');
 
   // Form states
   const [emailOrPhone, setEmailOrPhone] = useState('');
@@ -27,6 +28,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     setMounted(true);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const redir = params.get('redirect');
+      if (redir) {
+        setRedirectUrl(redir);
+      }
+    }
   }, []);
 
   // Initialize Google Sign-in
@@ -79,7 +87,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Google login failed');
       }
 
-      router.push('/chat');
+      router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -113,7 +121,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Mock Google login failed');
       }
 
-      router.push('/chat');
+      router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -134,7 +142,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Guest login failed');
       }
 
-      router.push('/chat');
+      router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -163,7 +171,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Invalid credentials');
       }
 
-      router.push('/chat');
+      router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
@@ -197,7 +205,7 @@ export default function LoginPage() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      router.push('/chat');
+      router.push(redirectUrl);
     } catch (err: any) {
       setError(err.message);
       setLoading(false);

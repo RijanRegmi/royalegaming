@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2 } from 'lucide-react';
+import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2 } from 'lucide-react';
 
 interface AdminChatViewProps {
   currentUser: {
@@ -1090,6 +1090,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             </div>
           </div>
           <div className="sidebar-actions">
+            <button className="icon-btn" title="Go to Lobby Front" onClick={() => router.push('/')}>
+              <Gamepad2 size={18} />
+            </button>
             {currentUser.role === 'super_admin' && (
               <button className="icon-btn" title="Admin Settings" onClick={() => router.push('/admin')}>
                 <Shield size={18} />
