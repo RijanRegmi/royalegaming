@@ -21,6 +21,7 @@ export default function Home() {
   const [loadingGames, setLoadingGames] = useState<boolean>(true);
   const [verifyingAuth, setVerifyingAuth] = useState<boolean>(true);
   const [linkMode, setLinkMode] = useState<'player' | 'agent'>('player');
+  const [isFeedAdFilled, setIsFeedAdFilled] = useState<boolean>(false);
 
   // Fetch games and verify authentication
   useEffect(() => {
@@ -212,8 +213,25 @@ export default function Home() {
               {games.map((game, index) => (
                 <Fragment key={game._id}>
                   {index === 4 && process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT_ID && (
-                    <div className="lobby-card adsense-feed-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px', padding: '16px', background: 'rgba(18, 31, 69, 0.4)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                      <AdSenseBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT_ID} adFormat="fluid" fullWidthResponsive={false} />
+                    <div 
+                      className="lobby-card adsense-feed-card" 
+                      style={{ 
+                        display: isFeedAdFilled ? 'flex' : 'none', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        minHeight: isFeedAdFilled ? '320px' : '0', 
+                        padding: isFeedAdFilled ? '16px' : '0', 
+                        background: 'rgba(18, 31, 69, 0.4)', 
+                        borderRadius: '20px', 
+                        border: isFeedAdFilled ? '1px solid rgba(255,255,255,0.05)' : 'none' 
+                      }}
+                    >
+                      <AdSenseBanner 
+                        adSlot={process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT_ID} 
+                        adFormat="fluid" 
+                        fullWidthResponsive={false} 
+                        onStatusChange={(status) => setIsFeedAdFilled(status === 'filled')}
+                      />
                     </div>
                   )}
                   <div className="lobby-card">

@@ -1161,7 +1161,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                     </div>
                   )}
                   <div 
-                    className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''} ${msg.isUnsent ? 'unsent-bubble' : ''}`}
+                    className={`message-bubble ${msg.fileType === 'image' ? 'has-image' : ''} ${hasImageOnly ? 'has-image-only' : ''} ${msg.isUnsent ? 'unsent-bubble' : ''}`}
                     style={{
                       transform: activeSwipeMessageId === msg._id ? `translateX(${swipeOffset}px)` : undefined,
                       transition: activeSwipeMessageId === msg._id ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
@@ -1508,7 +1508,16 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {payments.map((payment) => (
-                    <div key={payment._id} style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <div 
+                      key={payment._id} 
+                      className="payment-gateway-card"
+                      onClick={() => {
+                        setLightboxImage(payment.qrImage);
+                        setLightboxTitle(payment.name);
+                        setShowPaymentModal(false);
+                      }}
+                      title="Click to view full screen"
+                    >
                       <div 
                         style={{ 
                           width: '90px', 
@@ -1517,19 +1526,12 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                           overflow: 'hidden', 
                           background: 'white', 
                           flexShrink: 0,
-                          cursor: 'zoom-in',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           padding: '2px',
                           border: '1px solid var(--border-color)'
                         }}
-                        onClick={() => {
-                          setLightboxImage(payment.qrImage);
-                          setLightboxTitle(payment.name);
-                          setShowPaymentModal(false);
-                        }}
-                        title="Click to view full screen"
                       >
                         <img 
                           src={payment.qrImage} 

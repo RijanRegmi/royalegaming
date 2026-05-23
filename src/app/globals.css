@@ -1340,6 +1340,7 @@ button, input, select, textarea {
   }
 }
 
+
 /* ==========================================================================
    Rich Media Chat Attachments & Custom Audio Player Styles
    ========================================================================== */
@@ -1442,15 +1443,20 @@ button, input, select, textarea {
   border-radius: var(--radius-md);
   overflow: hidden;
   max-width: 100%;
+  width: 100%;
   border: 1px solid rgba(255, 255, 255, 0.05);
   background-color: rgba(0,0,0,0.15);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .message-media-image {
   display: block;
-  max-width: 100%;
-  max-height: 280px;
-  object-fit: cover;
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  object-fit: contain;
   cursor: pointer;
   transition: opacity var(--transition-fast), transform 0.2s;
 }
@@ -1458,6 +1464,18 @@ button, input, select, textarea {
 .message-media-image:hover {
   opacity: 0.92;
   transform: scale(1.01);
+}
+
+/* Constrain bubble width when it has an image to avoid gap on the right */
+.message-bubble-wrapper .message-bubble.has-image {
+  max-width: 320px !important;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .message-bubble-wrapper .message-bubble.has-image {
+    max-width: 85% !important;
+  }
 }
 
 /* Special image-only layout to allow edge-to-edge images (WhatsApp Style) */
@@ -3055,6 +3073,29 @@ button, input, select, textarea {
   height: auto !important;
   padding: 16px !important;
   border: 1px solid rgba(255,255,255,0.05) !important;
+}
+
+/* Payment Gateway Interactive Rows (Player View Modal) */
+.payment-gateway-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.payment-gateway-card:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.payment-gateway-card:active {
+  transform: scale(0.99);
 }
 
 

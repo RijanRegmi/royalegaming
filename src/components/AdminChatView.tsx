@@ -1518,7 +1518,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                           </div>
                         )}
                         <div 
-                          className={`message-bubble ${hasImageOnly ? 'has-image-only' : ''} ${msg.isUnsent ? 'unsent-bubble' : ''}`}
+                          className={`message-bubble ${msg.fileType === 'image' ? 'has-image' : ''} ${hasImageOnly ? 'has-image-only' : ''} ${msg.isUnsent ? 'unsent-bubble' : ''}`}
                           style={{
                             transform: activeSwipeMessageId === msg._id ? `translateX(${swipeOffset}px)` : undefined,
                             transition: activeSwipeMessageId === msg._id ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
