@@ -189,6 +189,10 @@ export default function AdminSettingsPage() {
 
   const handleSaveCredential = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can add or edit secure credentials' });
+      return;
+    }
     if (!credGameName || !credGameId || !credPassword) {
       setFeedback({ type: 'error', message: 'Game Name, Game ID, and Password are required' });
       return;
@@ -244,6 +248,10 @@ export default function AdminSettingsPage() {
   };
 
   const handleDeleteCredential = async (credId: string) => {
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can delete secure credentials' });
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this secure game credential? This action cannot be undone!')) return;
 
     setFeedback(null);
@@ -283,6 +291,10 @@ export default function AdminSettingsPage() {
 
   // Handle user roles changes (users tab)
   const handleRoleChange = async (userId: string, newRole: string) => {
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can change user roles' });
+      return;
+    }
     setUpdatingId(userId);
     setFeedback(null);
 
@@ -313,6 +325,10 @@ export default function AdminSettingsPage() {
   // Handle creating administrative accounts (users tab)
   const handleCreateAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can create administrative accounts' });
+      return;
+    }
     if (!newAdminName || !newAdminEmail || !newAdminPassword) {
       setFeedback({ type: 'error', message: 'Name, email, and password are required' });
       return;
@@ -387,6 +403,10 @@ export default function AdminSettingsPage() {
   };
 
   const handleDeleteGame = async (gameId: string) => {
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can delete game platforms' });
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this game platform?')) return;
 
     setFeedback(null);
@@ -409,6 +429,10 @@ export default function AdminSettingsPage() {
 
   const handleSaveGame = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can save game platforms' });
+      return;
+    }
     if (!gameName || !gameLink) {
       setFeedback({ type: 'error', message: 'Name and play link are required' });
       return;
