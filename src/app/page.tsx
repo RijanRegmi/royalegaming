@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { MessageSquare, LogOut, LogIn, Shield, Gamepad2, ArrowRight, Loader2 } from 'lucide-react';
+import AdSenseBanner from '@/components/AdSenseBanner';
 
 interface GameItem {
   _id: string;
@@ -153,6 +154,11 @@ export default function Home() {
           </p>
         </section>
 
+        {/* Google AdSense Banner */}
+        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+          <AdSenseBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} />
+        )}
+
         {/* Link Mode Switcher */}
         {authenticated && (user?.role === 'super_admin' || user?.role === 'admin') && (
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
@@ -203,38 +209,45 @@ export default function Home() {
             </div>
           ) : (
             <div className="lobby-grid-layout">
-              {games.map((game) => (
-                <div key={game._id} className="lobby-card">
-                  {/* Image container */}
-                  <div className="lobby-card-img-container">
-                    <img
-                      src={game.image}
-                      alt={game.name}
-                      className="lobby-card-img"
-                      onError={(e) => {
-                        e.currentTarget.src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=400';
+              {games.map((game, index) => (
+                <Fragment key={game._id}>
+                  {index === 4 && process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT_ID && (
+                    <div className="lobby-card adsense-feed-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px', padding: '16px', background: 'rgba(18, 31, 69, 0.4)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <AdSenseBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT_ID} adFormat="fluid" fullWidthResponsive={false} />
+                    </div>
+                  )}
+                  <div className="lobby-card">
+                    {/* Image container */}
+                    <div className="lobby-card-img-container">
+                      <img
+                        src={game.image}
+                        alt={game.name}
+                        className="lobby-card-img"
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=400';
+                        }}
+                      />
+                    </div>
+
+                    {/* Platform Name */}
+                    <h3 className="lobby-card-title">{game.name}</h3>
+
+                    {/* Play Button */}
+                    <button
+                      onClick={() => {
+                        if (!authenticated) {
+                          router.push('/login');
+                          return;
+                        }
+                        const targetLink = linkMode === 'agent' && game.agentLink ? game.agentLink : game.link;
+                        window.open(targetLink, '_blank');
                       }}
-                    />
+                      className={`lobby-play-button ${linkMode === 'agent' ? 'agent-mode' : ''}`}
+                    >
+                      PLAY NOW
+                    </button>
                   </div>
-
-                  {/* Platform Name */}
-                  <h3 className="lobby-card-title">{game.name}</h3>
-
-                  {/* Play Button */}
-                  <button
-                    onClick={() => {
-                      if (!authenticated) {
-                        router.push('/login');
-                        return;
-                      }
-                      const targetLink = linkMode === 'agent' && game.agentLink ? game.agentLink : game.link;
-                      window.open(targetLink, '_blank');
-                    }}
-                    className={`lobby-play-button ${linkMode === 'agent' ? 'agent-mode' : ''}`}
-                  >
-                    PLAY NOW
-                  </button>
-                </div>
+                </Fragment>
               ))}
             </div>
           )}
