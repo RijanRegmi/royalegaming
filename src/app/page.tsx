@@ -167,18 +167,18 @@ export default function Home() {
             Game Links
           </h2>
           <div className="lobby-mode-container">
-            <div className="lobby-mode-switcher">
+            <div className={`lobby-mode-switcher ${linkMode}-active`}>
               <button
                 type="button"
                 onClick={() => setLinkMode('player')}
-                className={`lobby-mode-btn ${linkMode === 'player' ? 'active' : ''}`}
+                className={`lobby-mode-btn ${linkMode === 'player' ? 'active-player' : ''}`}
               >
                 <span>Player Links</span>
               </button>
               <button
                 type="button"
                 onClick={() => setLinkMode('agent')}
-                className={`lobby-mode-btn ${linkMode === 'agent' ? 'active' : ''}`}
+                className={`lobby-mode-btn ${linkMode === 'agent' ? 'active-agent' : ''}`}
               >
                 <span>Agent Links</span>
               </button>
@@ -224,7 +224,7 @@ export default function Home() {
                       const targetLink = linkMode === 'agent' && game.agentLink ? game.agentLink : game.link;
                       window.open(targetLink, '_blank');
                     }}
-                    className="lobby-play-button"
+                    className={`lobby-play-button ${linkMode === 'agent' ? 'agent-mode' : ''}`}
                   >
                     PLAY NOW
                   </button>
