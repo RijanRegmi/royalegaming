@@ -78,9 +78,9 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
-    const { content, chatUserId: bodyChatUserId, replyTo } = await req.json();
+    const { content, chatUserId: bodyChatUserId, replyTo, fileUrl, fileType, fileName, fileSize } = await req.json();
 
-    if (!content || !content.trim()) {
+    if ((!content || !content.trim()) && !fileUrl) {
       return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });
     }
 
@@ -110,9 +110,13 @@ export async function POST(req: NextRequest) {
       senderId: payload.userId,
       recipientId,
       chatUserId,
-      content,
+      content: content ? content.trim() : '',
       isRead: false,
       replyTo: replyTo || null,
+      fileUrl: fileUrl || undefined,
+      fileType: fileType || undefined,
+      fileName: fileName || undefined,
+      fileSize: fileSize || undefined,
     });
 
     await newMessage.save();

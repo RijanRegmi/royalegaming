@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2 } from 'lucide-react';
+import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard } from 'lucide-react';
 
 interface UserChatViewProps {
   currentUser: {
@@ -181,6 +181,9 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   const [onlineUsers, setOnlineUsers] = useState<Record<string, string>>({});
   const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
   const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<string | null>(null);
+
+  const [payments, setPayments] = useState<any[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -410,6 +413,22 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [lightboxImage]);
+
+  // Fetch active payments
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const res = await fetch('/api/payments');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setPayments(data.payments);
+        }
+      } catch (err) {
+        console.error('Error fetching active payments:', err);
+      }
+    };
+    fetchPayments();
+  }, []);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -1247,15 +1266,26 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         />
         
         {!isRecording && (
-          <button 
-            type="button" 
-            className="chat-action-btn" 
-            onClick={triggerFileSelect} 
-            title="Attach file or image"
-            disabled={sending}
-          >
-            <Paperclip size={20} />
-          </button>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button 
+              type="button" 
+              className="chat-action-btn" 
+              onClick={triggerFileSelect} 
+              title="Attach file or image"
+              disabled={sending}
+            >
+              <Paperclip size={20} />
+            </button>
+            <button 
+              type="button" 
+              className="chat-action-btn" 
+              onClick={() => setShowPaymentModal(true)} 
+              title="View Payment QR Codes"
+              disabled={sending}
+            >
+              <CreditCard size={20} />
+            </button>
+          </div>
         )}
 
         {isRecording ? (
@@ -1372,6 +1402,75 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               )}
               <button type="button" className="btn-danger" onClick={confirmModal.onConfirm}>
                 {confirmModal.confirmText || 'OK'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPaymentModal && (
+        <div className="custom-modal-overlay" onClick={() => setShowPaymentModal(false)}>
+          <div className="custom-modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div className="modal-header">
+              <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={18} /> Support Payment Gateways
+              </span>
+              <button type="button" className="modal-close-btn" onClick={() => setShowPaymentModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ maxHeight: '400px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', padding: '16px' }}>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: 0 }}>
+                Please scan any of the QR codes below to make a payment deposit. Click on a QR code to view it full screen.
+              </p>
+              {payments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '14px' }}>
+                  No payment gateways are currently configured. Please message the admin support team below for instructions.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {payments.map((payment) => (
+                    <div key={payment._id} style={{ display: 'flex', alignItems: 'center', gap: '16px', background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                      <div 
+                        style={{ 
+                          width: '90px', 
+                          height: '90px', 
+                          borderRadius: '8px', 
+                          overflow: 'hidden', 
+                          background: 'white', 
+                          flexShrink: 0,
+                          cursor: 'zoom-in',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '2px',
+                          border: '1px solid var(--border-color)'
+                        }}
+                        onClick={() => {
+                          setLightboxImage(payment.qrImage);
+                          setLightboxTitle(payment.name);
+                          setShowPaymentModal(false);
+                        }}
+                        title="Click to view full screen"
+                      >
+                        <img 
+                          src={payment.qrImage} 
+                          alt={payment.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontWeight: 600, fontSize: '16px', color: 'var(--text-primary)' }}>{payment.name}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Scan QR code or click to enlarge.</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-actions" style={{ padding: '12px 16px', borderTop: '1px solid var(--border-color)' }}>
+              <button type="button" className="btn-secondary" style={{ padding: '8px 16px', margin: 0, width: '100%' }} onClick={() => setShowPaymentModal(false)}>
+                Close
               </button>
             </div>
           </div>

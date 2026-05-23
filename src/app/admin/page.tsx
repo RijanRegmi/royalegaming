@@ -23,7 +23,8 @@ import {
   Image as ImageIcon,
   Copy,
   Check,
-  Key
+  Key,
+  CreditCard
 } from 'lucide-react';
 
 
@@ -31,7 +32,7 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   
   // Tab control
-  const [activeTab, setActiveTab] = useState<'users' | 'games' | 'credentials'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'games' | 'credentials' | 'payments'>('users');
   
   // Common states
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -74,6 +75,18 @@ export default function AdminSettingsPage() {
   const [savingCredential, setSavingCredential] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<'gameId' | 'password' | null>(null);
+
+  // --- Payments management states ---
+  const [payments, setPayments] = useState<any[]>([]);
+  const [loadingPayments, setLoadingPayments] = useState<boolean>(true);
+  const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
+  const [editingPayment, setEditingPayment] = useState<any>(null); // null for create, payment object for edit
+  const [paymentName, setPaymentName] = useState('');
+  const [paymentQrUrl, setPaymentQrUrl] = useState('');
+  const [paymentQrFile, setPaymentQrFile] = useState<File | null>(null);
+  const [paymentQrPreview, setPaymentQrPreview] = useState('');
+  const [paymentIsActive, setPaymentIsActive] = useState<boolean>(true);
+  const [savingPayment, setSavingPayment] = useState(false);
 
   // Fetch admin dashboard details (users profiles)
   const fetchDashboardData = async () => {
@@ -272,10 +285,140 @@ export default function AdminSettingsPage() {
     }
   };
 
+  // Fetch payments
+  const fetchPayments = async () => {
+    setLoadingPayments(true);
+    try {
+      const res = await fetch('/api/admin/payments');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPayments(data.payments);
+      }
+    } catch (err) {
+      console.error('Error fetching payments:', err);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  const openCreatePaymentModal = () => {
+    setEditingPayment(null);
+    setPaymentName('');
+    setPaymentQrUrl('');
+    setPaymentQrPreview('');
+    setPaymentQrFile(null);
+    setPaymentIsActive(true);
+    setShowPaymentModal(true);
+    setFeedback(null);
+  };
+
+  const openEditPaymentModal = (payment: any) => {
+    setEditingPayment(payment);
+    setPaymentName(payment.name);
+    setPaymentQrUrl(payment.qrImage);
+    setPaymentQrPreview(payment.qrImage);
+    setPaymentQrFile(null);
+    setPaymentIsActive(payment.isActive);
+    setShowPaymentModal(true);
+    setFeedback(null);
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can delete payment channels' });
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this payment channel?')) return;
+
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/payments?id=${paymentId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete payment channel');
+      }
+
+      setPayments((prev) => prev.filter((p) => p._id !== paymentId));
+      setFeedback({ type: 'success', message: 'Successfully deleted payment channel!' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
+    }
+  };
+
+  const handleSavePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can save payment channels' });
+      return;
+    }
+    if (!paymentName) {
+      setFeedback({ type: 'error', message: 'Gateway name is required' });
+      return;
+    }
+
+    setSavingPayment(true);
+    setFeedback(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('name', paymentName);
+      formData.append('isActive', paymentIsActive ? 'true' : 'false');
+
+      if (paymentQrFile) {
+        formData.append('file', paymentQrFile);
+      } else if (paymentQrUrl) {
+        formData.append('qrImageUrl', paymentQrUrl);
+      } else if (!editingPayment) {
+        throw new Error('Please select a QR code image file or enter an image URL');
+      }
+
+      let res;
+      if (editingPayment) {
+        formData.append('id', editingPayment._id);
+        res = await fetch('/api/admin/payments', {
+          method: 'PUT',
+          body: formData,
+        });
+      } else {
+        res = await fetch('/api/admin/payments', {
+          method: 'POST',
+          body: formData,
+        });
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to save payment channel');
+      }
+
+      await fetchPayments();
+
+      setPaymentName('');
+      setPaymentQrFile(null);
+      setPaymentQrUrl('');
+      setPaymentQrPreview('');
+      setEditingPayment(null);
+      setShowPaymentModal(false);
+
+      setFeedback({
+        type: 'success',
+        message: `Successfully ${editingPayment ? 'updated' : 'created'} payment channel: ${paymentName}!`,
+      });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
+    } finally {
+      setSavingPayment(false);
+    }
+  };
+
   useEffect(() => {
     fetchDashboardData();
     fetchGames();
     fetchCredentials();
+    fetchPayments();
 
     // Allow document scrolling for admin dashboard page
     const originalBodyOverflow = document.body.style.overflow;
@@ -678,6 +821,31 @@ export default function AdminSettingsPage() {
         >
           <Key size={16} /> Game Accounts (Secure)
         </button>
+        {currentUser.role === 'super_admin' && (
+          <button
+            className={`tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('payments');
+              fetchPayments();
+            }}
+            style={{
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: activeTab === 'payments' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+              color: activeTab === 'payments' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: 'none',
+              outline: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <CreditCard size={16} /> Payment Channels
+          </button>
+        )}
       </div>
 
       {/* Stats Cards (Dynamic based on Tab) */}
@@ -776,6 +944,38 @@ export default function AdminSettingsPage() {
             <div>
               <div className="stat-label">Security Status</div>
               <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>Encrypted</div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'payments' ? (
+        <div className="admin-stats-grid">
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper users" style={{ background: 'rgba(37, 99, 235, 0.1)', color: '#2563eb' }}>
+              <CreditCard size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Payment Channels</div>
+              <div className="stat-number">{payments.length}</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper admins" style={{ background: 'rgba(0, 168, 132, 0.1)', color: 'var(--accent-color)' }}>
+              <Shield size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Active Channels</div>
+              <div className="stat-number">{payments.filter(p => p.isActive).length}</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper messages" style={{ background: 'rgba(234, 0, 56, 0.1)', color: '#ea0038' }}>
+              <Lock size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Access Level</div>
+              <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>Super Admin</div>
             </div>
           </div>
         </div>
@@ -1054,7 +1254,7 @@ export default function AdminSettingsPage() {
             </table>
           )}
         </div>
-      ) : (
+      ) : activeTab === 'credentials' ? (
         /* Game Accounts (Secure) tab view */
         <div className="admin-table-container glass">
           <div
@@ -1275,7 +1475,138 @@ export default function AdminSettingsPage() {
             </table>
           )}
         </div>
-      )}
+      ) : activeTab === 'payments' && currentUser.role === 'super_admin' ? (
+        <div className="admin-table-container glass">
+          <div
+            style={{
+              padding: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid var(--border-color)',
+            }}
+          >
+            <div>
+              <span style={{ fontWeight: 600, display: 'block' }}>Payment Channels Configuration</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Configure payment gateways and QR codes for admin chat sharing
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <button
+                className="btn-primary"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  width: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  margin: 0,
+                  boxShadow: 'none'
+                }}
+                onClick={openCreatePaymentModal}
+              >
+                <Plus size={16} /> Add Payment Method
+              </button>
+              <button className="icon-btn" title="Refresh data" onClick={fetchPayments}>
+                <RefreshCw size={16} />
+              </button>
+            </div>
+          </div>
+
+          {loadingPayments ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <div className="spinner"></div>
+            </div>
+          ) : payments.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+              No payment channels found. Click "Add Payment Method" to create one.
+            </div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Gateway Name</th>
+                  <th>Status</th>
+                  <th>QR Image File / URL</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {payments.map((payment) => (
+                  <tr key={payment._id}>
+                    <td>
+                      <div className="profile-cell">
+                        <div style={{ 
+                          width: '46px', 
+                          height: '46px', 
+                          borderRadius: '8px', 
+                          overflow: 'hidden', 
+                          border: '1px solid var(--border-color)', 
+                          background: 'white',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '2px'
+                        }}>
+                          <img 
+                            src={payment.qrImage} 
+                            alt={payment.name} 
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=400';
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontWeight: 600, marginLeft: '12px' }}>{payment.name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className={`role-badge ${payment.isActive ? 'super_admin' : 'user'}`} style={{ padding: '4px 8px', fontSize: '11px', textTransform: 'uppercase' }}>
+                        {payment.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td>
+                      <span 
+                        style={{ 
+                          fontSize: '12px', 
+                          color: 'var(--text-secondary)', 
+                          wordBreak: 'break-all',
+                          fontFamily: 'monospace'
+                        }}
+                      >
+                        {payment.qrImage}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <button 
+                          className="icon-btn" 
+                          title="Edit Payment Details" 
+                          onClick={() => openEditPaymentModal(payment)}
+                          style={{ color: 'var(--accent-color)' }}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          className="icon-btn" 
+                          title="Delete Payment Channel" 
+                          onClick={() => handleDeletePayment(payment._id)}
+                          style={{ color: 'var(--error-color)' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : null}
 
       {/* Account Creation Modal (Tab: Users) */}
       {showCreateModal && (
@@ -1685,6 +2016,206 @@ export default function AdminSettingsPage() {
                   disabled={savingCredential}
                 >
                   {savingCredential ? 'Saving...' : editingCredential ? 'Save Changes' : 'Create Credential'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Gateway Add/Edit Modal (Tab: Payments) */}
+      {showPaymentModal && (
+        <div className="modal-overlay" onClick={() => setShowPaymentModal(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div className="modal-header">
+              <h2>{editingPayment ? 'Edit Payment Channel' : 'Add New Payment Channel'}</h2>
+              <button className="icon-btn" onClick={() => setShowPaymentModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSavePayment}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                
+                {/* Live QR Preview Box */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  background: 'white', 
+                  border: '1px dashed var(--border-color)', 
+                  borderRadius: 'var(--radius-md)', 
+                  padding: '16px',
+                  gap: '8px'
+                }}>
+                  {paymentQrPreview ? (
+                    <div style={{ 
+                      width: '150px', 
+                      height: '150px', 
+                      borderRadius: '8px', 
+                      overflow: 'hidden', 
+                      border: '2px solid var(--super-admin-color)',
+                      boxShadow: '0 0 15px rgba(168, 85, 247, 0.2)',
+                      background: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <img 
+                        src={paymentQrPreview} 
+                        alt="QR code preview" 
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                        onError={(e) => {
+                          e.currentTarget.src = 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=400';
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div style={{ 
+                      width: '150px', 
+                      height: '150px', 
+                      borderRadius: '8px', 
+                      border: '2px dashed var(--border-color)', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      color: 'var(--text-muted)',
+                      background: 'rgba(0,0,0,0.05)'
+                    }}>
+                      <ImageIcon size={32} />
+                    </div>
+                  )}
+                  <span style={{ fontSize: '11px', color: '#1e293b', fontWeight: 500 }}>
+                    {paymentName || 'Gateway'} QR Preview
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label>Gateway Name *</label>
+                  <div className="input-wrapper">
+                    <CreditCard size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Bkash, Esewa, CashApp, Google Pay"
+                      className="form-input"
+                      value={paymentName}
+                      onChange={(e) => setPaymentName(e.target.value)}
+                      disabled={savingPayment}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Status</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                    <input
+                      type="checkbox"
+                      id="payment-active-checkbox"
+                      checked={paymentIsActive}
+                      onChange={(e) => setPaymentIsActive(e.target.checked)}
+                      disabled={savingPayment}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="payment-active-checkbox" style={{ margin: 0, cursor: 'pointer', fontSize: '14px', color: 'var(--text-primary)' }}>
+                      Active (visible to users & admins)
+                    </label>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Upload QR Image File</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="payment-file-input"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0] || null;
+                        setPaymentQrFile(file);
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => {
+                            setPaymentQrPreview(reader.result as string);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      disabled={savingPayment}
+                    />
+                    <button
+                      type="button"
+                      className="btn-secondary"
+                      style={{ 
+                        padding: '10px 14px', 
+                        fontSize: '13px', 
+                        width: '100%', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '6px', 
+                        margin: 0, 
+                        justifyContent: 'center',
+                        border: '1px solid var(--border-color)',
+                        background: 'rgba(255,255,255,0.02)'
+                      }}
+                      onClick={() => document.getElementById('payment-file-input')?.click()}
+                      disabled={savingPayment}
+                    >
+                      <ImageIcon size={15} /> 
+                      {paymentQrFile ? `Selected: ${paymentQrFile.name.substring(0, 20)}...` : 'Choose Image File'}
+                    </button>
+                  </div>
+                </div>
+
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    color: 'var(--text-muted)', 
+                    fontSize: '11px', 
+                    margin: '2px 0' 
+                  }}
+                >
+                  — OR —
+                </div>
+
+                <div className="form-group">
+                  <label>Direct QR Image URL</label>
+                  <div className="input-wrapper">
+                    <ImageIcon size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Paste online image URL (e.g. https://...)"
+                      className="form-input"
+                      value={paymentQrUrl}
+                      onChange={(e) => {
+                        setPaymentQrUrl(e.target.value);
+                        setPaymentQrPreview(e.target.value);
+                      }}
+                      disabled={savingPayment}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px' }}
+                  onClick={() => setShowPaymentModal(false)}
+                  disabled={savingPayment}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
+                  disabled={savingPayment}
+                >
+                  {savingPayment ? 'Saving...' : editingPayment ? 'Save Changes' : 'Create Payment'}
                 </button>
               </div>
             </form>

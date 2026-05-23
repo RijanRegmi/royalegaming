@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2 } from 'lucide-react';
+import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard } from 'lucide-react';
 
 interface AdminChatViewProps {
   currentUser: {
@@ -185,6 +185,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [onlineUsers, setOnlineUsers] = useState<Record<string, string>>({});
   const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
   const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<string | null>(null);
+
+  const [payments, setPayments] = useState<any[]>([]);
+  const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
 
   const [chatLoading, setChatLoading] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
@@ -494,20 +497,100 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     fetchMessages();
   }, [selectedUser]);
 
-  // Click listener to close emoji picker when clicking outside
+  // Click listener to close emoji picker and payment dropdown when clicking outside
   useEffect(() => {
     const handleDocumentClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.closest('.emoji-reaction-picker') || target.closest('.msg-action-btn')) {
+      if (
+        target.closest('.emoji-reaction-picker') || 
+        target.closest('.msg-action-btn') || 
+        target.closest('.payment-dropdown-popover') || 
+        target.closest('.chat-action-btn')
+      ) {
         return;
       }
       setActiveEmojiPickerMessageId(null);
+      setShowPaymentDropdown(false);
     };
     document.addEventListener('click', handleDocumentClick);
     return () => {
       document.removeEventListener('click', handleDocumentClick);
     };
   }, []);
+
+  // Fetch active payments
+  useEffect(() => {
+    const fetchPayments = async () => {
+      try {
+        const res = await fetch('/api/payments');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setPayments(data.payments);
+        }
+      } catch (err) {
+        console.error('Error fetching active payments:', err);
+      }
+    };
+    fetchPayments();
+  }, []);
+
+  // Send configured QR code to chat
+  const handleSendPaymentQr = async (payment: any) => {
+    if (!selectedUser) return;
+    setSending(true);
+    setShowPaymentDropdown(false);
+    try {
+      const res = await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chatUserId: selectedUser.id,
+          fileUrl: payment.qrImage,
+          fileType: 'image',
+          fileName: `${payment.name}-QR.png`,
+          fileSize: 10240, // dummy size in bytes
+          content: `Payment Gateway: ${payment.name}. Please scan this QR code to complete your payment.`,
+          replyTo: replyingToMessage ? replyingToMessage._id : undefined
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send payment QR code');
+      }
+
+      setMessages((prev) => {
+        const exists = prev.some((msg) => msg._id === data.message._id);
+        if (exists) {
+          return prev.map((msg) => (msg._id === data.message._id ? data.message : msg));
+        }
+        return [...prev, data.message];
+      });
+
+      // Update sidebar list for the recipient user locally
+      setUsers((prev) => {
+        const userIdx = prev.findIndex((u) => u.id === selectedUser.id);
+        if (userIdx !== -1) {
+          const updatedUser = { ...prev[userIdx] };
+          updatedUser.lastMessage = {
+            content: data.message.content,
+            createdAt: data.message.createdAt,
+            senderName: currentUser.name,
+            senderRole: currentUser.role,
+            fileType: data.message.fileType,
+          };
+          const listWithoutUser = prev.filter((u) => u.id !== selectedUser.id);
+          return [updatedUser, ...listWithoutUser];
+        }
+        return prev;
+      });
+      setReplyingToMessage(null);
+    } catch (err) {
+      console.error('Error sending payment QR code:', err);
+    } finally {
+      setSending(false);
+    }
+  };
 
   // Listen to Server-Sent Events (SSE) for real-time updates
   useEffect(() => {
@@ -1536,15 +1619,85 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               />
               
               {!isRecording && (
-                <button 
-                  type="button" 
-                  className="chat-action-btn" 
-                  onClick={triggerFileSelect} 
-                  title="Attach file or image"
-                  disabled={sending}
-                >
-                  <Paperclip size={20} />
-                </button>
+                <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
+                  <button 
+                    type="button" 
+                    className="chat-action-btn" 
+                    onClick={triggerFileSelect} 
+                    title="Attach file or image"
+                    disabled={sending}
+                  >
+                    <Paperclip size={20} />
+                  </button>
+                  <button 
+                    type="button" 
+                    className={`chat-action-btn ${showPaymentDropdown ? 'active' : ''}`}
+                    onClick={() => setShowPaymentDropdown(!showPaymentDropdown)} 
+                    title="Send Payment QR"
+                    disabled={sending}
+                    style={{ color: showPaymentDropdown ? 'var(--accent-color)' : 'var(--text-secondary)' }}
+                  >
+                    <CreditCard size={20} />
+                  </button>
+                  
+                  {showPaymentDropdown && (
+                    <div className="payment-dropdown-popover" style={{
+                      position: 'absolute',
+                      bottom: '50px',
+                      left: '0',
+                      background: 'rgba(30, 41, 59, 0.95)',
+                      backdropFilter: 'blur(10px)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      padding: '8px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      minWidth: '220px',
+                      zIndex: 100
+                    }}>
+                      <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', padding: '4px 8px', borderBottom: '1px solid var(--border-color)', marginBottom: '4px' }}>
+                        Select Payment QR to Send:
+                      </div>
+                      {payments.length === 0 ? (
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '6px 8px', fontStyle: 'italic' }}>
+                          No active payment methods
+                        </div>
+                      ) : (
+                        payments.map((payment) => (
+                          <button
+                            key={payment._id}
+                            type="button"
+                            onClick={() => handleSendPaymentQr(payment)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-primary)',
+                              textAlign: 'left',
+                              padding: '8px',
+                              borderRadius: 'var(--radius-sm)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              width: '100%',
+                              transition: 'background 0.2s'
+                            }}
+                            className="payment-popover-item"
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                          >
+                            <div style={{ width: '24px', height: '24px', borderRadius: '4px', overflow: 'hidden', background: 'white', flexShrink: 0, padding: '1px' }}>
+                              <img src={payment.qrImage} alt={payment.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                            </div>
+                            <span style={{ fontSize: '13px', fontWeight: 500 }}>{payment.name}</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
 
               {isRecording ? (
