@@ -278,6 +278,32 @@ button, input, select, textarea {
   padding-right: 42px;
 }
 
+.code-inputs-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.code-digit-input {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 20px;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary);
+  transition: all var(--transition-fast);
+}
+
+.code-digit-input:focus {
+  border-color: var(--accent-color);
+  background: rgba(0, 168, 132, 0.02);
+  box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.15);
+}
+
 .forgot-password-link-container {
   display: flex;
   justify-content: flex-end;

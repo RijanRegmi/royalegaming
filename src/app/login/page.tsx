@@ -30,7 +30,7 @@ export default function LoginPage() {
   // Forgot password wizard
   const [forgotStep, setForgotStep] = useState<'none' | 'email' | 'code' | 'reset'>('none');
   const [forgotEmail, setForgotEmail] = useState('');
-  const [forgotCode, setForgotCode] = useState('');
+  const [forgotCodeDigits, setForgotCodeDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -254,10 +254,50 @@ export default function LoginPage() {
     }
   };
 
+  const handleDigitChange = (index: number, value: string) => {
+    // Only allow numbers
+    if (value && !/^\d$/.test(value)) return;
+
+    const newDigits = [...forgotCodeDigits];
+    newDigits[index] = value;
+    setForgotCodeDigits(newDigits);
+
+    // Auto-focus next input if filled
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`digit-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !forgotCodeDigits[index] && index > 0) {
+      const prevInput = document.getElementById(`digit-${index - 1}`);
+      if (prevInput) {
+        prevInput.focus();
+        const newDigits = [...forgotCodeDigits];
+        newDigits[index - 1] = '';
+        setForgotCodeDigits(newDigits);
+      }
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').trim();
+    if (/^\d{6}$/.test(pastedData)) {
+      const digitsArray = pastedData.split('');
+      setForgotCodeDigits(digitsArray);
+      // Focus the last input
+      const lastInput = document.getElementById('digit-5');
+      if (lastInput) lastInput.focus();
+    }
+  };
+
   const handleVerifyCodeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!forgotCode) {
-      setError('Please enter the verification code');
+    const fullCode = forgotCodeDigits.join('');
+    if (fullCode.length < 6) {
+      setError('Please enter all 6 digits of the verification code');
       return;
     }
     setLoading(true);
@@ -267,7 +307,7 @@ export default function LoginPage() {
       const res = await fetch('/api/auth/verify-reset-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotEmail, code: forgotCode }),
+        body: JSON.stringify({ email: forgotEmail, code: fullCode }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -298,13 +338,14 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
     setSuccessMessage(null);
+    const fullCode = forgotCodeDigits.join('');
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: forgotEmail,
-          code: forgotCode,
+          code: fullCode,
           password: newPassword,
         }),
       });
@@ -315,7 +356,7 @@ export default function LoginPage() {
       setSuccessMessage(data.message);
       setForgotStep('none');
       setForgotEmail('');
-      setForgotCode('');
+      setForgotCodeDigits(['', '', '', '', '', '']);
       setNewPassword('');
       setConfirmPassword('');
       setActiveTab('signin');
@@ -589,19 +630,26 @@ export default function LoginPage() {
             {forgotStep === 'code' && (
               <form className="auth-form" onSubmit={handleVerifyCodeSubmit}>
                 <div className="form-group">
-                  <label>Verification Code</label>
-                  <div className="input-wrapper">
-                    <Lock size={16} className="input-icon" />
-                    <input
-                      type="text"
-                      placeholder="Enter 6-digit code"
-                      className="form-input"
-                      value={forgotCode}
-                      onChange={(e) => setForgotCode(e.target.value)}
-                      disabled={loading}
-                      required
-                      maxLength={6}
-                    />
+                  <label style={{ textAlign: 'center', marginBottom: '8px' }}>Verification Code</label>
+                  <div className="code-inputs-container">
+                    {forgotCodeDigits.map((digit, index) => (
+                      <input
+                        key={index}
+                        id={`digit-${index}`}
+                        type="text"
+                        maxLength={1}
+                        className="code-digit-input"
+                        value={digit}
+                        onChange={(e) => handleDigitChange(index, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(index, e)}
+                        onPaste={handlePaste}
+                        disabled={loading}
+                        required
+                        autoComplete="off"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                      />
+                    ))}
                   </div>
                 </div>
 
