@@ -978,15 +978,20 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           </div>
           <div className="chat-user-details">
             <span className="chat-user-name">RoyaleGaming Admin Support</span>
-            {Object.values(onlineUsers).some(role => role === 'admin' || role === 'super_admin') ? (
-              <span className="chat-user-status" style={{ color: 'var(--success-color)' }}>
-                ● Online & Ready to Help
+            <div className="chat-user-status-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', rowGap: '2px', marginTop: '2px' }}>
+              {Object.values(onlineUsers).some(role => role === 'admin' || role === 'super_admin') ? (
+                <span className="chat-user-status" style={{ color: 'var(--success-color)', fontSize: '11px' }}>
+                  ● Online & Ready to Help
+                </span>
+              ) : (
+                <span className="chat-user-status" style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                  ○ Offline (Replies may be delayed)
+                </span>
+              )}
+              <span className="chat-logged-in-as" style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', borderLeft: '1px solid rgba(255, 255, 255, 0.15)', paddingLeft: '8px', whiteSpace: 'nowrap' }}>
+                Logged in as: <strong style={{ color: '#ffffff' }}>{currentUser.name}</strong>
               </span>
-            ) : (
-              <span className="chat-user-status" style={{ color: 'var(--text-muted)' }}>
-                ○ Offline (Replies may be delayed)
-              </span>
-            )}
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>

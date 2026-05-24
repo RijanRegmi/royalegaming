@@ -178,7 +178,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [inputText, setInputText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [sending, setSending] = useState(false);
-  const [showDetails, setShowDetails] = useState(true);
+  const [showDetails, setShowDetails] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
 
@@ -521,6 +521,13 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
   useEffect(() => {
     fetchUsers();
+  }, []);
+
+  // Set initial details panel state based on viewport width to avoid layout overlaps on mobile
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth > 768) {
+      setShowDetails(true);
+    }
   }, []);
 
   // Fetch messages for selected user
@@ -1265,7 +1272,12 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               <div
                 key={u.id}
                 className={`conversation-item ${selectedUser?.id === u.id ? 'active' : ''}`}
-                onClick={() => setSelectedUser(u)}
+                onClick={() => {
+                  setSelectedUser(u);
+                  if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+                    setShowDetails(false);
+                  }
+                }}
               >
                 <div className="sidebar-avatar-container">
                   <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px' }}>
@@ -1351,7 +1363,19 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   </span>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span className="admin-self-badge" style={{
+                  fontSize: '11px',
+                  color: 'rgba(255, 255, 255, 0.4)',
+                  marginRight: '8px',
+                  whiteSpace: 'nowrap',
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.05)',
+                  padding: '3px 8px',
+                  borderRadius: '12px'
+                }}>
+                  As: <strong style={{ color: 'var(--accent-color)' }}>{currentUser.name}</strong>
+                </span>
                 <button 
                   className="icon-btn delete-chat-btn" 
                   title="Clear Chat History" 

@@ -718,9 +718,23 @@ export default function AdminSettingsPage() {
       {/* Header */}
       <header className="admin-header">
         <div>
-          <h1>Control Room</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1>Control Room</h1>
+            <span className="role-badge" style={{
+              background: currentUser.role === 'super_admin' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(0, 168, 132, 0.15)',
+              color: currentUser.role === 'super_admin' ? 'var(--super-admin-color)' : 'var(--accent-color)',
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '3px 8px',
+              borderRadius: '12px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              {currentUser.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+            </span>
+          </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-            Manage game lobby platforms, user support routing, and administrator roles
+            Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser.name}</strong> • Manage game lobby platforms, user support routing, and administrator roles
           </p>
         </div>
         <button className="btn-secondary" onClick={() => window.location.href = '/'}>
