@@ -51,6 +51,16 @@ export default function AdminSettingsPage() {
   const [newAdminRole, setNewAdminRole] = useState('admin');
   const [creatingAdmin, setCreatingAdmin] = useState(false);
 
+  // --- Edit/Delete user states ---
+  const [showEditUserModal, setShowEditUserModal] = useState<boolean>(false);
+  const [editingUserProfile, setEditingUserProfile] = useState<any>(null);
+  const [editUserName, setEditUserName] = useState('');
+  const [editUserEmail, setEditUserEmail] = useState('');
+  const [editUserPhone, setEditUserPhone] = useState('');
+  const [editUserRole, setEditUserRole] = useState('user');
+  const [editUserPassword, setEditUserPassword] = useState('');
+  const [updatingUser, setUpdatingUser] = useState(false);
+
   // --- Games management states ---
   const [games, setGames] = useState<any[]>([]);
   const [loadingGames, setLoadingGames] = useState<boolean>(true);
@@ -516,6 +526,96 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: err.message });
     } finally {
       setCreatingAdmin(false);
+    }
+  };
+
+  const openEditUserModal = (profile: any) => {
+    setEditingUserProfile(profile);
+    setEditUserName(profile.name);
+    setEditUserEmail(profile.email);
+    setEditUserPhone(profile.phone || '');
+    setEditUserRole(profile.role);
+    setEditUserPassword('');
+    setShowEditUserModal(true);
+    setFeedback(null);
+  };
+
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can edit accounts' });
+      return;
+    }
+    if (!editUserName || !editUserEmail) {
+      setFeedback({ type: 'error', message: 'Name and email are required' });
+      return;
+    }
+
+    setUpdatingUser(true);
+    setFeedback(null);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: editingUserProfile._id || editingUserProfile.id,
+          name: editUserName,
+          email: editUserEmail,
+          phone: editUserPhone,
+          role: editUserRole,
+          password: editUserPassword || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update account');
+      }
+
+      setProfiles((prev) =>
+        prev.map((p) => {
+          const pId = p._id || p.id;
+          const updatedId = data.user.id || data.user._id;
+          return pId === updatedId ? { ...p, ...data.user, _id: updatedId, id: updatedId } : p;
+        })
+      );
+
+      setShowEditUserModal(false);
+      setFeedback({ type: 'success', message: 'Successfully updated user account' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
+    } finally {
+      setUpdatingUser(false);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can delete accounts' });
+      return;
+    }
+    if (userId === currentUser.id) {
+      setFeedback({ type: 'error', message: 'You cannot delete your own account' });
+      return;
+    }
+    if (!window.confirm('Are you sure you want to delete this user? This will also delete all their messages. This action is irreversible!')) return;
+
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/users?id=${userId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to delete account');
+      }
+
+      setProfiles((prev) => prev.filter((p) => (p._id || p.id) !== userId));
+      setFeedback({ type: 'success', message: 'Successfully deleted user account!' });
+    } catch (err: any) {
+      setFeedback({ type: 'error', message: err.message });
     }
   };
 
@@ -1051,6 +1151,7 @@ export default function AdminSettingsPage() {
                 <th>Phone Number</th>
                 <th>Date Registered</th>
                 <th>System Role</th>
+                <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -1108,6 +1209,28 @@ export default function AdminSettingsPage() {
                           <option value="super_admin">Super Admin</option>
                         </select>
                       )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <button 
+                          className="icon-btn" 
+                          title="Edit User Profile" 
+                          onClick={() => openEditUserModal(profile)}
+                          style={{ color: 'var(--accent-color)' }}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        {!isSelf && (
+                          <button 
+                            className="icon-btn" 
+                            title="Delete User" 
+                            onClick={() => handleDeleteUser(profileId)}
+                            style={{ color: 'var(--error-color)' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -2241,6 +2364,123 @@ export default function AdminSettingsPage() {
                   disabled={savingPayment}
                 >
                   {savingPayment ? 'Saving...' : editingPayment ? 'Save Changes' : 'Create Payment'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit User Modal (Tab: Users) */}
+      {showEditUserModal && editingUserProfile && (
+        <div className="modal-overlay" onClick={() => setShowEditUserModal(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Edit User Account</h2>
+              <button className="icon-btn" onClick={() => setShowEditUserModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleSaveUser}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group">
+                  <label>Full Name *</label>
+                  <div className="input-wrapper">
+                    <Users size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Full Name"
+                      className="form-input"
+                      value={editUserName}
+                      onChange={(e) => setEditUserName(e.target.value)}
+                      disabled={updatingUser}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Email Address *</label>
+                  <div className="input-wrapper">
+                    <Mail size={16} className="input-icon" />
+                    <input
+                      type="email"
+                      placeholder="user@example.com"
+                      className="form-input"
+                      value={editUserEmail}
+                      onChange={(e) => setEditUserEmail(e.target.value)}
+                      disabled={updatingUser}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Phone Number</label>
+                  <div className="input-wrapper">
+                    <Phone size={16} className="input-icon" />
+                    <input
+                      type="tel"
+                      placeholder="+1234567890"
+                      className="form-input"
+                      value={editUserPhone}
+                      onChange={(e) => setEditUserPhone(e.target.value)}
+                      disabled={updatingUser}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Reset Password (leave blank to keep current)</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type="password"
+                      placeholder="New password (min 6 chars)"
+                      className="form-input"
+                      value={editUserPassword}
+                      onChange={(e) => setEditUserPassword(e.target.value)}
+                      disabled={updatingUser}
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Account Role</label>
+                  <select
+                    className="role-select"
+                    style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)' }}
+                    value={editUserRole}
+                    onChange={(e) => setEditUserRole(e.target.value)}
+                    disabled={updatingUser || (editingUserProfile._id || editingUserProfile.id) === currentUser.id}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                    <option value="super_admin">Super Admin</option>
+                  </select>
+                  {(editingUserProfile._id || editingUserProfile.id) === currentUser.id && (
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>You cannot change your own role.</span>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px' }}
+                  onClick={() => setShowEditUserModal(false)}
+                  disabled={updatingUser}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
+                  disabled={updatingUser}
+                >
+                  {updatingUser ? 'Saving...' : 'Save Changes'}
                 </button>
               </div>
             </form>

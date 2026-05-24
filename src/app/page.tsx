@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, LogOut, LogIn, Shield, Gamepad2, ArrowRight, Loader2 } from 'lucide-react';
+import { MessageSquare, LogOut, LogIn, Shield, Gamepad2, ArrowRight, Loader2, User as UserIcon } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 
 interface GameItem {
@@ -123,6 +123,11 @@ export default function Home() {
                   <span className="lobby-btn-label">Control Room</span>
                 </button>
               )}
+
+              <button onClick={() => router.push('/profile')} className="lobby-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="My Profile">
+                <UserIcon size={15} />
+                <span className="lobby-btn-label">Profile</span>
+              </button>
 
               <button onClick={handleChatAccess} className="lobby-btn-chat">
                 <MessageSquare size={15} fill="white" />

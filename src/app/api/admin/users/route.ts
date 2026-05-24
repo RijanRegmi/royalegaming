@@ -75,7 +75,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// PUT: Change user roles (Super Admin only)
+// PUT: Update user account (Super Admin only)
 export async function PUT(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
@@ -84,14 +84,10 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { userId, newRole } = await req.json();
+    const { userId, name, email, phone, role, password } = await req.json();
 
-    if (!userId || !newRole) {
-      return NextResponse.json({ error: 'Missing userId or newRole' }, { status: 400 });
-    }
-
-    if (!['user', 'admin', 'super_admin'].includes(newRole)) {
-      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
     }
 
     const userToUpdate = await User.findById(userId);
@@ -99,12 +95,54 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Prevent changing own role (super admin demoting self) to prevent locking out
-    if (userId === payload.userId) {
-      return NextResponse.json({ error: 'Cannot modify your own role' }, { status: 400 });
+    // Update name if provided
+    if (name !== undefined) {
+      if (!name.trim()) {
+        return NextResponse.json({ error: 'Name cannot be empty' }, { status: 400 });
+      }
+      userToUpdate.name = name.trim();
     }
 
-    userToUpdate.role = newRole;
+    // Update email if provided
+    if (email !== undefined) {
+      const cleanEmail = email.trim().toLowerCase();
+      if (!cleanEmail) {
+        return NextResponse.json({ error: 'Email cannot be empty' }, { status: 400 });
+      }
+      if (cleanEmail !== userToUpdate.email) {
+        const existingEmailUser = await User.findOne({ email: cleanEmail });
+        if (existingEmailUser) {
+          return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
+        }
+        userToUpdate.email = cleanEmail;
+      }
+    }
+
+    // Update phone if provided
+    if (phone !== undefined) {
+      userToUpdate.phone = phone.trim();
+    }
+
+    // Update role if provided
+    if (role !== undefined) {
+      if (!['user', 'admin', 'super_admin'].includes(role)) {
+        return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+      }
+      // Prevent changing own role (super admin demoting self)
+      if (userId === payload.userId && role !== userToUpdate.role) {
+        return NextResponse.json({ error: 'Cannot modify your own role' }, { status: 400 });
+      }
+      userToUpdate.role = role;
+    }
+
+    // Update password if provided
+    if (password !== undefined && password !== '') {
+      if (password.length < 6) {
+        return NextResponse.json({ error: 'Password must be at least 6 characters long' }, { status: 400 });
+      }
+      userToUpdate.password = await bcrypt.hash(password, 10);
+    }
+
     await userToUpdate.save();
 
     return NextResponse.json({
@@ -113,11 +151,13 @@ export async function PUT(req: NextRequest) {
         id: userToUpdate._id,
         name: userToUpdate.name,
         email: userToUpdate.email,
+        phone: userToUpdate.phone || '',
         role: userToUpdate.role,
+        createdAt: userToUpdate.createdAt,
       },
     });
   } catch (error) {
-    console.error('Update user role error:', error);
+    console.error('Update user error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -174,6 +214,49 @@ export async function POST(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Create admin error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// DELETE: Delete user account (Super Admin only)
+export async function DELETE(req: NextRequest) {
+  try {
+    const payload = getUserFromRequest(req);
+    if (!payload || payload.role !== 'super_admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const userId = searchParams.get('id');
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    }
+
+    // Prevent deleting oneself
+    if (userId === payload.userId) {
+      return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 400 });
+    }
+
+    await dbConnect();
+
+    const userToDelete = await User.findById(userId);
+    if (!userToDelete) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Delete user
+    await User.findByIdAndDelete(userId);
+
+    // Delete associated messages
+    await Message.deleteMany({ chatUserId: userId });
+
+    return NextResponse.json({
+      success: true,
+      message: 'User account and associated data deleted successfully.',
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
