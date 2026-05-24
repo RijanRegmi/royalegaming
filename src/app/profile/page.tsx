@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield } from 'lucide-react';
+import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -25,15 +25,12 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
 
-  // Password reset states
-  const [codeSent, setCodeSent] = useState<boolean>(false);
-  const [verificationCode, setVerificationCode] = useState<string>('');
+  // Password change states
+  const [currentPassword, setCurrentPassword] = useState<string>('');
   const [newPassword, setNewPassword] = useState<string>('');
-  const [showPassword, setShowPassword] = useState<boolean>(false);
-  
-  // Resend cooldown timer
-  const [countdown, setCountdown] = useState<number>(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
+  const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
 
   // Fetch current user details
   useEffect(() => {
@@ -67,26 +64,21 @@ export default function ProfilePage() {
     document.documentElement.style.overflow = 'auto';
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
   }, [router]);
 
-  // Start cooldown timer for code resending
-  const startTimer = () => {
-    setCountdown(60);
-    if (timerRef.current) clearInterval(timerRef.current);
-    
-    timerRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  // Handle User Sign Out
+  const handleLogout = async () => {
+    try {
+      const res = await fetch('/api/auth/logout', { method: 'POST' });
+      if (res.ok) {
+        window.location.href = '/';
+      }
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   // Handle Profile Update (Name, Phone)
@@ -122,43 +114,21 @@ export default function ProfilePage() {
     }
   };
 
-  // Request verification code for password change
-  const handleSendCode = async () => {
-    setSendingCode(true);
-    setPasswordError(null);
-    setPasswordSuccess(null);
-
-    try {
-      const res = await fetch('/api/auth/profile/send-code', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send verification code');
-      }
-
-      setCodeSent(true);
-      setPasswordSuccess(data.message);
-      startTimer();
-    } catch (err: any) {
-      setPasswordError(err.message);
-    } finally {
-      setSendingCode(false);
-    }
-  };
-
-  // Submit Password Change
-  const handlePasswordChangeSubmit = async (e: React.FormEvent) => {
+  // Handle Direct Password Change
+  const handleDirectPasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!verificationCode || !newPassword) {
-      setPasswordError('Please fill in both verification code and new password.');
+    if (!newPassword || !confirmPassword) {
+      setPasswordError('New password and confirm password are required.');
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordError('Password must be at least 6 characters long.');
+      setPasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match.');
       return;
     }
 
@@ -167,10 +137,10 @@ export default function ProfilePage() {
     setPasswordSuccess(null);
 
     try {
-      const res = await fetch('/api/auth/profile/change-password', {
+      const res = await fetch('/api/auth/profile/change-password-direct', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: verificationCode, password: newPassword }),
+        body: JSON.stringify({ currentPassword, newPassword }),
       });
 
       const data = await res.json();
@@ -178,18 +148,17 @@ export default function ProfilePage() {
         throw new Error(data.error || 'Failed to change password');
       }
 
-      setPasswordSuccess('Password updated successfully!');
-      setVerificationCode('');
+      setPasswordSuccess('Password changed successfully!');
+      setCurrentPassword('');
       setNewPassword('');
-      setCodeSent(false);
-      if (timerRef.current) clearInterval(timerRef.current);
-      setCountdown(0);
+      setConfirmPassword('');
     } catch (err: any) {
       setPasswordError(err.message);
     } finally {
       setResettingPassword(false);
     }
   };
+
 
   if (loading) {
     return (
@@ -214,15 +183,27 @@ export default function ProfilePage() {
             <ArrowLeft size={16} /> Back to Lobby
           </button>
           
-          {user && (user.role === 'super_admin' || user.role === 'admin') && (
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {user && (user.role === 'super_admin' || user.role === 'admin') && (
+              <button 
+                onClick={() => router.push('/admin')}
+                className="lobby-btn-secondary" 
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px', borderRadius: '8px' }}
+              >
+                <Shield size={14} /> Control Room
+              </button>
+            )}
+
             <button 
-              onClick={() => router.push('/admin')}
+              onClick={handleLogout}
               className="lobby-btn-secondary" 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px', borderRadius: '8px' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px', borderRadius: '8px', color: 'var(--error-color)', borderColor: 'rgba(234, 0, 56, 0.2)' }}
+              title="Sign Out"
             >
-              <Shield size={14} /> Control Room
+              <LogOut size={14} />
+              <span className="lobby-btn-label">Sign Out</span>
             </button>
-          )}
+          </div>
         </div>
 
         {/* Profile Logo/Title */}
@@ -311,108 +292,89 @@ export default function ProfilePage() {
           {passwordError && <div className="auth-error">{passwordError}</div>}
           {passwordSuccess && <div className="auth-success">{passwordSuccess}</div>}
 
-          {!codeSent ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                To secure your account, password updates require verification. A 6-digit code will be sent to your registered Gmail account: <strong>{email}</strong>.
-              </p>
-              <button 
-                type="button" 
-                className="guest-btn" 
-                onClick={handleSendCode} 
-                disabled={sendingCode}
-                style={{ marginTop: '8px' }}
-              >
-                {sendingCode ? (
-                  <div className="flex-center">
-                    <Loader2 className="animate-spin" size={16} />&nbsp;Sending Code...
-                  </div>
-                ) : (
-                  'Request Password Verification Code'
-                )}
-              </button>
-            </div>
-          ) : (
-            <form onSubmit={handlePasswordChangeSubmit} className="auth-form">
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                Enter the verification code sent to <strong>{email}</strong> and your new password.
-              </p>
-
-              <div className="form-group">
-                <label>Verification Code *</label>
-                <div className="input-wrapper">
-                  <Lock size={16} className="input-icon" />
-                  <input
-                    type="text"
-                    maxLength={6}
-                    placeholder="Enter 6-digit code"
-                    className="form-input"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                    disabled={resettingPassword}
-                    required
-                    style={{ letterSpacing: '2px', fontWeight: 'bold' }}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label>New Password *</label>
-                <div className="input-wrapper">
-                  <Lock size={16} className="input-icon" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="New password (min 6 chars)"
-                    className="form-input has-toggle"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={resettingPassword}
-                    required
-                    minLength={6}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="password-toggle-btn"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
-              </div>
-
-              <button type="submit" className="btn-primary" style={{ marginTop: '8px' }} disabled={resettingPassword}>
-                {resettingPassword ? (
-                  <div className="flex-center">
-                    <Loader2 className="animate-spin" size={16} />&nbsp;Updating Password...
-                  </div>
-                ) : (
-                  'Update Password'
-                )}
-              </button>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
-                <span 
-                  onClick={() => {
-                    setCodeSent(false);
-                    setPasswordError(null);
-                    setPasswordSuccess(null);
-                  }}
-                  style={{ fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer', textDecoration: 'underline' }}
-                >
-                  Cancel
-                </span>
-                
+          <form onSubmit={handleDirectPasswordChange} className="auth-form">
+            <div className="form-group">
+              <label>Current Password</label>
+              <div className="input-wrapper">
+                <Lock size={16} className="input-icon" />
+                <input
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  placeholder="Enter current password"
+                  className="form-input has-toggle"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  disabled={resettingPassword}
+                />
                 <button
                   type="button"
-                  onClick={handleSendCode}
-                  disabled={countdown > 0 || sendingCode}
-                  style={{ fontSize: '13px', color: countdown > 0 || sendingCode ? 'var(--text-muted)' : 'var(--accent-color)', cursor: countdown > 0 || sendingCode ? 'not-allowed' : 'pointer', fontWeight: 600 }}
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="password-toggle-btn"
                 >
-                  {countdown > 0 ? `Resend Code in ${countdown}s` : 'Resend Code'}
+                  {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
-            </form>
-          )}
+            </div>
+
+            <div className="form-group">
+              <label>New Password *</label>
+              <div className="input-wrapper">
+                <Lock size={16} className="input-icon" />
+                <input
+                  type={showNewPassword ? 'text' : 'password'}
+                  placeholder="New password (min 6 chars)"
+                  className="form-input has-toggle"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={resettingPassword}
+                  required
+                  minLength={6}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="password-toggle-btn"
+                >
+                  {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>Confirm New Password *</label>
+              <div className="input-wrapper">
+                <Lock size={16} className="input-icon" />
+                <input
+                  type="password"
+                  placeholder="Confirm new password"
+                  className="form-input"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={resettingPassword}
+                  required
+                />
+              </div>
+            </div>
+
+            <button type="submit" className="btn-primary" style={{ marginTop: '8px' }} disabled={resettingPassword}>
+              {resettingPassword ? (
+                <div className="flex-center">
+                  <Loader2 className="animate-spin" size={16} />&nbsp;Updating Password...
+                </div>
+              ) : (
+                'Update Password'
+              )}
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: '16px' }}>
+              <span 
+                onClick={() => router.push('/profile/secure-password')}
+                className="auth-switch-link"
+                style={{ fontSize: '13px' }}
+              >
+                Change password using email verification code
+              </span>
+            </div>
+          </form>
         </div>
       </div>
     </div>

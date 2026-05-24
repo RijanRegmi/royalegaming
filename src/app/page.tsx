@@ -133,10 +133,6 @@ export default function Home() {
                 <MessageSquare size={15} fill="white" />
                 <span className="lobby-btn-label">Support Chat</span>
               </button>
-
-              <button onClick={handleLogout} className="lobby-btn-secondary" title="Sign Out">
-                <LogOut size={15} />
-              </button>
             </>
           ) : (
             <>
