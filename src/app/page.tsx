@@ -155,34 +155,6 @@ export default function Home() {
           <p>
             Access the industry's premium slot platforms directly. Get real-time support from our administrators whenever you need.
           </p>
-          {authenticated && user && (
-            <div className="lobby-user-greeting" style={{
-              marginTop: '16px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'rgba(255, 255, 255, 0.03)',
-              border: '1px solid rgba(255, 255, 255, 0.05)',
-              padding: '6px 16px',
-              borderRadius: '20px',
-              fontSize: '13px',
-              color: '#8fa0b5'
-            }}>
-              <span>Logged in as:</span>
-              <strong style={{ color: '#ffffff' }}>{user.name}</strong>
-              <span style={{
-                background: user.role === 'super_admin' ? 'rgba(168, 85, 247, 0.15)' : user.role === 'admin' ? 'rgba(0, 168, 132, 0.15)' : 'rgba(255, 255, 255, 0.1)',
-                color: user.role === 'super_admin' ? '#c084fc' : user.role === 'admin' ? '#25d366' : '#ffffff',
-                fontSize: '10px',
-                fontWeight: 800,
-                padding: '2px 6px',
-                borderRadius: '4px',
-                textTransform: 'uppercase'
-              }}>
-                {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Player'}
-              </span>
-            </div>
-          )}
         </section>
 
         {/* Google AdSense Banner */}
