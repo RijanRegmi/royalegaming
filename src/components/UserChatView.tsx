@@ -199,6 +199,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     onConfirm: () => {},
   });
 
+  const [messageContextMenu, setMessageContextMenu] = useState<{
+    x: number;
+    y: number;
+    message: any;
+    isMe: boolean;
+  } | null>(null);
+
   const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Confirm', cancelText = 'Cancel') => {
     setConfirmModal({
       isOpen: true,
@@ -233,6 +240,34 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   const isScrollLockedRef = useRef<boolean>(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const handleMessageContextMenu = (e: React.MouseEvent | React.TouchEvent, msg: any) => {
+    e.preventDefault();
+    let clientX = 0;
+    let clientY = 0;
+    
+    if ('touches' in e) {
+      if (e.touches.length === 0) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const isMe = msg.senderId._id === currentUser.id || msg.senderId === currentUser.id;
+
+    setMessageContextMenu({
+      x: clientX,
+      y: clientY,
+      message: msg,
+      isMe
+    });
+
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(50);
+    }
+  };
+
   const handleTouchStart = (e: React.TouchEvent, msg: any) => {
     touchStartXRef.current = e.touches[0].clientX;
     touchStartYRef.current = e.touches[0].clientY;
@@ -246,10 +281,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     }
     longPressTimerRef.current = setTimeout(() => {
       if (!msg.isUnsent) {
-        setActiveEmojiPickerMessageId(msg._id);
-        if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-          window.navigator.vibrate(50);
-        }
+        handleMessageContextMenu(e, msg);
       }
     }, 600);
   };
@@ -532,6 +564,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       const target = e.target as HTMLElement;
       if (target.closest('.emoji-reaction-picker') || target.closest('.msg-action-btn')) return;
       setActiveEmojiPickerMessageId(null);
+      setMessageContextMenu(null);
     };
     document.addEventListener('click', handleDocumentClick);
     return () => {
@@ -1093,12 +1126,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   onTouchStart={(e) => handleTouchStart(e, msg)}
                   onTouchMove={(e) => handleTouchMove(e, msg)}
                   onTouchEnd={(e) => handleTouchEnd(e, msg)}
+                  onContextMenu={(e) => handleMessageContextMenu(e, msg)}
                   onMouseDown={(e) => {
                     if (e.button !== 0) return; // Left click only
                     if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
                     longPressTimerRef.current = setTimeout(() => {
                       if (!msg.isUnsent) {
-                        setActiveEmojiPickerMessageId(msg._id);
+                        handleMessageContextMenu(e, msg);
                       }
                     }, 600);
                   }}
@@ -1559,6 +1593,126 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {messageContextMenu && (
+        <div 
+          className="context-menu glass"
+          style={{
+            position: 'fixed',
+            top: `${Math.min(messageContextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 250 : messageContextMenu.y)}px`,
+            left: `${Math.min(messageContextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : messageContextMenu.x)}px`,
+            zIndex: 100000,
+            background: 'rgba(30, 41, 59, 0.95)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-2xl)',
+            padding: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            minWidth: '200px'
+          }}
+          onClick={() => setMessageContextMenu(null)}
+        >
+          {/* Reaction Emojis Row */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            padding: '4px 6px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            marginBottom: '4px',
+            gap: '6px'
+          }} onClick={(e) => e.stopPropagation()}>
+            {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className="reaction-emoji-btn"
+                style={{
+                  fontSize: '18px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '50%',
+                  transition: 'transform 0.15s ease'
+                }}
+                onClick={() => {
+                  handleReactToMessage(messageContextMenu.message._id, emoji);
+                  setMessageContextMenu(null);
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          {/* Action Options */}
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-primary)',
+              textAlign: 'left',
+              padding: '8px 12px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              transition: 'background 0.2s',
+              width: '100%'
+            }}
+            onClick={() => {
+              setReplyingToMessage(messageContextMenu.message);
+              setMessageContextMenu(null);
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <CornerUpLeft size={15} /> Reply
+          </button>
+
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ff4b6b',
+              textAlign: 'left',
+              padding: '8px 12px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              transition: 'background 0.2s',
+              width: '100%'
+            }}
+            onClick={() => {
+              const msg = messageContextMenu.message;
+              if (messageContextMenu.isMe) {
+                handleUnsendMessage(msg._id);
+              } else {
+                handleDeleteMessageForMe(msg._id);
+              }
+              setMessageContextMenu(null);
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(234, 0, 56, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <Trash2 size={15} /> {messageContextMenu.isMe ? 'Unsend for Everyone' : 'Delete for Me'}
+          </button>
         </div>
       )}
     </div>

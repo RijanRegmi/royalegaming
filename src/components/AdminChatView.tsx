@@ -190,6 +190,13 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
 
   const [chatLoading, setChatLoading] = useState(false);
+
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    userId: string;
+    userName: string;
+  } | null>(null);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -203,6 +210,13 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     message: '',
     onConfirm: () => {},
   });
+
+  const [messageContextMenu, setMessageContextMenu] = useState<{
+    x: number;
+    y: number;
+    message: any;
+    isUserMessage: boolean;
+  } | null>(null);
 
   const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Confirm', cancelText = 'Cancel') => {
     setConfirmModal({
@@ -238,6 +252,34 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const isScrollLockedRef = useRef<boolean>(false);
   const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const handleMessageContextMenu = (e: React.MouseEvent | React.TouchEvent, msg: any) => {
+    e.preventDefault();
+    let clientX = 0;
+    let clientY = 0;
+    
+    if ('touches' in e) {
+      if (e.touches.length === 0) return;
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+
+    const isUserMessage = msg.senderId._id === selectedUser.id || msg.senderId === selectedUser.id;
+
+    setMessageContextMenu({
+      x: clientX,
+      y: clientY,
+      message: msg,
+      isUserMessage
+    });
+
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(50);
+    }
+  };
+
   const handleTouchStart = (e: React.TouchEvent, msg: any) => {
     touchStartXRef.current = e.touches[0].clientX;
     touchStartYRef.current = e.touches[0].clientY;
@@ -251,10 +293,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     }
     longPressTimerRef.current = setTimeout(() => {
       if (!msg.isUnsent) {
-        setActiveEmojiPickerMessageId(msg._id);
-        if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
-          window.navigator.vibrate(50);
-        }
+        handleMessageContextMenu(e, msg);
       }
     }, 600);
   };
@@ -398,6 +437,74 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           const data = await res.json();
           if (res.ok && data.success) {
             setMessages([]);
+            fetchUsers();
+          } else {
+            showAlert('Error', data.error || 'Failed to clear chat');
+          }
+        } catch (err) {
+          console.error('Error clearing chat:', err);
+          showAlert('Error', 'Error clearing chat');
+        }
+      },
+      'Clear Chat',
+      'Cancel'
+    );
+  };
+
+  const longPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTouchStartConvo = (e: React.TouchEvent, userId: string, userName: string) => {
+    if (longPressTimeoutRef.current) clearTimeout(longPressTimeoutRef.current);
+    
+    // Store the touch position to show the menu exactly there
+    const touch = e.touches[0];
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
+
+    longPressTimeoutRef.current = setTimeout(() => {
+      setContextMenu({
+        x: clientX,
+        y: clientY,
+        userId,
+        userName
+      });
+      if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+      }
+    }, 800); // 800ms long press hold
+  };
+
+  const handleTouchEndConvo = () => {
+    if (longPressTimeoutRef.current) {
+      clearTimeout(longPressTimeoutRef.current);
+      longPressTimeoutRef.current = null;
+    }
+  };
+
+  const handleContextMenuConvo = (e: React.MouseEvent, userId: string, userName: string) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.clientX,
+      y: e.clientY,
+      userId,
+      userName
+    });
+  };
+
+  const handleDeleteChatByUserId = async (userId: string, userName: string) => {
+    showConfirm(
+      'Clear Chat History',
+      `Are you sure you want to clear the entire chat history for ${userName}? This action cannot be undone.`,
+      async () => {
+        try {
+          const res = await fetch(`/api/messages?userId=${userId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            if (selectedUser?.id === userId) {
+              setMessages([]);
+            }
             fetchUsers();
           } else {
             showAlert('Error', data.error || 'Failed to clear chat');
@@ -571,6 +678,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       }
       setActiveEmojiPickerMessageId(null);
       setShowPaymentDropdown(false);
+      setContextMenu(null);
+      setMessageContextMenu(null);
     };
     document.addEventListener('click', handleDocumentClick);
     return () => {
@@ -1127,10 +1236,18 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     }
   };
 
-  const filteredUsers = users.filter((u) =>
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredUsers = users.filter((u) => {
+    const matchesSearch = 
+      u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchQuery.toLowerCase());
+      
+    if (searchQuery.trim() === '') {
+      // Show only users with a valid non-system last message when search is empty
+      return u.lastMessage && !u.lastMessage.isSystem;
+    }
+    
+    return matchesSearch;
+  });
 
   const formatTime = (dateStr: string) => {
     try {
@@ -1278,6 +1395,10 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     setShowDetails(false);
                   }
                 }}
+                onContextMenu={(e) => handleContextMenuConvo(e, u.id, u.name)}
+                onTouchStart={(e) => handleTouchStartConvo(e, u.id, u.name)}
+                onTouchEnd={handleTouchEndConvo}
+                onTouchMove={handleTouchEndConvo}
               >
                 <div className="sidebar-avatar-container">
                   <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px' }}>
@@ -1329,32 +1450,43 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       <section className="chat-area">
         {selectedUser ? (
           <>
-            {/* Active Chat Header */}
+             {/* Active Chat Header */}
             <header className="chat-header">
-              <div className="chat-user-info">
+              <div className="chat-user-info" style={{ minWidth: 0, overflow: 'hidden' }}>
                 <button 
                   className="mobile-back-btn icon-btn" 
                   onClick={() => setSelectedUser(null)}
-                  style={{ marginRight: '8px' }}
+                  style={{ marginRight: '8px', flexShrink: 0 }}
                   title="Back to inbox list"
                 >
                   <ArrowLeft size={20} />
                 </button>
-                <div className="avatar-wrapper">
+                <div className="avatar-wrapper" style={{ flexShrink: 0 }}>
                   {selectedUser.avatar ? (
                     <img src={selectedUser.avatar} alt={selectedUser.name} className="avatar-image" />
                   ) : (
                     getInitials(selectedUser.name)
                   )}
                 </div>
-                <div className="chat-user-details">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span className="chat-user-name">{selectedUser.name}</span>
-                    <span className={`role-badge ${selectedUser.role}`} style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0 }}>
+                <div className="chat-user-details" style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <span className="chat-user-name" style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '120px'
+                    }}>{selectedUser.name}</span>
+                    <span className={`role-badge ${selectedUser.role}`} style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0, flexShrink: 0 }}>
                       {selectedUser.role === 'super_admin' ? 'Super Admin' : selectedUser.role === 'admin' ? 'Admin' : 'User'}
                     </span>
                   </div>
-                  <span className="chat-user-status">
+                  <span className="chat-user-status" style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'block',
+                    maxWidth: '140px'
+                  }}>
                     {onlineUsers[selectedUser.id] ? (
                       <span style={{ color: 'var(--success-color)' }}>● Online</span>
                     ) : (
@@ -1363,23 +1495,12 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   </span>
                 </div>
               </div>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="admin-self-badge" style={{
-                  fontSize: '11px',
-                  color: 'rgba(255, 255, 255, 0.4)',
-                  marginRight: '8px',
-                  whiteSpace: 'nowrap',
-                  background: 'rgba(255, 255, 255, 0.03)',
-                  border: '1px solid rgba(255, 255, 255, 0.05)',
-                  padding: '3px 8px',
-                  borderRadius: '12px'
-                }}>
-                  As: <strong style={{ color: 'var(--accent-color)' }}>{currentUser.name}</strong>
-                </span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
                 <button 
                   className="icon-btn delete-chat-btn" 
                   title="Clear Chat History" 
                   onClick={handleDeleteWholeChat}
+                  style={{ flexShrink: 0 }}
                 >
                   <Trash2 size={20} />
                 </button>
@@ -1387,7 +1508,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   className={`icon-btn ${showDetails ? 'active' : ''}`}
                   title="Toggle details"
                   onClick={() => setShowDetails(!showDetails)}
-                  style={{ color: showDetails ? 'var(--accent-color)' : 'var(--text-secondary)' }}
+                  style={{ color: showDetails ? 'var(--accent-color)' : 'var(--text-secondary)', flexShrink: 0 }}
                 >
                   <Info size={20} />
                 </button>
@@ -1469,12 +1590,13 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                          onTouchStart={(e) => handleTouchStart(e, msg)}
                          onTouchMove={(e) => handleTouchMove(e, msg)}
                          onTouchEnd={(e) => handleTouchEnd(e, msg)}
+                         onContextMenu={(e) => handleMessageContextMenu(e, msg)}
                          onMouseDown={(e) => {
                            if (e.button !== 0) return; // Left click only
                            if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
                            longPressTimerRef.current = setTimeout(() => {
                              if (!msg.isUnsent) {
-                               setActiveEmojiPickerMessageId(msg._id);
+                               handleMessageContextMenu(e, msg);
                              }
                            }, 600);
                          }}
@@ -1982,6 +2104,173 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {messageContextMenu && (
+        <div 
+          className="context-menu glass"
+          style={{
+            position: 'fixed',
+            top: `${Math.min(messageContextMenu.y, typeof window !== 'undefined' ? window.innerHeight - 250 : messageContextMenu.y)}px`,
+            left: `${Math.min(messageContextMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : messageContextMenu.x)}px`,
+            zIndex: 100000,
+            background: 'rgba(30, 41, 59, 0.95)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            boxShadow: 'var(--shadow-2xl)',
+            padding: '8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '4px',
+            minWidth: '200px'
+          }}
+          onClick={() => setMessageContextMenu(null)}
+        >
+          {/* Reaction Emojis Row */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            padding: '4px 6px',
+            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            marginBottom: '4px',
+            gap: '6px'
+          }} onClick={(e) => e.stopPropagation()}>
+            {['👍', '❤️', '😂', '😮', '😢', '🙏'].map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className="reaction-emoji-btn"
+                style={{
+                  fontSize: '18px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '4px',
+                  borderRadius: '50%',
+                  transition: 'transform 0.15s ease'
+                }}
+                onClick={() => {
+                  handleReactToMessage(messageContextMenu.message._id, emoji);
+                  setMessageContextMenu(null);
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.25)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+
+          {/* Action Options */}
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-primary)',
+              textAlign: 'left',
+              padding: '8px 12px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              transition: 'background 0.2s',
+              width: '100%'
+            }}
+            onClick={() => {
+              setReplyingToMessage(messageContextMenu.message);
+              setMessageContextMenu(null);
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <CornerUpLeft size={15} /> Reply
+          </button>
+
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ff4b6b',
+              textAlign: 'left',
+              padding: '8px 12px',
+              fontSize: '13px',
+              fontWeight: 500,
+              cursor: 'pointer',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              transition: 'background 0.2s',
+              width: '100%'
+            }}
+            onClick={() => {
+              const msg = messageContextMenu.message;
+              if (!messageContextMenu.isUserMessage) {
+                handleUnsendMessage(msg._id);
+              } else {
+                handleDeleteMessageForMe(msg._id);
+              }
+              setMessageContextMenu(null);
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(234, 0, 56, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <Trash2 size={15} /> {!messageContextMenu.isUserMessage ? 'Unsend for Everyone' : 'Delete for Me'}
+          </button>
+        </div>
+      )}
+
+      {contextMenu && (
+        <div 
+          className="context-menu glass"
+          style={{
+            position: 'fixed',
+            top: `${contextMenu.y}px`,
+            left: `${contextMenu.x}px`,
+            zIndex: 100000,
+            background: 'rgba(30, 41, 59, 0.95)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
+            boxShadow: 'var(--shadow-lg)',
+            padding: '6px',
+            display: 'flex',
+            flexDirection: 'column',
+            minWidth: '150px'
+          }}
+          onClick={() => setContextMenu(null)}
+        >
+          <button
+            type="button"
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#ff4b6b',
+              textAlign: 'left',
+              padding: '10px 14px',
+              fontSize: '13.5px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderRadius: '6px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              transition: 'background 0.2s',
+              width: '100%'
+            }}
+            onClick={() => handleDeleteChatByUserId(contextMenu.userId, contextMenu.userName)}
+            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(234, 0, 56, 0.1)'}
+            onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+          >
+            <Trash2 size={16} /> Delete Chat
+          </button>
         </div>
       )}
     </div>

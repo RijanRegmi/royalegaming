@@ -8,6 +8,8 @@ const UserSchema = new Schema({
   googleId: { type: String },
   role: { type: String, enum: ['super_admin', 'admin', 'user'], default: 'user' },
   avatar: { type: String },
+  resetCode: { type: String },
+  resetCodeExpires: { type: Date },
 }, { timestamps: true });
 
 const User = models.User || model('User', UserSchema);

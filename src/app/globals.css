@@ -255,6 +255,47 @@ button, input, select, textarea {
   box-shadow: 0 0 0 3px rgba(0, 168, 132, 0.15);
 }
 
+.password-toggle-btn {
+  position: absolute;
+  right: 14px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+  z-index: 10;
+}
+
+.password-toggle-btn:hover {
+  color: var(--text-primary);
+}
+
+.form-input.has-toggle {
+  padding-right: 42px;
+}
+
+.forgot-password-link-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -12px;
+}
+
+.forgot-password-link {
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color var(--transition-fast);
+}
+
+.forgot-password-link:hover {
+  color: var(--accent-color);
+  text-decoration: underline;
+}
+
 .btn-primary {
   width: 100%;
   background: var(--accent-color);
@@ -374,6 +415,17 @@ button, input, select, textarea {
   background: rgba(234, 0, 56, 0.1);
   border: 1px solid rgba(234, 0, 56, 0.25);
   color: #ff4b6b;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  line-height: 1.4;
+  margin-bottom: 16px;
+}
+
+.auth-success {
+  background: rgba(37, 211, 102, 0.1);
+  border: 1px solid rgba(37, 211, 102, 0.25);
+  color: #25d366;
   padding: 12px 14px;
   border-radius: var(--radius-md);
   font-size: 13px;

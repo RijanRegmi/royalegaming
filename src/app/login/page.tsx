@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, Lock, User as UserIcon, MessageSquare } from 'lucide-react';
+import { Mail, Phone, Lock, User as UserIcon, MessageSquare, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -20,6 +20,20 @@ export default function LoginPage() {
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
+
+  // Password toggles
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Forgot password wizard
+  const [forgotStep, setForgotStep] = useState<'none' | 'email' | 'code' | 'reset'>('none');
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotCode, setForgotCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const googleBtnRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +84,7 @@ export default function LoginPage() {
     }, 100);
 
     return () => clearInterval(checkInterval);
-  }, [mounted, activeTab]);
+  }, [mounted, activeTab, forgotStep]);
 
   const handleGoogleLogin = async (response: any) => {
     setLoading(true);
@@ -212,6 +226,107 @@ export default function LoginPage() {
     }
   };
 
+  const handleForgotEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotEmail) {
+      setError('Please enter your email address');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send verification code');
+      }
+      setSuccessMessage(data.message);
+      setForgotStep('code');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyCodeSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!forgotCode) {
+      setError('Please enter the verification code');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await fetch('/api/auth/verify-reset-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotEmail, code: forgotCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Invalid code');
+      }
+      setForgotStep('reset');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || !confirmPassword) {
+      setError('Please fill in all fields');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: forgotEmail,
+          code: forgotCode,
+          password: newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to reset password');
+      }
+      setSuccessMessage(data.message);
+      setForgotStep('none');
+      setForgotEmail('');
+      setForgotCode('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setActiveTab('signin');
+      setEmailOrPhone(forgotEmail);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!mounted) {
     return (
       <div className="fullscreen-loader">
@@ -232,159 +347,368 @@ export default function LoginPage() {
         </div>
 
         {error && <div className="auth-error">{error}</div>}
+        {successMessage && <div className="auth-success">{successMessage}</div>}
 
-        <div className="auth-tabs">
-          <div
-            className={`auth-tab-btn ${activeTab === 'signin' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('signin');
-              setError(null);
-            }}
-          >
-            Sign In
-          </div>
-          <div
-            className={`auth-tab-btn ${activeTab === 'register' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('register');
-              setError(null);
-            }}
-          >
-            Register
-          </div>
-        </div>
-
-        {activeTab === 'signin' ? (
-          <form className="auth-form" onSubmit={handleSignInSubmit}>
-            <div className="form-group">
-              <label>Email or Phone</label>
-              <div className="input-wrapper">
-                <Mail size={16} className="input-icon" />
-                <input
-                  type="text"
-                  placeholder="Enter email or phone number"
-                  className="form-input"
-                  value={emailOrPhone}
-                  onChange={(e) => setEmailOrPhone(e.target.value)}
-                  disabled={loading}
-                />
+        {forgotStep === 'none' ? (
+          <>
+            <div className="auth-tabs">
+              <div
+                className={`auth-tab-btn ${activeTab === 'signin' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('signin');
+                  setError(null);
+                  setSuccessMessage(null);
+                }}
+              >
+                Sign In
+              </div>
+              <div
+                className={`auth-tab-btn ${activeTab === 'register' ? 'active' : ''}`}
+                onClick={() => {
+                  setActiveTab('register');
+                  setError(null);
+                  setSuccessMessage(null);
+                }}
+              >
+                Register
               </div>
             </div>
 
-            <div className="form-group">
-              <label>Password</label>
-              <div className="input-wrapper">
-                <Lock size={16} className="input-icon" />
-                <input
-                  type="password"
-                  placeholder="Enter password"
-                  className="form-input"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
+            {activeTab === 'signin' ? (
+              <form className="auth-form" onSubmit={handleSignInSubmit}>
+                <div className="form-group">
+                  <label>Email or Phone</label>
+                  <div className="input-wrapper">
+                    <Mail size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Enter email or phone number"
+                      className="form-input"
+                      value={emailOrPhone}
+                      onChange={(e) => setEmailOrPhone(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Password</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type={showSignInPassword ? 'text' : 'password'}
+                      placeholder="Enter password"
+                      className="form-input has-toggle"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignInPassword(!showSignInPassword)}
+                      className="password-toggle-btn"
+                    >
+                      {showSignInPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="forgot-password-link-container">
+                  <span
+                    className="forgot-password-link"
+                    onClick={() => {
+                      setForgotStep('email');
+                      setError(null);
+                      setSuccessMessage(null);
+                    }}
+                  >
+                    Forgot Password?
+                  </span>
+                </div>
+
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? <div className="flex-center"><div className="spinner" style={{ width: '16px', height: '16px', borderTopColor: 'white' }}></div>&nbsp;Loading...</div> : 'Sign In'}
+                </button>
+              </form>
+            ) : (
+              <form className="auth-form" onSubmit={handleRegisterSubmit}>
+                <div className="form-group">
+                  <label>Full Name *</label>
+                  <div className="input-wrapper">
+                    <UserIcon size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Your Name"
+                      className="form-input"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Email Address *</label>
+                  <div className="input-wrapper">
+                    <Mail size={16} className="input-icon" />
+                    <input
+                      type="email"
+                      placeholder="email@example.com"
+                      className="form-input"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Phone Number</label>
+                  <div className="input-wrapper">
+                    <Phone size={16} className="input-icon" />
+                    <input
+                      type="tel"
+                      placeholder="+1234567890"
+                      className="form-input"
+                      value={regPhone}
+                      onChange={(e) => setRegPhone(e.target.value)}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Password *</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type={showRegPassword ? 'text' : 'password'}
+                      placeholder="Password (min 6 chars)"
+                      className="form-input has-toggle"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                      className="password-toggle-btn"
+                    >
+                      {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? <div className="flex-center"><div className="spinner" style={{ width: '16px', height: '16px', borderTopColor: 'white' }}></div>&nbsp;Loading...</div> : 'Register'}
+                </button>
+              </form>
+            )}
+
+            <div className="divider">or</div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '12px' }}>
+              <div ref={googleBtnRef} id="google-signin-btn"></div>
             </div>
 
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? <div className="flex-center"><div className="spinner" style={{ width: '16px', height: '16px', borderTopColor: 'white' }}></div>&nbsp;Loading...</div> : 'Sign In'}
-            </button>
-          </form>
+            <div className="auth-switch-text">
+              {activeTab === 'signin' ? (
+                <>
+                  Don't have an account?{' '}
+                  <span className="auth-switch-link" onClick={() => { setActiveTab('register'); setError(null); setSuccessMessage(null); }}>
+                    Register here
+                  </span>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <span className="auth-switch-link" onClick={() => { setActiveTab('signin'); setError(null); setSuccessMessage(null); }}>
+                    Sign In here
+                  </span>
+                </>
+              )}
+            </div>
+          </>
         ) : (
-          <form className="auth-form" onSubmit={handleRegisterSubmit}>
-            <div className="form-group">
-              <label>Full Name *</label>
-              <div className="input-wrapper">
-                <UserIcon size={16} className="input-icon" />
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  className="form-input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-              </div>
+          <div className="auth-form-container">
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: '600' }}>
+                {forgotStep === 'email' && 'Forgot Password'}
+                {forgotStep === 'code' && 'Verification Code'}
+                {forgotStep === 'reset' && 'Reset Password'}
+              </h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                {forgotStep === 'email' && 'Enter your email to receive a 6-digit verification code.'}
+                {forgotStep === 'code' && `We sent a code to ${forgotEmail}.`}
+                {forgotStep === 'reset' && 'Choose a new password for your account.'}
+              </p>
             </div>
 
-            <div className="form-group">
-              <label>Email Address *</label>
-              <div className="input-wrapper">
-                <Mail size={16} className="input-icon" />
-                <input
-                  type="email"
-                  placeholder="email@example.com"
-                  className="form-input"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  disabled={loading}
-                  required
-                />
-              </div>
-            </div>
+            {forgotStep === 'email' && (
+              <form className="auth-form" onSubmit={handleForgotEmailSubmit}>
+                <div className="form-group">
+                  <label>Email Address</label>
+                  <div className="input-wrapper">
+                    <Mail size={16} className="input-icon" />
+                    <input
+                      type="email"
+                      placeholder="email@example.com"
+                      className="form-input"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                  </div>
+                </div>
 
-            <div className="form-group">
-              <label>Phone Number</label>
-              <div className="input-wrapper">
-                <Phone size={16} className="input-icon" />
-                <input
-                  type="tel"
-                  placeholder="+1234567890"
-                  className="form-input"
-                  value={regPhone}
-                  onChange={(e) => setRegPhone(e.target.value)}
-                  disabled={loading}
-                />
-              </div>
-            </div>
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? <div className="flex-center"><div className="spinner" style={{ width: '16px', height: '16px', borderTopColor: 'white' }}></div>&nbsp;Sending Code...</div> : 'Send Verification Code'}
+                </button>
 
-            <div className="form-group">
-              <label>Password *</label>
-              <div className="input-wrapper">
-                <Lock size={16} className="input-icon" />
-                <input
-                  type="password"
-                  placeholder="Password (min 6 chars)"
-                  className="form-input"
-                  value={regPassword}
-                  onChange={(e) => setRegPassword(e.target.value)}
+                <button
+                  type="button"
+                  className="guest-btn"
+                  style={{ marginTop: '4px' }}
+                  onClick={() => {
+                    setForgotStep('none');
+                    setError(null);
+                    setSuccessMessage(null);
+                  }}
                   disabled={loading}
-                  required
-                  minLength={6}
-                />
-              </div>
-            </div>
+                >
+                  Back to Sign In
+                </button>
+              </form>
+            )}
 
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? <div className="flex-center"><div className="spinner" style={{ width: '16px', height: '16px', borderTopColor: 'white' }}></div>&nbsp;Loading...</div> : 'Register'}
-            </button>
-          </form>
+            {forgotStep === 'code' && (
+              <form className="auth-form" onSubmit={handleVerifyCodeSubmit}>
+                <div className="form-group">
+                  <label>Verification Code</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="Enter 6-digit code"
+                      className="form-input"
+                      value={forgotCode}
+                      onChange={(e) => setForgotCode(e.target.value)}
+                      disabled={loading}
+                      required
+                      maxLength={6}
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? <div className="flex-center"><div className="spinner" style={{ width: '16px', height: '16px', borderTopColor: 'white' }}></div>&nbsp;Verifying...</div> : 'Verify Code'}
+                </button>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    className="guest-btn"
+                    style={{ flex: 1 }}
+                    onClick={() => {
+                      setForgotStep('email');
+                      setError(null);
+                      setSuccessMessage(null);
+                    }}
+                    disabled={loading}
+                  >
+                    Change Email
+                  </button>
+                  <button
+                    type="button"
+                    className="guest-btn"
+                    style={{ flex: 1 }}
+                    onClick={() => {
+                      setForgotStep('none');
+                      setError(null);
+                      setSuccessMessage(null);
+                    }}
+                    disabled={loading}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {forgotStep === 'reset' && (
+              <form className="auth-form" onSubmit={handleResetPasswordSubmit}>
+                <div className="form-group">
+                  <label>New Password</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      placeholder="New password (min 6 chars)"
+                      className="form-input has-toggle"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      minLength={6}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="password-toggle-btn"
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Confirm Password</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm new password"
+                      className="form-input has-toggle"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="password-toggle-btn"
+                    >
+                      {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" className="btn-primary" disabled={loading}>
+                  {loading ? <div className="flex-center"><div className="spinner" style={{ width: '16px', height: '16px', borderTopColor: 'white' }}></div>&nbsp;Resetting Password...</div> : 'Reset Password'}
+                </button>
+
+                <button
+                  type="button"
+                  className="guest-btn"
+                  onClick={() => {
+                    setForgotStep('none');
+                    setError(null);
+                    setSuccessMessage(null);
+                  }}
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+              </form>
+            )}
+          </div>
         )}
-
-        <div className="divider">or</div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '12px' }}>
-          <div ref={googleBtnRef} id="google-signin-btn"></div>
-        </div>
-
-        <div className="auth-switch-text">
-          {activeTab === 'signin' ? (
-            <>
-              Don't have an account?{' '}
-              <span className="auth-switch-link" onClick={() => setActiveTab('register')}>
-                Register here
-              </span>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <span className="auth-switch-link" onClick={() => setActiveTab('signin')}>
-                Sign In here
-              </span>
-            </>
-          )}
-        </div>
       </div>
     </div>
   );

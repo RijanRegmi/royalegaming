@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
             senderName: lastMessage.senderId ? lastMessage.senderId.name : 'System',
             senderRole: lastMessage.senderId ? lastMessage.senderId.role : 'user',
             fileType: lastMessage.fileType || null,
+            isSystem: lastMessage.isSystem || false,
           } : null,
           unreadCount,
         };
