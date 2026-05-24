@@ -750,7 +750,10 @@ export default function AdminSettingsPage() {
           gap: '12px', 
           marginBottom: '24px', 
           borderBottom: '1px solid var(--border-color)',
-          paddingBottom: '10px' 
+          paddingBottom: '10px',
+          overflowX: 'auto',
+          flexWrap: 'nowrap',
+          WebkitOverflowScrolling: 'touch',
         }}
       >
         {currentUser.role === 'super_admin' && (
@@ -769,7 +772,9 @@ export default function AdminSettingsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
             }}
           >
             <Users size={16} /> User Accounts
@@ -793,7 +798,9 @@ export default function AdminSettingsPage() {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            flexShrink: 0,
+            whiteSpace: 'nowrap'
           }}
         >
           <Gamepad2 size={16} /> Lobby Game Platforms
@@ -816,7 +823,9 @@ export default function AdminSettingsPage() {
             display: 'flex',
             alignItems: 'center',
             gap: '8px',
-            transition: 'all 0.2s'
+            transition: 'all 0.2s',
+            flexShrink: 0,
+            whiteSpace: 'nowrap'
           }}
         >
           <Key size={16} /> Game Accounts (Secure)
@@ -840,7 +849,9 @@ export default function AdminSettingsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              transition: 'all 0.2s'
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
             }}
           >
             <CreditCard size={16} /> Payment Channels

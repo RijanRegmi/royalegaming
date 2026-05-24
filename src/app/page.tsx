@@ -110,7 +110,7 @@ export default function Home() {
           ) : authenticated ? (
             <>
               {/* User badge */}
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '4px' }}>
+              <div className="lobby-user-badge" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '4px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{user.name}</span>
                 <span style={{ fontSize: '10px', color: '#a855f7', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
                   {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Player'}
@@ -118,13 +118,15 @@ export default function Home() {
               </div>
               
               {(user.role === 'super_admin' || user.role === 'admin') && (
-                <button onClick={() => router.push('/admin')} className="lobby-btn-secondary">
-                  Control Room
+                <button onClick={() => router.push('/admin')} className="lobby-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="Control Room">
+                  <Shield size={15} />
+                  <span className="lobby-btn-label">Control Room</span>
                 </button>
               )}
 
               <button onClick={handleChatAccess} className="lobby-btn-chat">
-                <MessageSquare size={15} fill="white" /> Support Chat
+                <MessageSquare size={15} fill="white" />
+                <span className="lobby-btn-label">Support Chat</span>
               </button>
 
               <button onClick={handleLogout} className="lobby-btn-secondary" title="Sign Out">

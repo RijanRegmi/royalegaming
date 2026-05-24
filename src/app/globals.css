@@ -835,6 +835,14 @@ button, input, select, textarea {
   background-color: var(--bg-app);
 }
 
+.admin-tabs {
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+.admin-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 .admin-header {
   display: flex;
   align-items: center;
@@ -2892,6 +2900,14 @@ button, input, select, textarea {
     padding: 6px 8px !important;
     font-size: 11px !important;
     border-radius: 8px !important;
+  }
+
+  .lobby-user-badge {
+    display: none !important;
+  }
+
+  .lobby-btn-label {
+    display: none !important;
   }
   
   /* Hero title font size adjustment to prevent text clipping */
