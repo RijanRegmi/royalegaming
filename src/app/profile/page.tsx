@@ -60,8 +60,16 @@ export default function ProfilePage() {
 
     fetchUser();
 
+    // Allow document scrolling for profile page
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
     };
   }, [router]);
 
