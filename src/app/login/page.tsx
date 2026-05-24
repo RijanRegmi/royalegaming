@@ -283,13 +283,21 @@ export default function LoginPage() {
 
   const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').trim();
-    if (/^\d{6}$/.test(pastedData)) {
-      const digitsArray = pastedData.split('');
-      setForgotCodeDigits(digitsArray);
-      // Focus the last input
-      const lastInput = document.getElementById('digit-5');
-      if (lastInput) lastInput.focus();
+    const pastedData = e.clipboardData.getData('text');
+    // Extract only digits, ignoring spaces, dashes, or other non-numeric characters
+    const digitsOnly = pastedData.replace(/\D/g, '');
+    
+    if (digitsOnly.length > 0) {
+      const newDigits = [...forgotCodeDigits];
+      const limit = Math.min(digitsOnly.length, 6);
+      for (let i = 0; i < limit; i++) {
+        newDigits[i] = digitsOnly[i];
+      }
+      setForgotCodeDigits(newDigits);
+      // Focus the appropriate input based on the pasted length
+      const focusIndex = Math.min(limit, 5);
+      const targetInput = document.getElementById(`digit-${focusIndex}`);
+      if (targetInput) targetInput.focus();
     }
   };
 
