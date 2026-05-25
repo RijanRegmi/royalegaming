@@ -18,6 +18,10 @@ if (!admin.apps.length) {
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
       let privateKey = process.env.FIREBASE_PRIVATE_KEY;
       if (privateKey) {
+        console.log(`Original private key length: ${privateKey.length}`);
+        console.log(`Original starts with: [${privateKey.substring(0, 40)}]`);
+        console.log(`Original ends with: [${privateKey.substring(privateKey.length - 40)}]`);
+        
         privateKey = privateKey.trim();
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
           privateKey = privateKey.substring(1, privateKey.length - 1);
@@ -26,6 +30,10 @@ if (!admin.apps.length) {
           privateKey = privateKey.substring(1, privateKey.length - 1);
         }
         privateKey = privateKey.replace(/\\n/g, '\n');
+        
+        console.log(`Cleaned private key length: ${privateKey.length}`);
+        console.log(`Cleaned starts with: [${privateKey.substring(0, 40)}]`);
+        console.log(`Cleaned ends with: [${privateKey.substring(privateKey.length - 40)}]`);
       }
 
       if (projectId && clientEmail && privateKey) {
