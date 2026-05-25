@@ -5,6 +5,9 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "RoyaleGaming Support Chat",
   description: "Connect with RoyaleGaming Support and Administration team in real-time.",
+  other: {
+    "google-adsense-account": "ca-pub-6821892124319111",
+  },
 };
 
 export default function RootLayout({
