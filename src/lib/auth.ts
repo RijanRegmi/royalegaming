@@ -21,7 +21,15 @@ export function verifyToken(token: string): TokenPayload | null {
 }
 
 export function getUserFromRequest(req: NextRequest): TokenPayload | null {
-  const token = req.cookies.get('auth_token')?.value;
+  let token = req.cookies.get('auth_token')?.value;
+  
+  if (!token) {
+    const authHeader = req.headers.get('authorization');
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.substring(7);
+    }
+  }
+  
   if (!token) return null;
   return verifyToken(token);
 }
