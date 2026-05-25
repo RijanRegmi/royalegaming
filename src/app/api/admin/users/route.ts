@@ -26,16 +26,22 @@ export async function GET(req: NextRequest) {
       {
         $match: {
           deletedFor: { $ne: adminUserId },
-          $or: [
-            { senderId: adminUserId },
-            { recipientId: adminUserId },
-            { chatUserId: adminUserId },
-            { chatUserId: { $ne: adminUserId } }
-          ],
-          $or: [
-            { systemMessageFor: { $exists: false } },
-            { systemMessageFor: null },
-            { systemMessageFor: adminUserId }
+          $and: [
+            {
+              $or: [
+                { senderId: adminUserId },
+                { recipientId: adminUserId },
+                { chatUserId: adminUserId },
+                { chatUserId: { $ne: adminUserId } }
+              ]
+            },
+            {
+              $or: [
+                { systemMessageFor: { $exists: false } },
+                { systemMessageFor: null },
+                { systemMessageFor: adminUserId }
+              ]
+            }
           ]
         }
       },
