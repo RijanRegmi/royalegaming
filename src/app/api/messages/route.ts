@@ -135,11 +135,13 @@ export async function POST(req: NextRequest) {
     // Broadcast the new message
     chatEmitter.emit('message', populatedMessage);
 
-    // Send push notification to the recipient (non-blocking)
+    // Send push notification to the recipient (blocking so serverless completes)
     const senderName = (populatedMessage.senderId as any)?.name || 'Support Chat';
-    sendPushNotification(recipientId, senderName, populatedMessage).catch((err) => {
+    try {
+      await sendPushNotification(recipientId, senderName, populatedMessage);
+    } catch (err) {
       console.error('Error sending push notification:', err);
-    });
+    }
 
     return NextResponse.json({ success: true, message: populatedMessage });
   } catch (error: any) {
