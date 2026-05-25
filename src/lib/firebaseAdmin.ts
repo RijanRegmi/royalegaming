@@ -18,7 +18,11 @@ if (!admin.apps.length) {
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
       let privateKey = process.env.FIREBASE_PRIVATE_KEY;
       if (privateKey) {
+        privateKey = privateKey.trim();
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+          privateKey = privateKey.substring(1, privateKey.length - 1);
+        }
+        if (privateKey.startsWith("'") && privateKey.endsWith("'")) {
           privateKey = privateKey.substring(1, privateKey.length - 1);
         }
         privateKey = privateKey.replace(/\\n/g, '\n');
