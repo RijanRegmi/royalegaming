@@ -10,6 +10,7 @@ const UserSchema = new Schema({
   avatar: { type: String },
   resetCode: { type: String },
   resetCodeExpires: { type: Date },
+  fcmToken: { type: String, default: null },
 }, { timestamps: true });
 
 const User = models.User || model('User', UserSchema);

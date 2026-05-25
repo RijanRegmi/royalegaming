@@ -208,9 +208,11 @@ export default function ProfilePage() {
 
         {/* Profile Logo/Title */}
         <div className="auth-logo" style={{ marginBottom: '24px' }}>
-          <div className="auth-logo-icon">
-            <UserIcon size={28} fill="white" />
-          </div>
+          <img 
+            src="/royale_logo.jpg" 
+            alt="Royale Gaming Logo" 
+            style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
+          />
           <h1>Account Settings</h1>
           <p>Manage your details and security settings</p>
         </div>

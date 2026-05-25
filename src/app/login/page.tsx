@@ -388,10 +388,12 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-card glass">
         <div className="auth-logo">
-          <div className="auth-logo-icon">
-            <MessageSquare size={28} fill="white" />
-          </div>
-          <h1>RoyaleGaming</h1>
+          <img 
+            src="/royale_logo.jpg" 
+            alt="Royale Gaming Logo" 
+            style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
+          />
+          <h1>Royale Gaming</h1>
           <p>Support Chat System</p>
         </div>
 

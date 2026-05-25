@@ -262,9 +262,11 @@ export default function SecurePasswordPage() {
 
         {/* Title */}
         <div className="auth-logo" style={{ marginBottom: '28px' }}>
-          <div className="auth-logo-icon">
-            <Key size={28} fill="white" />
-          </div>
+          <img 
+            src="/royale_logo.jpg" 
+            alt="Royale Gaming Logo" 
+            style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
+          />
           <h1>Secure Change</h1>
           <p>Verify your email to update your password</p>
         </div>

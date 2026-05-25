@@ -1,5 +1,7 @@
 import webpush from 'web-push';
 import PushSubscription from '@/models/PushSubscription';
+import User from '@/models/User';
+import admin from './firebaseAdmin';
 import dbConnect from './mongodb';
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
@@ -17,7 +19,7 @@ if (vapidPublicKey && vapidPrivateKey) {
 }
 
 /**
- * Sends a push notification to all devices registered by the recipient.
+ * Sends a push notification to all devices registered by the recipient (both Web Push and FCM).
  * @param recipientId The user ID of the notification recipient
  * @param senderName The name of the sender
  * @param message The populated message object from Mongoose
@@ -27,18 +29,8 @@ export async function sendPushNotification(
   senderName: string,
   message: any
 ) {
-  if (!vapidPublicKey || !vapidPrivateKey) {
-    return;
-  }
-
   try {
     await dbConnect();
-
-    // Fetch all active subscriptions for the recipient
-    const subscriptions = await PushSubscription.find({ userId: recipientId });
-    if (subscriptions.length === 0) {
-      return;
-    }
 
     // Determine content text
     let bodyText = '';
@@ -51,6 +43,62 @@ export async function sendPushNotification(
       else bodyText = 'Sent an attachment 📎';
     } else {
       bodyText = message.content || '';
+    }
+
+    // 1. Send Mobile Push (FCM)
+    const recipientUser = await User.findById(recipientId);
+    if (recipientUser && recipientUser.fcmToken && admin.apps.length > 0) {
+      const fcmPayload = {
+        notification: {
+          title: senderName,
+          body: bodyText,
+        },
+        android: {
+          notification: {
+            sound: 'default',
+            clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+          },
+        },
+        apns: {
+          payload: {
+            aps: {
+              sound: 'default',
+            },
+          },
+        },
+        data: {
+          click_action: 'FLUTTER_NOTIFICATION_CLICK',
+          chatUserId: message.chatUserId?.toString() || '',
+          messageId: message._id?.toString() || '',
+        },
+        token: recipientUser.fcmToken,
+      };
+
+      try {
+        await admin.messaging().send(fcmPayload);
+        console.log(`FCM push notification sent successfully to user ${recipientId}`);
+      } catch (err: any) {
+        console.error('Error sending FCM push notification:', err);
+        // Clear token if invalid or unregistered
+        if (
+          err.code === 'messaging/registration-token-not-registered' ||
+          err.code === 'messaging/invalid-argument'
+        ) {
+          console.log(`FCM token expired or invalid. Clearing token for user ${recipientId}.`);
+          await User.findByIdAndUpdate(recipientId, { $set: { fcmToken: null } });
+        }
+      }
+    }
+
+    // 2. Send Web Push
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      return;
+    }
+
+    // Fetch all active subscriptions for the recipient
+    const subscriptions = await PushSubscription.find({ userId: recipientId });
+    if (subscriptions.length === 0) {
+      return;
     }
 
     // Check if recipient is admin/super_admin to build targeted redirect URL

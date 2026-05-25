@@ -95,11 +95,13 @@ export default function Home() {
       {/* Header Navbar */}
       <header className="lobby-navbar">
         <div className="lobby-logo" onClick={() => router.push('/')}>
-          <div className="lobby-logo-icon">
-            <Gamepad2 className="text-white" size={22} />
-          </div>
+          <img 
+            src="/royale_logo.jpg" 
+            alt="Royale Gaming Logo" 
+            style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', marginRight: '10px' }}
+          />
           <div>
-            <span className="lobby-logo-text">RoyaleGaming</span>
+            <span className="lobby-logo-text">Royale Gaming</span>
             <div className="lobby-logo-sub">Vegas Casino Lobby</div>
           </div>
         </div>
