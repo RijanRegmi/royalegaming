@@ -57,6 +57,7 @@ export async function sendPushNotification(
           notification: {
             sound: 'default',
             clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+            icon: 'ic_notification',
           },
         },
         apns: {
@@ -101,10 +102,8 @@ export async function sendPushNotification(
       return;
     }
 
-    // Check if recipient is admin/super_admin to build targeted redirect URL
-    const isRecipientAdmin =
-      message.recipientId &&
-      (message.recipientId.role === 'admin' || message.recipientId.role === 'super_admin');
+    // Determine if the recipient is an admin or super_admin using the user record
+    const isRecipientAdmin = recipientUser && (recipientUser.role === 'admin' || recipientUser.role === 'super_admin');
 
     const redirectUrl = isRecipientAdmin
       ? `/chat?userId=${message.chatUserId}`
