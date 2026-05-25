@@ -13,14 +13,14 @@ if (!admin.apps.length) {
       });
       console.log('Firebase Admin initialized successfully from firebase-service-account.json');
     } else {
-      // 2. Fall back to env variables
       const projectId = process.env.FIREBASE_PROJECT_ID;
       const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
       let privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
       if (privateKey) {
-        console.log(`Original private key length: ${privateKey.length}`);
-        console.log(`Original starts with: [${privateKey.substring(0, 40)}]`);
-        console.log(`Original ends with: [${privateKey.substring(privateKey.length - 40)}]`);
+        console.warn(`Original private key length: ${privateKey.length}`);
+        console.warn(`Original starts with: [${privateKey.substring(0, 40)}]`);
+        console.warn(`Original ends with: [${privateKey.substring(privateKey.length - 40)}]`);
         
         privateKey = privateKey.trim();
         if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
@@ -31,20 +31,28 @@ if (!admin.apps.length) {
         }
         privateKey = privateKey.replace(/\\n/g, '\n');
         
-        console.log(`Cleaned private key length: ${privateKey.length}`);
-        console.log(`Cleaned starts with: [${privateKey.substring(0, 40)}]`);
-        console.log(`Cleaned ends with: [${privateKey.substring(privateKey.length - 40)}]`);
+        console.warn(`Cleaned private key length: ${privateKey.length}`);
+        console.warn(`Cleaned starts with: [${privateKey.substring(0, 40)}]`);
+        console.warn(`Cleaned ends with: [${privateKey.substring(privateKey.length - 40)}]`);
       }
 
       if (projectId && clientEmail && privateKey) {
-        admin.initializeApp({
-          credential: admin.credential.cert({
-            projectId,
-            clientEmail,
-            privateKey,
-          }),
-        });
-        console.log('Firebase Admin initialized successfully from env vars');
+        try {
+          admin.initializeApp({
+            credential: admin.credential.cert({
+              projectId,
+              clientEmail,
+              privateKey,
+            }),
+          });
+          console.log('Firebase Admin initialized successfully from env vars');
+        } catch (initError: any) {
+          console.error('Firebase Admin initialization error:', initError);
+          console.error(
+            `Key details: length=${privateKey.length}, startsWithBegin=${privateKey.startsWith('-----BEGIN PRIVATE KEY-----')}, endsWithEnd=${privateKey.includes('-----END PRIVATE KEY-----')}`
+          );
+          throw initError;
+        }
       } else {
         console.warn(
           'Firebase Admin SDK credentials missing. Push notifications will not be sent.'
