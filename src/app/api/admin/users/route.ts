@@ -21,11 +21,17 @@ export async function GET(req: NextRequest) {
 
     const adminUserId = new mongoose.Types.ObjectId(payload.userId);
 
-    // 1. Fetch latest messages for each chatUserId in a single aggregation query
+    // 1. Fetch latest messages for each conversation partner in a single aggregation query
     const latestMessages = await Message.aggregate([
       {
         $match: {
           deletedFor: { $ne: adminUserId },
+          $or: [
+            { senderId: adminUserId },
+            { recipientId: adminUserId },
+            { chatUserId: adminUserId },
+            { chatUserId: { $ne: adminUserId } }
+          ],
           $or: [
             { systemMessageFor: { $exists: false } },
             { systemMessageFor: null },
@@ -34,28 +40,53 @@ export async function GET(req: NextRequest) {
         }
       },
       {
+        $addFields: {
+          conversationUserId: {
+            $cond: {
+              if: { $eq: ['$chatUserId', adminUserId] },
+              then: '$senderId',
+              else: '$chatUserId'
+            }
+          }
+        }
+      },
+      {
         $sort: { createdAt: -1 }
       },
       {
         $group: {
-          _id: '$chatUserId',
+          _id: '$conversationUserId',
           latestMsg: { $first: '$$ROOT' }
         }
       }
     ]);
 
-    // 2. Fetch unread counts for each chatUserId in a single aggregation query (sent by user to admin team)
+    // 2. Fetch unread counts for each conversation partner in a single aggregation query
     const unreadCounts = await Message.aggregate([
       {
         $match: {
           isRead: false,
           deletedFor: { $ne: adminUserId },
-          $expr: { $eq: ['$senderId', '$chatUserId'] }
+          $or: [
+            { recipientId: adminUserId },
+            { $expr: { $eq: ['$senderId', '$chatUserId'] } }
+          ]
+        }
+      },
+      {
+        $addFields: {
+          conversationUserId: {
+            $cond: {
+              if: { $eq: ['$chatUserId', adminUserId] },
+              then: '$senderId',
+              else: '$chatUserId'
+            }
+          }
         }
       },
       {
         $group: {
-          _id: '$chatUserId',
+          _id: '$conversationUserId',
           unreadCount: { $sum: 1 }
         }
       }

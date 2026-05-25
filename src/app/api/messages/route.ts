@@ -32,15 +32,35 @@ export async function GET(req: NextRequest) {
       chatUserId = targetUserId;
     }
 
-    const messages = await Message.find({
-      chatUserId,
-      deletedFor: { $ne: payload.userId },
-      $or: [
-        { systemMessageFor: { $exists: false } },
-        { systemMessageFor: null },
-        { systemMessageFor: payload.userId }
-      ]
-    })
+    // Determine target user role to distinguish Admin-to-Admin chat
+    const targetUser = await User.findById(chatUserId);
+    const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
+    const isCurrentAdmin = payload.role === 'admin' || payload.role === 'super_admin';
+
+    let query: any = {};
+    if (isCurrentAdmin && isTargetAdmin) {
+      // Admin to Admin Direct Message query
+      query = {
+        deletedFor: { $ne: payload.userId },
+        $or: [
+          { senderId: payload.userId, recipientId: chatUserId },
+          { senderId: chatUserId, recipientId: payload.userId }
+        ]
+      };
+    } else {
+      // User support chat thread query
+      query = {
+        chatUserId,
+        deletedFor: { $ne: payload.userId },
+        $or: [
+          { systemMessageFor: { $exists: false } },
+          { systemMessageFor: null },
+          { systemMessageFor: payload.userId }
+        ]
+      };
+    }
+
+    const messages = await Message.find(query)
       .populate('senderId', 'name email role avatar')
       .populate('recipientId', 'name email role avatar')
       .populate({
@@ -49,15 +69,20 @@ export async function GET(req: NextRequest) {
       })
       .sort({ createdAt: 1 });
 
-    // Mark messages as read:
-    // If it's the user viewing, mark admin messages in this chat as read.
-    // If it's an admin viewing, mark the user's messages as read.
+    // Mark messages as read
     if (payload.role === 'user') {
       await Message.updateMany(
         { chatUserId, senderId: { $ne: payload.userId }, isRead: false, deletedFor: { $ne: payload.userId } },
         { $set: { isRead: true } }
       );
+    } else if (isTargetAdmin) {
+      // Admin viewing Admin chat: mark other admin's messages as read
+      await Message.updateMany(
+        { senderId: chatUserId, recipientId: payload.userId, isRead: false, deletedFor: { $ne: payload.userId } },
+        { $set: { isRead: true } }
+      );
     } else {
+      // Admin viewing player chat: mark player's messages as read
       await Message.updateMany(
         { chatUserId, senderId: chatUserId, isRead: false, deletedFor: { $ne: payload.userId } },
         { $set: { isRead: true } }
