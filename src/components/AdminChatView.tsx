@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard } from 'lucide-react';
+import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard, Bell, BellOff } from 'lucide-react';
 
 interface AdminChatViewProps {
   currentUser: {
@@ -183,6 +183,110 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [error, setError] = useState<boolean>(false);
 
   const [onlineUsers, setOnlineUsers] = useState<Record<string, string>>({});
+  const [pushSupported, setPushSupported] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+
+  // Helper to convert base64 VAPID public key to Uint8Array for subscribe option
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/\-/g, '+')
+      .replace(/_/g, '/');
+
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window) {
+      setPushSupported(true);
+      
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => {
+          return reg.pushManager.getSubscription();
+        })
+        .then((sub) => {
+          setIsSubscribed(!!sub);
+        })
+        .catch((err) => {
+          console.error('Service Worker registration or subscription check failed:', err);
+        });
+    }
+  }, []);
+
+  const handleTogglePush = async () => {
+    if (!pushSupported || subscribing) return;
+    setSubscribing(true);
+
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      
+      if (isSubscribed) {
+        // Unsubscribe
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+          
+          await fetch('/api/notifications/subscribe', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'unsubscribe',
+              subscription: {
+                endpoint: sub.endpoint
+              }
+            })
+          });
+        }
+        setIsSubscribed(false);
+      } else {
+        // Subscribe
+        const keyRes = await fetch('/api/notifications/subscribe');
+        if (!keyRes.ok) {
+          throw new Error('Failed to retrieve VAPID public key');
+        }
+        const { publicKey } = await keyRes.json();
+        
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          showAlert('Permission Denied', 'Notifications permission was denied. Please enable notifications in your browser settings to receive push updates.');
+          setSubscribing(false);
+          return;
+        }
+
+        const newSub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+
+        const subRes = await fetch('/api/notifications/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'subscribe',
+            subscription: newSub
+          })
+        });
+
+        if (!subRes.ok) {
+          throw new Error('Failed to save subscription to database');
+        }
+
+        setIsSubscribed(true);
+      }
+    } catch (err: any) {
+      console.error('Error toggling push notifications:', err);
+      showAlert('Notification Error', err.message || 'Failed to toggle push notifications.');
+    } finally {
+      setSubscribing(false);
+    }
+  };
   const [replyingToMessage, setReplyingToMessage] = useState<any | null>(null);
   const [activeEmojiPickerMessageId, setActiveEmojiPickerMessageId] = useState<string | null>(null);
 
@@ -1355,6 +1459,21 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             </div>
           </div>
           <div className="sidebar-actions">
+            {pushSupported && (
+              <button 
+                type="button" 
+                className={`icon-btn ${isSubscribed ? 'active-bell' : ''}`} 
+                title={isSubscribed ? "Disable Push Notifications" : "Enable Push Notifications"} 
+                onClick={handleTogglePush}
+                disabled={subscribing}
+              >
+                {isSubscribed ? (
+                  <Bell size={18} style={{ color: 'var(--success-color)' }} />
+                ) : (
+                  <BellOff size={18} style={{ opacity: 0.6 }} />
+                )}
+              </button>
+            )}
             <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
               <Gamepad2 size={18} />
             </button>

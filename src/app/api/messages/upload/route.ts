@@ -7,6 +7,8 @@ import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 import { chatEmitter } from '@/lib/events';
 import { uploadToCloudinary } from '@/lib/cloudinary';
+import { sendPushNotification } from '@/lib/notifications';
+
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +114,12 @@ export async function POST(req: NextRequest) {
 
     // Broadcast the new message in real-time
     chatEmitter.emit('message', populatedMessage);
+
+    // Send push notification to the recipient (non-blocking)
+    const senderName = (populatedMessage.senderId as any)?.name || 'Support Chat';
+    sendPushNotification(recipientId, senderName, populatedMessage).catch((err) => {
+      console.error('Error sending push notification:', err);
+    });
 
     return NextResponse.json({ success: true, message: populatedMessage });
   } catch (error: any) {

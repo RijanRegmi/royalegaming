@@ -4,6 +4,8 @@ import Message from '@/models/Message';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 import { chatEmitter } from '@/lib/events';
+import { sendPushNotification } from '@/lib/notifications';
+
 
 // GET: Fetch messages for a conversation
 export async function GET(req: NextRequest) {
@@ -132,6 +134,12 @@ export async function POST(req: NextRequest) {
 
     // Broadcast the new message
     chatEmitter.emit('message', populatedMessage);
+
+    // Send push notification to the recipient (non-blocking)
+    const senderName = (populatedMessage.senderId as any)?.name || 'Support Chat';
+    sendPushNotification(recipientId, senderName, populatedMessage).catch((err) => {
+      console.error('Error sending push notification:', err);
+    });
 
     return NextResponse.json({ success: true, message: populatedMessage });
   } catch (error: any) {
