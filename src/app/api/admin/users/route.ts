@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import Message from '@/models/Message';
@@ -18,48 +19,93 @@ export async function GET(req: NextRequest) {
     // Find all users except the currently logged-in admin/super_admin
     const users = await User.find({ _id: { $ne: payload.userId } }).select('-password');
 
-    // For each user, fetch the latest message in their chat thread and unread message count
-    const usersWithActivity = await Promise.all(
-      users.map(async (user) => {
-        const lastMessage = await Message.findOne({
-          chatUserId: user._id,
-          deletedFor: { $ne: payload.userId },
+    const adminUserId = new mongoose.Types.ObjectId(payload.userId);
+
+    // 1. Fetch latest messages for each chatUserId in a single aggregation query
+    const latestMessages = await Message.aggregate([
+      {
+        $match: {
+          deletedFor: { $ne: adminUserId },
           $or: [
             { systemMessageFor: { $exists: false } },
             { systemMessageFor: null },
-            { systemMessageFor: payload.userId }
+            { systemMessageFor: adminUserId }
           ]
-        })
-          .sort({ createdAt: -1 })
-          .populate('senderId', 'name role');
+        }
+      },
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $group: {
+          _id: '$chatUserId',
+          latestMsg: { $first: '$$ROOT' }
+        }
+      }
+    ]);
 
-        const unreadCount = await Message.countDocuments({
-          chatUserId: user._id,
-          senderId: user._id, // Message was sent by the user to the admin team
+    // 2. Fetch unread counts for each chatUserId in a single aggregation query (sent by user to admin team)
+    const unreadCounts = await Message.aggregate([
+      {
+        $match: {
           isRead: false,
-          deletedFor: { $ne: payload.userId },
-        });
+          deletedFor: { $ne: adminUserId },
+          $expr: { $eq: ['$senderId', '$chatUserId'] }
+        }
+      },
+      {
+        $group: {
+          _id: '$chatUserId',
+          unreadCount: { $sum: 1 }
+        }
+      }
+    ]);
 
-        return {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          phone: user.phone || '',
-          avatar: user.avatar || '',
-          role: user.role,
-          createdAt: user.createdAt,
-          lastMessage: lastMessage ? {
-            content: lastMessage.content,
-            createdAt: lastMessage.createdAt,
-            senderName: lastMessage.senderId ? lastMessage.senderId.name : 'System',
-            senderRole: lastMessage.senderId ? lastMessage.senderId.role : 'user',
-            fileType: lastMessage.fileType || null,
-            isSystem: lastMessage.isSystem || false,
-          } : null,
-          unreadCount,
-        };
-      })
-    );
+    // Extract unique senderIds to populate sender info in one batch query
+    const senderIds = latestMessages.map(item => item.latestMsg?.senderId).filter(id => id != null);
+    const senders = await User.find({ _id: { $in: senderIds } }).select('name role');
+    const senderMap = new Map();
+    senders.forEach(sender => {
+      senderMap.set(sender._id.toString(), sender);
+    });
+
+    // Build map for latest messages
+    const latestMessageMap = new Map();
+    latestMessages.forEach((item) => {
+      const msg = item.latestMsg;
+      if (!msg) return;
+      const sender = msg.senderId ? senderMap.get(msg.senderId.toString()) : null;
+      latestMessageMap.set(item._id.toString(), {
+        content: msg.content,
+        createdAt: msg.createdAt,
+        senderName: sender ? sender.name : 'System',
+        senderRole: sender ? sender.role : 'user',
+        fileType: msg.fileType || null,
+        isSystem: msg.isSystem || false,
+      });
+    });
+
+    // Build map for unread counts
+    const unreadCountMap = new Map();
+    unreadCounts.forEach((item) => {
+      unreadCountMap.set(item._id.toString(), item.unreadCount);
+    });
+
+    // Map user list with activity details using our in-memory lookup maps
+    const usersWithActivity = users.map((user) => {
+      const userIdStr = user._id.toString();
+      return {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone || '',
+        avatar: user.avatar || '',
+        role: user.role,
+        createdAt: user.createdAt,
+        lastMessage: latestMessageMap.get(userIdStr) || null,
+        unreadCount: unreadCountMap.get(userIdStr) || 0,
+      };
+    });
 
     // Sort by latest message date (users with no messages are sorted by profile creation date at the bottom)
     usersWithActivity.sort((a, b) => {

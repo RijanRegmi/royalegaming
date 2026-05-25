@@ -48,9 +48,14 @@ export async function sendPushNotification(
     // 1. Send Mobile Push (FCM)
     const recipientUser = await User.findById(recipientId);
     if (recipientUser && recipientUser.fcmToken && admin.apps.length > 0) {
+      const isRecipientAdmin = recipientUser.role === 'admin' || recipientUser.role === 'super_admin';
+      const notificationTitle = isRecipientAdmin
+        ? `${senderName} sent you a message`
+        : senderName;
+
       const fcmPayload = {
         notification: {
-          title: senderName,
+          title: notificationTitle,
           body: bodyText,
         },
         android: {

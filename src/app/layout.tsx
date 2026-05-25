@@ -5,6 +5,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "RoyaleGaming Support Chat",
   description: "Connect with RoyaleGaming Support and Administration team in real-time.",
+  icons: {
+    icon: "/royale_logo.jpg",
+    shortcut: "/royale_logo.jpg",
+    apple: "/royale_logo.jpg",
+  },
   other: {
     "google-adsense-account": "ca-pub-6821892124319111",
   },

@@ -89,6 +89,30 @@ export async function POST(req: NextRequest) {
         role,
       });
       await user.save();
+
+      // Create a system join message so admins see them in their inbox list immediately
+      if (user.role === 'user') {
+        try {
+          const admin = await User.findOne({ role: { $in: ['super_admin', 'admin'] } }).sort({ createdAt: 1 });
+          if (admin) {
+            const Message = (await import('@/models/Message')).default;
+            const systemMessage = new Message({
+              senderId: user._id,
+              recipientId: admin._id,
+              chatUserId: user._id,
+              content: `${user.name} joined support chat`,
+              isRead: false,
+              isSystem: true,
+            });
+            await systemMessage.save();
+
+            const { chatEmitter } = await import('@/lib/events');
+            chatEmitter.emit('message', systemMessage);
+          }
+        } catch (err) {
+          console.error('Error creating system join message on Google registration:', err);
+        }
+      }
     }
 
     // Create session token

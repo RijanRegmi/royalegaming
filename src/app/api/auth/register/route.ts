@@ -36,6 +36,30 @@ export async function POST(req: NextRequest) {
 
     await newUser.save();
 
+    // Create a system join message so admins see them in their inbox list immediately
+    if (newUser.role === 'user') {
+      try {
+        const admin = await User.findOne({ role: { $in: ['super_admin', 'admin'] } }).sort({ createdAt: 1 });
+        if (admin) {
+          const Message = (await import('@/models/Message')).default;
+          const systemMessage = new Message({
+            senderId: newUser._id,
+            recipientId: admin._id,
+            chatUserId: newUser._id,
+            content: `${newUser.name} joined support chat`,
+            isRead: false,
+            isSystem: true,
+          });
+          await systemMessage.save();
+
+          const { chatEmitter } = await import('@/lib/events');
+          chatEmitter.emit('message', systemMessage);
+        }
+      } catch (err) {
+        console.error('Error creating system join message on registration:', err);
+      }
+    }
+
     // Create session token
     const token = signToken({ userId: newUser._id.toString(), role: newUser.role });
 
