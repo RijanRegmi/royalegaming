@@ -115,11 +115,21 @@ export async function POST(req: NextRequest) {
     // Broadcast the new message in real-time
     chatEmitter.emit('message', populatedMessage);
 
-    // Send push notification to the recipient (non-blocking)
+    // Send push notification to the recipient(s) (blocking so serverless completes)
     const senderName = (populatedMessage.senderId as any)?.name || 'Support Chat';
-    sendPushNotification(recipientId, senderName, populatedMessage).catch((err) => {
+    try {
+      if (payload.role === 'user') {
+        const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } });
+        const notificationPromises = admins.map((adminUser) =>
+          sendPushNotification(adminUser._id.toString(), senderName, populatedMessage)
+        );
+        await Promise.allSettled(notificationPromises);
+      } else {
+        await sendPushNotification(recipientId, senderName, populatedMessage);
+      }
+    } catch (err) {
       console.error('Error sending push notification:', err);
-    });
+    }
 
     return NextResponse.json({ success: true, message: populatedMessage });
   } catch (error: any) {
