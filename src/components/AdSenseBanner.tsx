@@ -17,7 +17,7 @@ export default function AdSenseBanner({
   fullWidthResponsive = true,
   onStatusChange,
 }: AdSenseBannerProps) {
-  const [isFilled, setIsFilled] = useState(false);
+  const [isUnfilled, setIsUnfilled] = useState(false);
   const insRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
@@ -35,12 +35,12 @@ export default function AdSenseBanner({
 
     const checkStatus = () => {
       const status = insEl.getAttribute('data-ad-status');
-      if (status === 'filled') {
-        setIsFilled(true);
-        onStatusChange?.('filled');
-      } else if (status === 'unfilled') {
-        setIsFilled(false);
+      if (status === 'unfilled') {
+        setIsUnfilled(true);
         onStatusChange?.('unfilled');
+      } else if (status === 'filled') {
+        setIsUnfilled(false);
+        onStatusChange?.('filled');
       } else {
         onStatusChange?.('loading');
       }
@@ -65,10 +65,10 @@ export default function AdSenseBanner({
 
   return (
     <div 
-      className={`adsense-banner-container ${isFilled ? 'is-filled' : 'is-hidden'}`} 
+      className={`adsense-banner-container ${isUnfilled ? 'is-hidden' : 'is-visible'}`} 
       style={{ 
-        display: isFilled ? 'block' : 'none', 
-        margin: isFilled ? '20px 0' : '0', 
+        display: isUnfilled ? 'none' : 'block', 
+        margin: isUnfilled ? '0' : '20px 0', 
         overflow: 'hidden', 
         textAlign: 'center' 
       }}
