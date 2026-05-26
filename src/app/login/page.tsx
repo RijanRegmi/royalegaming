@@ -35,8 +35,6 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const googleBtnRef = useRef<HTMLDivElement>(null);
-
   // Mount state for hydration safety
   const [mounted, setMounted] = useState(false);
 
@@ -50,97 +48,6 @@ export default function LoginPage() {
       }
     }
   }, []);
-
-  // Initialize Google Sign-in
-  useEffect(() => {
-    if (!mounted) return;
-
-    const initGoogle = () => {
-      const g = (window as any).google;
-      if (g && g.accounts && g.accounts.id) {
-        g.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || 'your_google_client_id.apps.googleusercontent.com',
-          callback: handleGoogleLogin,
-        });
-
-        if (googleBtnRef.current) {
-          g.accounts.id.renderButton(googleBtnRef.current, {
-            theme: 'filled_blue',
-            size: 'large',
-            width: 380,
-            text: 'signup_with',
-            shape: 'rectangular',
-          });
-        }
-      }
-    };
-
-    // Retry checking google object if Script has not fully executed
-    const checkInterval = setInterval(() => {
-      if ((window as any).google) {
-        initGoogle();
-        clearInterval(checkInterval);
-      }
-    }, 100);
-
-    return () => clearInterval(checkInterval);
-  }, [mounted, activeTab, forgotStep]);
-
-  const handleGoogleLogin = async (response: any) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Google login failed');
-      }
-
-      window.location.href = redirectUrl;
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
-
-  const handleMockGoogleLogin = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const randomId = Math.random().toString(36).substring(2, 7).toUpperCase();
-      const payload = {
-        name: `Google Dev User ${randomId}`,
-        email: `googledev_${randomId.toLowerCase()}@royalegaming.com`,
-        sub: `mock_google_dev_sub_${randomId.toLowerCase()}`,
-        picture: "https://lh3.googleusercontent.com/a/default-user"
-      };
-      // Encode as mock JWT
-      const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }));
-      const body = btoa(JSON.stringify(payload));
-      const mockCredential = `${header}.${body}.mocksignature`;
-
-      const res = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: mockCredential }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Mock Google login failed');
-      }
-
-      window.location.href = redirectUrl;
-    } catch (err: any) {
-      setError(err.message);
-      setLoading(false);
-    }
-  };
 
   const handleGuestLogin = async () => {
     setLoading(true);
@@ -559,12 +466,6 @@ export default function LoginPage() {
                 </button>
               </form>
             )}
-
-            <div className="divider">or</div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: '12px' }}>
-              <div ref={googleBtnRef} id="google-signin-btn"></div>
-            </div>
 
             <div className="auth-switch-text">
               {activeTab === 'signin' ? (
