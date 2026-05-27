@@ -69,25 +69,20 @@ export async function sendPushNotification(
         : senderName;
 
       const fcmPayload = {
-        notification: {
-          title: notificationTitle,
-          body: bodyText,
-        },
-        android: {
-          notification: {
-            sound: 'default',
-            clickAction: 'FLUTTER_NOTIFICATION_CLICK',
-            icon: 'ic_notification',
-          },
-        },
         apns: {
           payload: {
             aps: {
+              alert: {
+                title: notificationTitle,
+                body: bodyText,
+              },
               sound: 'default',
             },
           },
         },
         data: {
+          title: notificationTitle,
+          body: bodyText,
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
           chatUserId: message.chatUserId?.toString() || '',
           messageId: message._id?.toString() || '',
