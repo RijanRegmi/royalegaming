@@ -54,6 +54,18 @@ export async function POST(req: NextRequest) {
 
           const { chatEmitter } = await import('@/lib/events');
           chatEmitter.emit('message', systemMessage);
+
+          // Send push notification to all administrators (Web & Mobile Push)
+          try {
+            const { sendPushNotification } = await import('@/lib/notifications');
+            const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } });
+            const notificationPromises = admins.map((adminUser) =>
+              sendPushNotification(adminUser._id.toString(), 'New User Joined', systemMessage)
+            );
+            await Promise.allSettled(notificationPromises);
+          } catch (pushErr) {
+            console.error('Error sending registration push notification to admins:', pushErr);
+          }
         }
       } catch (err) {
         console.error('Error creating system join message on registration:', err);
@@ -85,7 +97,7 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }

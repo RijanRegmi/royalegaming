@@ -18,6 +18,21 @@ if (vapidPublicKey && vapidPrivateKey) {
   console.warn('Web Push VAPID keys are not configured. Notifications will not be sent.');
 }
 
+interface MessageNotificationPayload {
+  _id?: { toString(): string } | string | null;
+  content?: string | null;
+  fileUrl?: string | null;
+  fileType?: string | null;
+  fileName?: string | null;
+  chatUserId?: { toString(): string } | string | null;
+  isUnsent?: boolean;
+  isSystem?: boolean;
+  senderId?: {
+    avatar?: string | null;
+    name?: string | null;
+  } | null;
+}
+
 /**
  * Sends a push notification to all devices registered by the recipient (both Web Push and FCM).
  * @param recipientId The user ID of the notification recipient
@@ -27,7 +42,7 @@ if (vapidPublicKey && vapidPrivateKey) {
 export async function sendPushNotification(
   recipientId: string,
   senderName: string,
-  message: any
+  message: MessageNotificationPayload
 ) {
   try {
     await dbConnect();
@@ -49,7 +64,7 @@ export async function sendPushNotification(
     const recipientUser = await User.findById(recipientId);
     if (recipientUser && recipientUser.fcmToken && admin.apps.length > 0) {
       const isRecipientAdmin = recipientUser.role === 'admin' || recipientUser.role === 'super_admin';
-      const notificationTitle = isRecipientAdmin
+      const notificationTitle = (isRecipientAdmin && !message.isSystem)
         ? `${senderName} sent you a message`
         : senderName;
 
@@ -83,12 +98,13 @@ export async function sendPushNotification(
       try {
         await admin.messaging().send(fcmPayload);
         console.log(`FCM push notification sent successfully to user ${recipientId}`);
-      } catch (err: any) {
+      } catch (err) {
         console.error('Error sending FCM push notification:', err);
+        const errorWithCode = err as { code?: string };
         // Clear token if invalid or unregistered
         if (
-          err.code === 'messaging/registration-token-not-registered' ||
-          err.code === 'messaging/invalid-argument'
+          errorWithCode.code === 'messaging/registration-token-not-registered' ||
+          errorWithCode.code === 'messaging/invalid-argument'
         ) {
           console.log(`FCM token expired or invalid. Clearing token for user ${recipientId}.`);
           await User.findByIdAndUpdate(recipientId, { $set: { fcmToken: null } });
@@ -135,11 +151,12 @@ export async function sendPushNotification(
 
       try {
         await webpush.sendNotification(pushSubscription, payload);
-      } catch (err: any) {
+      } catch (err) {
         // If the push service returns 404 or 410, the subscription is expired or invalid.
         // We should remove it from our database.
-        if (err.statusCode === 404 || err.statusCode === 410) {
-          console.log(`Push subscription expired (Status: ${err.statusCode}). Deleting subscription for user ${recipientId}.`);
+        const errorWithStatus = err as { statusCode?: number };
+        if (errorWithStatus.statusCode === 404 || errorWithStatus.statusCode === 410) {
+          console.log(`Push subscription expired (Status: ${errorWithStatus.statusCode}). Deleting subscription for user ${recipientId}.`);
           await PushSubscription.deleteOne({ _id: sub._id });
         } else {
           console.error(`Failed to send push notification to subscription:`, err);
