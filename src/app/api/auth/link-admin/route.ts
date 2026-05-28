@@ -15,11 +15,19 @@ export async function GET(req: NextRequest) {
 
     const cleanSlug = adminSlug.trim().toLowerCase();
 
-    // Find the admin
-    const admin = await User.findOne({ 
-      username: cleanSlug, 
-      role: { $in: ['admin', 'super_admin'] } 
-    });
+    // Find the admin by username or _id (if valid ObjectId)
+    const mongoose = (await import('mongoose')).default;
+    const adminQuery: any = { role: { $in: ['admin', 'super_admin'] } };
+    if (mongoose.Types.ObjectId.isValid(cleanSlug)) {
+      adminQuery.$or = [
+        { username: cleanSlug },
+        { _id: cleanSlug }
+      ];
+    } else {
+      adminQuery.username = cleanSlug;
+    }
+
+    const admin = await User.findOne(adminQuery);
 
     if (!admin) {
       return NextResponse.json({ error: 'Administrator not found' }, { status: 404 });
@@ -51,11 +59,19 @@ export async function POST(req: NextRequest) {
 
     const cleanSlug = adminSlug.trim().toLowerCase();
 
-    // Find the admin
-    const admin = await User.findOne({ 
-      username: cleanSlug, 
-      role: { $in: ['admin', 'super_admin'] } 
-    });
+    // Find the admin by username or _id (if valid ObjectId)
+    const mongoose = (await import('mongoose')).default;
+    const adminQuery: any = { role: { $in: ['admin', 'super_admin'] } };
+    if (mongoose.Types.ObjectId.isValid(cleanSlug)) {
+      adminQuery.$or = [
+        { username: cleanSlug },
+        { _id: cleanSlug }
+      ];
+    } else {
+      adminQuery.username = cleanSlug;
+    }
+
+    const admin = await User.findOne(adminQuery);
 
     if (!admin) {
       return NextResponse.json({ error: 'Administrator not found' }, { status: 404 });
@@ -73,7 +89,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Set cookie to remember the admin association (valid for 30 days)
-    response.cookies.set('pending_admin_slug', admin.username, {
+    response.cookies.set('pending_admin_slug', admin.username || admin._id.toString(), {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',

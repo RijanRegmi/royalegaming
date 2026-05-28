@@ -32,7 +32,18 @@ export async function POST(req: NextRequest) {
     let primaryAdmin = null;
 
     if (pendingAdminSlug) {
-      primaryAdmin = await User.findOne({ username: pendingAdminSlug.toLowerCase(), role: { $in: ['admin', 'super_admin'] } });
+      const cleanSlug = pendingAdminSlug.toLowerCase();
+      const mongoose = (await import('mongoose')).default;
+      const adminQuery: any = { role: { $in: ['admin', 'super_admin'] } };
+      if (mongoose.Types.ObjectId.isValid(cleanSlug)) {
+        adminQuery.$or = [
+          { username: cleanSlug },
+          { _id: cleanSlug }
+        ];
+      } else {
+        adminQuery.username = cleanSlug;
+      }
+      primaryAdmin = await User.findOne(adminQuery);
     }
 
     if (!primaryAdmin) {

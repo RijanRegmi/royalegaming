@@ -40,7 +40,18 @@ export async function POST(req: NextRequest) {
       user.linkedAdmins = user.linkedAdmins || [];
 
       if (pendingAdminSlug) {
-        const admin = await User.findOne({ username: pendingAdminSlug.toLowerCase(), role: { $in: ['admin', 'super_admin'] } });
+        const cleanSlug = pendingAdminSlug.toLowerCase();
+        const mongoose = (await import('mongoose')).default;
+        const adminQuery: any = { role: { $in: ['admin', 'super_admin'] } };
+        if (mongoose.Types.ObjectId.isValid(cleanSlug)) {
+          adminQuery.$or = [
+            { username: cleanSlug },
+            { _id: cleanSlug }
+          ];
+        } else {
+          adminQuery.username = cleanSlug;
+        }
+        const admin = await User.findOne(adminQuery);
         if (admin && !user.linkedAdmins.map((id: any) => id.toString()).includes(admin._id.toString())) {
           user.linkedAdmins.push(admin._id);
           didUpdate = true;
