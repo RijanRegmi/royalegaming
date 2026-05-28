@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import User from '@/models/User';
-import { getUserFromRequest } from '@/lib/auth';
+import User, { UserDocument } from '@/models/User';
+import { getUserFromRequest, TokenPayload } from '@/lib/auth';
+
+// Type for the admin query used in both GET and POST
+interface AdminQuery {
+  role: { $in: string[] };
+  $or?: Array<{ username?: string; _id?: string }>;
+  username?: string;
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,7 +24,7 @@ export async function GET(req: NextRequest) {
 
     // Find the admin by username or _id (if valid ObjectId)
     const mongoose = (await import('mongoose')).default;
-    const adminQuery: any = { role: { $in: ['admin', 'super_admin'] } };
+    const adminQuery: AdminQuery = { role: { $in: ['admin', 'super_admin'] } };
     if (mongoose.Types.ObjectId.isValid(cleanSlug)) {
       adminQuery.$or = [
         { username: cleanSlug },
@@ -61,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     // Find the admin by username or _id (if valid ObjectId)
     const mongoose = (await import('mongoose')).default;
-    const adminQuery: any = { role: { $in: ['admin', 'super_admin'] } };
+    const adminQuery: AdminQuery = { role: { $in: ['admin', 'super_admin'] } };
     if (mongoose.Types.ObjectId.isValid(cleanSlug)) {
       adminQuery.$or = [
         { username: cleanSlug },
@@ -77,7 +84,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Administrator not found' }, { status: 404 });
     }
 
-    const payload = getUserFromRequest(req);
+    const payload: TokenPayload | null = getUserFromRequest(req);
     const response = NextResponse.json({ 
       success: true, 
       admin: {
@@ -99,9 +106,25 @@ export async function POST(req: NextRequest) {
 
     // If user is logged in, link immediately in the database
     if (payload && payload.userId) {
+      // Link admin to the user in DB
       await User.findByIdAndUpdate(payload.userId, {
         $addToSet: { linkedAdmins: admin._id }
       });
+
+      // Retrieve user details for notification (name)
+      const userRecord = await User.findById(payload.userId);
+      const userName = userRecord?.name || 'A user';
+
+      // Send notification to the admin that a user has accepted the invitation
+      try {
+        const { sendPushNotification } = await import('@/lib/notifications');
+        await sendPushNotification(admin._id.toString(), userName, {
+          content: `${userName} accepted your invitation`,
+          isSystem: false,
+        } as any);
+      } catch (notifyErr) {
+        console.error('Failed to send admin acceptance notification:', notifyErr);
+      }
     }
 
     return response;

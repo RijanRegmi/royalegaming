@@ -103,10 +103,12 @@ export default function InvitePage() {
       <div className="auth-card glass" style={{ maxWidth: '420px', width: '100%', padding: '40px 30px', textAlign: 'center' }}>
         
         <div className="auth-logo" style={{ marginBottom: '32px' }}>
-          <img 
-            src="/royale_logo.jpg" 
-            alt="Royale Gaming Logo" 
-            style={{ width: '70px', height: '70px', borderRadius: '16px', objectFit: 'cover', marginBottom: '16px', boxShadow: '0 8px 24px rgba(168, 85, 247, 0.25)' }}
+          <Image
+            src="/royale_logo.jpg"
+            alt="Royale Gaming Logo"
+            width={70}
+            height={70}
+            style={{ borderRadius: '16px', objectFit: 'cover', marginBottom: '16px', boxShadow: '0 8px 24px rgba(168, 85, 247, 0.25)' }}
           />
           <h1 style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px' }}>Royale Gaming</h1>
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '13px', marginTop: '4px' }}>Community Invitation</p>
