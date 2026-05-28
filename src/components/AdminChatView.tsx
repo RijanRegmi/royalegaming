@@ -1455,7 +1455,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       {/* Left Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header">
-          <div className="user-profile-badge">
+          <div className="user-profile-badge" onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }} title="View Profile">
             <div className="avatar-wrapper">
               {currentUser.avatar ? (
                 <img src={currentUser.avatar} alt={currentUser.name} className="avatar-image" />
