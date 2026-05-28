@@ -1,5 +1,10 @@
 /* Invite Page Styles - Professional Glassmorphism UI */
 
+/* Ensure container is positioned for background */
+.container {
+  position: relative;
+}
+
 /* Container that centers the page */
 .container {
   display: flex;
@@ -8,9 +13,19 @@
   min-height: 100vh;
   padding: 20px;
   background: linear-gradient(135deg, #1e1e2f 0%, #2a2a3b 100%);
+  overflow: hidden;
 }
 
-/* Card styling with glass effect */
+
+/* Background overlay */
+.background {
+  position: absolute;
+  inset: 0;
+  background: url('/invite_background.png') center/cover no-repeat;
+  opacity: 0.3;
+  z-index: -1;
+}
+
 .inviteCard {
   max-width: 420px;
   width: 100%;

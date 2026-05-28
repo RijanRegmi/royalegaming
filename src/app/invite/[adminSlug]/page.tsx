@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import styles from './invite.module.css';
 import { useRouter, useParams } from 'next/navigation';
+import Link from 'next/link';
 import { Loader2, Shield, Check, LogIn, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 
@@ -102,6 +103,7 @@ export default function InvitePage() {
 
   return (
     <div className={`auth-page ${styles.container}`}>
+      <div className={styles.background} />
       <div className={`auth-card glass ${styles.inviteCard}`}>
         
         <div className={styles.authLogo}>
@@ -136,16 +138,20 @@ export default function InvitePage() {
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               
               {/* Admin Avatar Circle */}
-              <div className={styles.avatarWrapper}>
-                <div className={styles.avatarCircle}>
-                  {admin.avatar ? (
-                    <Image src={admin.avatar} alt={admin.name} fill={true} style={{ objectFit: 'cover' }} />
-                  ) : (
-                    getInitials(admin.name)
-                  )}
+              <Link href="/profile">
+                <div className={styles.avatarWrapper}>
+                  <div className={styles.avatarCircle}>
+                    {admin.avatar ? (
+                      <Image src={admin.avatar} alt={admin.name} fill={true} style={{ objectFit: 'cover' }} />
+                    ) : (
+                      getInitials(admin.name)
+                    )}
+                  </div>
+                  <div className={styles.avatarBadge}>
+                    <Shield size={12} />
+                  </div>
                 </div>
-                <div className={styles.avatarBadge}><Shield size={12} /></div>
-              </div>
+              </Link>
 
               {/* Text Context */}
               <h2 className={styles.title}>Join {admin.name}&apos;s Community</h2>
