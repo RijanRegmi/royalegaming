@@ -4,11 +4,20 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, MessageSquare, Check, Key } from 'lucide-react';
 
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  avatar?: string;
+}
+
 export default function SecurePasswordPage() {
   const router = useRouter();
 
   // Auth & loading states
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [requestingCode, setRequestingCode] = useState<boolean>(false);
   const [verifyingCode, setVerifyingCode] = useState<boolean>(false);
@@ -105,8 +114,9 @@ export default function SecurePasswordPage() {
       setStep('verify');
       setSuccess(data.message);
       startTimer();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to send verification code';
+      setError(msg);
     } finally {
       setRequestingCode(false);
     }
@@ -183,8 +193,9 @@ export default function SecurePasswordPage() {
 
       setStep('new-password');
       setSuccess('Verification code verified successfully! Enter your new password.');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Invalid verification code';
+      setError(msg);
     } finally {
       setVerifyingCode(false);
     }
@@ -230,8 +241,9 @@ export default function SecurePasswordPage() {
       setTimeout(() => {
         router.push('/profile');
       }, 2000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to change password';
+      setError(msg);
       setResettingPassword(false);
     }
   };

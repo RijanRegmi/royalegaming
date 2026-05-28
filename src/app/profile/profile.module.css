@@ -1,41 +1,165 @@
-/* Avatar container styles */
-.avatar-container {
+.avatarContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   margin-bottom: 24px;
   text-align: center;
 }
 
-.avatar-wrapper {
+.avatarWrapper {
   position: relative;
-  display: inline-block;
   width: 120px;
   height: 120px;
+  margin-bottom: 16px;
+  cursor: pointer;
 }
 
-.avatar-image {
+.avatarImage {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid var(--border-color);
+  border: 3px solid var(--accent-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  background-color: var(--bg-panel-hover);
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.avatar-edit-icon {
-  position: absolute;
-  bottom: 4px;
-  right: 4px;
-  background: var(--primary-color);
-  color: white;
+.avatarWrapper:hover .avatarImage {
+  transform: scale(1.02);
+  border-color: var(--accent-hover);
+}
+
+.avatarPlaceholder {
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
-  padding: 4px;
-  cursor: pointer;
+  border: 3px solid var(--border-color);
+  background-color: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.remove-avatar-btn {
-  margin-top: 8px;
-  background: var(--error-color);
-  color: white;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
+.avatarWrapper:hover .avatarPlaceholder {
+  transform: scale(1.02);
+  border-color: var(--accent-color);
+}
+
+.avatarEditIcon {
+  position: absolute;
+  bottom: 0px;
+  right: 0px;
+  background-color: var(--accent-color);
+  color: #ffffff;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--bg-panel);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
   cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.avatarWrapper:hover .avatarEditIcon {
+  background-color: var(--accent-hover);
+  transform: scale(1.1);
+}
+
+/* Modal / Popup styling */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease;
+}
+
+.modalContent {
+  background-color: #161a1f;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  width: 90%;
+  max-width: 320px;
+  padding: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  animation: slideUp 0.2s ease;
+  text-align: center;
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+}
+
+.modalButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modalBtn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  text-align: center;
+  border: none;
+  outline: none;
+}
+
+.uploadBtn {
+  background-color: var(--accent-color);
+  color: #ffffff;
+}
+
+.uploadBtn:hover {
+  background-color: var(--accent-hover);
+}
+
+.removeBtn {
+  background-color: rgba(234, 0, 56, 0.15);
+  color: #ff4b6b;
+  border: 1px solid rgba(234, 0, 56, 0.3);
+}
+
+.removeBtn:hover {
+  background-color: rgba(234, 0, 56, 0.25);
+}
+
+.cancelBtn {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-secondary);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.cancelBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }

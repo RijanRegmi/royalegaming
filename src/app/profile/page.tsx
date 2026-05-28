@@ -1,18 +1,27 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import './profile.module.css';
+import styles from './profile.module.css';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, PenTool } from 'lucide-react';
+import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil } from 'lucide-react';
+
+interface User {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: string;
+  avatar?: string;
+  createdAt?: string;
+}
 
 export default function ProfilePage() {
   const router = useRouter();
 
   // Auth & loading states
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [updatingProfile, setUpdatingProfile] = useState<boolean>(false);
-  const [sendingCode, setSendingCode] = useState<boolean>(false);
   const [resettingPassword, setResettingPassword] = useState<boolean>(false);
 
   // Alert/Message states
@@ -34,24 +43,77 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
 
   // Avatar upload handling
-  const [avatar, setAvatar] = useState<string>(user?.avatar || '');
+  const [avatar, setAvatar] = useState<string>('');
+  const [showAvatarModal, setShowAvatarModal] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAvatarEdit = () => {
-    fileInputRef.current?.click();
+    setShowAvatarModal(true);
   };
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => setAvatar(reader.result as string);
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // Fast preview local upload
+    const reader = new FileReader();
+    reader.onload = () => {
+      setAvatar(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+    setShowAvatarModal(false);
+
+    // Call API to upload/save avatar
+    try {
+      setError(null);
+      setSuccess(null);
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch('/api/auth/profile/avatar', {
+        method: 'PUT',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload avatar');
+      }
+
+      setAvatar(data.user.avatar || '');
+      setUser(data.user);
+      setSuccess('Avatar updated successfully!');
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to upload avatar';
+      setError(msg);
     }
   };
 
-  const handleRemoveAvatar = () => {
-    setAvatar('');
+  const handleRemoveAvatar = async () => {
+    setShowAvatarModal(false);
+    try {
+      setError(null);
+      setSuccess(null);
+      const res = await fetch('/api/auth/profile/avatar', {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to remove avatar');
+      }
+
+      setAvatar('');
+      if (user) {
+        setUser({ ...user, avatar: undefined });
+      }
+      setSuccess('Avatar removed successfully!');
+    } catch (err: unknown) {
+      console.error(err);
+      const msg = err instanceof Error ? err.message : 'Failed to remove avatar';
+      setError(msg);
+    }
   };
 
   // Fetch current user details
@@ -66,6 +128,7 @@ export default function ProfilePage() {
           setName(data.user.name);
           setPhone(data.user.phone || '');
           setEmail(data.user.email);
+          setAvatar(data.user.avatar || '');
         } else {
           router.push('/login?redirect=/profile');
         }
@@ -129,8 +192,9 @@ export default function ProfilePage() {
 
       setSuccess('Profile updated successfully!');
       setUser(data.user);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to update profile';
+      setError(msg);
     } finally {
       setUpdatingProfile(false);
     }
@@ -174,8 +238,9 @@ export default function ProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      setPasswordError(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to change password';
+      setPasswordError(msg);
     } finally {
       setResettingPassword(false);
     }
@@ -229,18 +294,29 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Logo/Title */}
-        <div className="avatar-container" style={{ marginBottom: '24px', textAlign: 'center' }}>
-        <div className="avatar-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
-          <img src={avatar || '/default_avatar.png'} alt="User Avatar" className="avatar-image" />
-          <PenTool className="avatar-edit-icon" onClick={handleAvatarEdit} size={20} />
+        <div className={styles.avatarContainer}>
+          <div className={styles.avatarWrapper} onClick={handleAvatarEdit}>
+            {avatar ? (
+              <img src={avatar} alt="User Avatar" className={styles.avatarImage} />
+            ) : (
+              <div className={styles.avatarPlaceholder}>
+                <UserIcon size={48} style={{ color: 'var(--text-secondary)' }} />
+              </div>
+            )}
+            <div className={styles.avatarEditIcon}>
+              <Pencil size={16} />
+            </div>
+          </div>
+          <input
+            type="file"
+            accept="image/*"
+            ref={fileInputRef}
+            style={{ display: 'none' }}
+            onChange={handleAvatarChange}
+          />
+          <h1 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px' }}>Account Settings</h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>Manage your details and security settings</p>
         </div>
-        <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleAvatarChange} />
-        {avatar && (
-          <button type="button" onClick={handleRemoveAvatar} className="remove-avatar-btn">Remove</button>
-        )}
-        <h1>Account Settings</h1>
-        <p>Manage your details and security settings</p>
-      </div>
 
         {/* PROFILE INFORMATION SECTION */}
         <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
@@ -404,6 +480,42 @@ export default function ProfilePage() {
           </form>
         </div>
       </div>
+
+      {showAvatarModal && (
+        <div className={styles.modalOverlay} onClick={() => setShowAvatarModal(false)}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+            <h3 className={styles.modalTitle}>Profile Photo</h3>
+            <div className={styles.modalButtons}>
+              <button
+                type="button"
+                className={`${styles.modalBtn} ${styles.uploadBtn}`}
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setShowAvatarModal(false);
+                }}
+              >
+                Upload Photo
+              </button>
+              {avatar && (
+                <button
+                  type="button"
+                  className={`${styles.modalBtn} ${styles.removeBtn}`}
+                  onClick={handleRemoveAvatar}
+                >
+                  Remove Photo
+                </button>
+              )}
+              <button
+                type="button"
+                className={`${styles.modalBtn} ${styles.cancelBtn}`}
+                onClick={() => setShowAvatarModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
