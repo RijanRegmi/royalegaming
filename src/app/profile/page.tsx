@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import styles from './profile.module.css';
 import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut } from 'lucide-react';
 
 export default function ProfilePage() {
@@ -226,9 +227,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="auth-page" style={{ overflowY: 'auto' }}>
-      <div className="auth-card glass" style={{ maxWidth: '640px', width: '100%', margin: '40px auto' }}>
-        
+    <div className={styles.pageWrapper}>
+      <div className={styles.background} />
+      <div className={`auth-card glass ${styles.card}`}>
         {/* Header Navigation */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
           <button 
