@@ -41,16 +41,16 @@ async function savePaymentImage(file: File, buffer: Buffer): Promise<string> {
   return `/upload/payments/${uniqueName}`;
 }
 
-// GET: Fetch all payments (admins and super admins)
+// GET: Fetch all payments for this admin
 export async function GET(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || (payload.role !== 'admin' && payload.role !== 'super_admin')) {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
-    const payments = await Payment.find({}).sort({ createdAt: 1 });
+    const payments = await Payment.find({ adminId: payload.userId }).sort({ createdAt: 1 });
     return NextResponse.json({ success: true, payments });
   } catch (error) {
     console.error('Fetch payments error:', error);
@@ -58,11 +58,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: Create a new payment method (Super Admin only)
+// POST: Create a new payment method (Admin only)
 export async function POST(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || payload.role !== 'super_admin') {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     const newPayment = new Payment({
+      adminId: payload.userId,
       name: name.trim(),
       qrImage: finalQrImageUrl,
       isActive,
@@ -105,11 +106,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT: Update an existing payment method (Super Admin only)
+// PUT: Update an existing payment method (Admin only)
 export async function PUT(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || payload.role !== 'super_admin') {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -126,7 +127,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
     }
 
-    const paymentToUpdate = await Payment.findById(id);
+    const paymentToUpdate = await Payment.findOne({ _id: id, adminId: payload.userId });
     if (!paymentToUpdate) {
       return NextResponse.json({ error: 'Payment method not found' }, { status: 404 });
     }
@@ -152,11 +153,11 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE: Delete a payment method (Super Admin only)
+// DELETE: Delete a payment method (Admin only)
 export async function DELETE(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || payload.role !== 'super_admin') {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -169,7 +170,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
     }
 
-    const deleted = await Payment.findByIdAndDelete(id);
+    const deleted = await Payment.findOneAndDelete({ _id: id, adminId: payload.userId });
     if (!deleted) {
       return NextResponse.json({ error: 'Payment method not found' }, { status: 404 });
     }

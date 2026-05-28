@@ -5,16 +5,16 @@ import { getUserFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
-// GET: Retrieve all secure game credentials (accessible by admin and super_admin)
+// GET: Retrieve all secure game credentials for this admin
 export async function GET(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || (payload.role !== 'super_admin' && payload.role !== 'admin')) {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
-    const credentials = await GameCredential.find({}).sort({ createdAt: -1 });
+    const credentials = await GameCredential.find({ adminId: payload.userId }).sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, credentials });
   } catch (error) {
@@ -23,14 +23,11 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST: Add a new secure game credential (accessible only by super_admin)
+// POST: Add a new secure game credential (accessible only by admin)
 export async function POST(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (payload.role !== 'super_admin') {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -43,6 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const newCredential = new GameCredential({
+      adminId: payload.userId,
       gameName: gameName.trim(),
       gameId: gameId.trim(),
       password: password.trim()
@@ -57,14 +55,11 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// PUT: Update an existing game credential (accessible only by super_admin)
+// PUT: Update an existing game credential (accessible only by admin)
 export async function PUT(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (payload.role !== 'super_admin') {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -76,7 +71,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Credential ID is required' }, { status: 400 });
     }
 
-    const credentialToUpdate = await GameCredential.findById(id);
+    const credentialToUpdate = await GameCredential.findOne({ _id: id, adminId: payload.userId });
     if (!credentialToUpdate) {
       return NextResponse.json({ error: 'Credential not found' }, { status: 404 });
     }
@@ -94,14 +89,11 @@ export async function PUT(req: NextRequest) {
   }
 }
 
-// DELETE: Remove a game credential (accessible only by super_admin)
+// DELETE: Remove a game credential (accessible only by admin)
 export async function DELETE(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    if (payload.role !== 'super_admin') {
+    if (!payload || payload.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -113,7 +105,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Credential ID is required' }, { status: 400 });
     }
 
-    const deleted = await GameCredential.findByIdAndDelete(id);
+    const deleted = await GameCredential.findOneAndDelete({ _id: id, adminId: payload.userId });
     if (!deleted) {
       return NextResponse.json({ error: 'Credential not found' }, { status: 404 });
     }

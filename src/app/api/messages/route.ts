@@ -19,17 +19,52 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     
     let chatUserId = '';
+    let adminIdStr = '';
 
     if (payload.role === 'user') {
-      // Users can only access their own messages
+      // Users can only access their own messages, but must target a specific admin
       chatUserId = payload.userId;
+      
+      let reqAdminId = searchParams.get('adminId');
+      const userObj = await User.findById(payload.userId);
+      if (!reqAdminId) {
+        // Fallback: use first linked admin
+        if (userObj && userObj.linkedAdmins && userObj.linkedAdmins.length > 0) {
+          reqAdminId = userObj.linkedAdmins[0].toString();
+        }
+      }
+      if (!reqAdminId) {
+        return NextResponse.json({ error: 'No associated administrator found. Please link with an admin.' }, { status: 400 });
+      }
+
+      // Verify player is linked to this admin
+      if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
+        return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+      }
+      adminIdStr = reqAdminId;
     } else {
-      // Admins can request messages for a specific user
+      // Admins (or super admin) must specify which user's chat they are viewing
       const targetUserId = searchParams.get('userId');
       if (!targetUserId) {
         return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
       }
       chatUserId = targetUserId;
+      
+      if (payload.role === 'admin') {
+        // Standard admins can only access players linked to them
+        const targetUser = await User.findById(targetUserId);
+        const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
+        
+        if (!isTargetAdmin) {
+          if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
+            return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
+          }
+        }
+        adminIdStr = payload.userId;
+      } else {
+        // Super admin can specify an adminId query parameter or default to self
+        adminIdStr = searchParams.get('adminId') || payload.userId;
+      }
     }
 
     // Determine target user role to distinguish Admin-to-Admin chat
@@ -48,9 +83,10 @@ export async function GET(req: NextRequest) {
         ]
       };
     } else {
-      // User support chat thread query
+      // User support chat thread query: scoped to chatUserId and adminIdStr
       query = {
         chatUserId,
+        adminId: adminIdStr,
         deletedFor: { $ne: payload.userId },
         $or: [
           { systemMessageFor: { $exists: false } },
@@ -72,7 +108,7 @@ export async function GET(req: NextRequest) {
     // Mark messages as read
     if (payload.role === 'user') {
       await Message.updateMany(
-        { chatUserId, senderId: { $ne: payload.userId }, isRead: false, deletedFor: { $ne: payload.userId } },
+        { chatUserId, adminId: adminIdStr, senderId: { $ne: payload.userId }, isRead: false, deletedFor: { $ne: payload.userId } },
         { $set: { isRead: true } }
       );
     } else if (isTargetAdmin) {
@@ -84,7 +120,7 @@ export async function GET(req: NextRequest) {
     } else {
       // Admin viewing player chat: mark player's messages as read
       await Message.updateMany(
-        { chatUserId, senderId: chatUserId, isRead: false, deletedFor: { $ne: payload.userId } },
+        { chatUserId, adminId: adminIdStr, senderId: chatUserId, isRead: false, deletedFor: { $ne: payload.userId } },
         { $set: { isRead: true } }
       );
     }
@@ -105,7 +141,7 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
-    const { content, chatUserId: bodyChatUserId, replyTo, fileUrl, fileType, fileName, fileSize } = await req.json();
+    const { content, chatUserId: bodyChatUserId, adminId: bodyAdminId, replyTo, fileUrl, fileType, fileName, fileSize } = await req.json();
 
     if ((!content || !content.trim()) && !fileUrl) {
       return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });
@@ -113,30 +149,59 @@ export async function POST(req: NextRequest) {
 
     let chatUserId = '';
     let recipientId = '';
+    let adminIdStr = '';
 
     if (payload.role === 'user') {
-      // Users can only send to admins
+      // Users can only send to their linked admins
       chatUserId = payload.userId;
 
-      // Find the first admin or super_admin to receive the message
-      const admin = await User.findOne({ role: { $in: ['super_admin', 'admin'] } }).sort({ createdAt: 1 });
-      if (!admin) {
-        return NextResponse.json({ error: 'No administrator available to receive messages' }, { status: 503 });
+      let reqAdminId = bodyAdminId;
+      const userObj = await User.findById(payload.userId);
+      if (!reqAdminId) {
+        // Fallback: use first linked admin
+        if (userObj && userObj.linkedAdmins && userObj.linkedAdmins.length > 0) {
+          reqAdminId = userObj.linkedAdmins[0].toString();
+        }
       }
-      recipientId = admin._id.toString();
+      if (!reqAdminId) {
+        return NextResponse.json({ error: 'No associated administrator found. Please link with an admin.' }, { status: 400 });
+      }
+
+      // Verify link
+      if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
+        return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+      }
+
+      recipientId = reqAdminId;
+      adminIdStr = reqAdminId;
     } else {
       // Admins must specify which user's chat they are replying to
       if (!bodyChatUserId) {
         return NextResponse.json({ error: 'Missing chatUserId' }, { status: 400 });
       }
       chatUserId = bodyChatUserId;
-      recipientId = bodyChatUserId; // The user is the recipient
+      recipientId = bodyChatUserId;
+
+      const targetUser = await User.findById(chatUserId);
+      const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
+
+      if (payload.role === 'admin' && !isTargetAdmin) {
+        // Standard admins can only reply to linked players
+        if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
+          return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
+        }
+        adminIdStr = payload.userId;
+      } else {
+        // Super admin or admin-to-admin DM
+        adminIdStr = bodyAdminId || payload.userId;
+      }
     }
 
     const newMessage = new Message({
       senderId: payload.userId,
       recipientId,
       chatUserId,
+      adminId: adminIdStr,
       content: content ? content.trim() : '',
       isRead: false,
       replyTo: replyTo || null,
@@ -160,18 +225,10 @@ export async function POST(req: NextRequest) {
     // Broadcast the new message
     chatEmitter.emit('message', populatedMessage);
 
-    // Send push notification to the recipient(s) (blocking so serverless completes)
+    // Send push notification to the specific recipient (blocking so serverless completes)
     const senderName = (populatedMessage.senderId as any)?.name || 'Support Chat';
     try {
-      if (payload.role === 'user') {
-        const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } });
-        const notificationPromises = admins.map((adminUser) =>
-          sendPushNotification(adminUser._id.toString(), senderName, populatedMessage)
-        );
-        await Promise.allSettled(notificationPromises);
-      } else {
-        await sendPushNotification(recipientId, senderName, populatedMessage);
-      }
+      await sendPushNotification(recipientId, senderName, populatedMessage);
     } catch (err) {
       console.error('Error sending push notification:', err);
     }
@@ -265,10 +322,12 @@ export async function DELETE(req: NextRequest) {
     } else {
       // Clear the whole chat
       let chatUserId = '';
+      let adminIdStr = '';
 
       if (payload.role === 'user') {
         // Users can only delete their own chat
         chatUserId = payload.userId;
+        adminIdStr = searchParams.get('adminId') || '';
       } else {
         // Admins can specify which user's chat to delete
         const targetUserId = searchParams.get('userId');
@@ -276,11 +335,21 @@ export async function DELETE(req: NextRequest) {
           return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
         }
         chatUserId = targetUserId;
+        if (payload.role === 'admin') {
+          adminIdStr = payload.userId;
+        } else {
+          adminIdStr = searchParams.get('adminId') || '';
+        }
       }
 
-      // Soft delete all messages in the chat for this user
+      // Soft delete all messages in the chat for this user under this admin
+      const deleteQuery: any = { chatUserId };
+      if (adminIdStr) {
+        deleteQuery.adminId = adminIdStr;
+      }
+
       await Message.updateMany(
-        { chatUserId },
+        deleteQuery,
         { $addToSet: { deletedFor: payload.userId } }
       );
 
@@ -289,6 +358,7 @@ export async function DELETE(req: NextRequest) {
         senderId: payload.userId,
         recipientId: chatUserId,
         chatUserId,
+        adminId: adminIdStr || undefined,
         content: payload.role === 'user' ? 'Chat history cleared.' : 'Chat history cleared by admin.',
         isSystem: true,
         isRead: true,
@@ -303,6 +373,7 @@ export async function DELETE(req: NextRequest) {
       // Broadcast clear chat event with system trace message
       chatEmitter.emit('message_update', {
         chatUserId,
+        adminId: adminIdStr,
         isChatCleared: true,
         clearedByUserId: payload.userId,
         systemMessage: populatedSystemMsg

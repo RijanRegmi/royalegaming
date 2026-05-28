@@ -12,6 +12,26 @@ export async function POST(req: NextRequest) {
     const guestName = `Guest ${randomId}`;
     const guestEmail = `guest_${randomId.toLowerCase()}@royalegaming.com`;
 
+    // Read pending admin cookie or fallback to oldest active admin
+    const pendingAdminSlug = req.cookies.get('pending_admin_slug')?.value;
+    let linkedAdmins: any[] = [];
+    let primaryAdmin = null;
+
+    if (pendingAdminSlug) {
+      primaryAdmin = await User.findOne({ username: pendingAdminSlug.toLowerCase(), role: { $in: ['admin', 'super_admin'] } });
+    }
+
+    if (!primaryAdmin) {
+      primaryAdmin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
+    }
+    if (!primaryAdmin) {
+      primaryAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
+    }
+
+    if (primaryAdmin) {
+      linkedAdmins.push(primaryAdmin._id);
+    }
+
     // Create the guest user
     const guestUser = new User({
       name: guestName,
@@ -19,6 +39,7 @@ export async function POST(req: NextRequest) {
       role: 'user',
       avatar: '',
       phone: '',
+      linkedAdmins,
     });
 
     await guestUser.save();

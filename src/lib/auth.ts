@@ -15,21 +15,21 @@ export function signToken(payload: TokenPayload): string {
 export function verifyToken(token: string): TokenPayload | null {
   try {
     return jwt.verify(token, JWT_SECRET) as TokenPayload;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
 
 export function getUserFromRequest(req: NextRequest): TokenPayload | null {
   let token = req.cookies.get('auth_token')?.value;
-  
+
   if (!token) {
     const authHeader = req.headers.get('authorization');
     if (authHeader && authHeader.startsWith('Bearer ')) {
       token = authHeader.substring(7);
     }
   }
-  
+
   if (!token) return null;
   return verifyToken(token);
 }

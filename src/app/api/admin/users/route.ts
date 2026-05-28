@@ -16,8 +16,21 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    // Find all users except the currently logged-in admin/super_admin
-    const users = await User.find({ _id: { $ne: payload.userId } }).select('-password');
+    let queryUsers: any = {};
+    if (payload.role === 'super_admin') {
+      // Super admin sees all admins
+      queryUsers = { role: 'admin' };
+    } else {
+      // Standard admin sees players linked to them, plus the super admin
+      queryUsers = {
+        $or: [
+          { role: 'user', linkedAdmins: payload.userId },
+          { role: 'super_admin' }
+        ]
+      };
+    }
+
+    const users = await User.find(queryUsers).select('-password');
 
     const adminUserId = new mongoose.Types.ObjectId(payload.userId);
 
@@ -26,15 +39,14 @@ export async function GET(req: NextRequest) {
       {
         $match: {
           deletedFor: { $ne: adminUserId },
+          $or: [
+            // User support chat: adminId matches the logged-in admin
+            { adminId: adminUserId },
+            // Direct message between admin and super_admin
+            { senderId: adminUserId, recipientId: { $exists: true } },
+            { recipientId: adminUserId, senderId: { $exists: true } }
+          ],
           $and: [
-            {
-              $or: [
-                { senderId: adminUserId },
-                { recipientId: adminUserId },
-                { chatUserId: adminUserId },
-                { chatUserId: { $ne: adminUserId } }
-              ]
-            },
             {
               $or: [
                 { systemMessageFor: { $exists: false } },
@@ -73,9 +85,19 @@ export async function GET(req: NextRequest) {
         $match: {
           isRead: false,
           deletedFor: { $ne: adminUserId },
-          $or: [
-            { recipientId: adminUserId },
-            { $expr: { $eq: ['$senderId', '$chatUserId'] } }
+          $and: [
+            {
+              $or: [
+                { adminId: adminUserId },
+                { recipientId: adminUserId }
+              ]
+            },
+            {
+              $or: [
+                { recipientId: adminUserId },
+                { $expr: { $eq: ['$senderId', '$chatUserId'] } }
+              ]
+            }
           ]
         }
       },
@@ -135,6 +157,7 @@ export async function GET(req: NextRequest) {
         id: user._id,
         name: user.name,
         email: user.email,
+        username: user.username || '',
         phone: user.phone || '',
         avatar: user.avatar || '',
         role: user.role,
@@ -167,7 +190,7 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { userId, name, email, phone, role, password } = await req.json();
+    const { userId, name, email, phone, role, password, username } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -198,6 +221,25 @@ export async function PUT(req: NextRequest) {
           return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
         }
         userToUpdate.email = cleanEmail;
+      }
+    }
+
+    // Update username slug if provided
+    if (username !== undefined) {
+      const cleanUsername = username.trim().toLowerCase();
+      if (cleanUsername !== userToUpdate.username) {
+        if (cleanUsername) {
+          if (!/^[a-z0-9_-]+$/.test(cleanUsername)) {
+            return NextResponse.json({ error: 'Username must contain only letters, numbers, hyphens, and underscores' }, { status: 400 });
+          }
+          const existingUsername = await User.findOne({ username: cleanUsername });
+          if (existingUsername) {
+            return NextResponse.json({ error: 'Username slug is already taken' }, { status: 409 });
+          }
+          userToUpdate.username = cleanUsername;
+        } else {
+          userToUpdate.username = undefined;
+        }
       }
     }
 
@@ -234,6 +276,7 @@ export async function PUT(req: NextRequest) {
         id: userToUpdate._id,
         name: userToUpdate.name,
         email: userToUpdate.email,
+        username: userToUpdate.username || '',
         phone: userToUpdate.phone || '',
         role: userToUpdate.role,
         createdAt: userToUpdate.createdAt,
@@ -254,7 +297,7 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
-    const { name, email, phone, password, role } = await req.json();
+    const { name, email, phone, password, role, username } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
@@ -268,6 +311,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'User with this email already exists' }, { status: 409 });
     }
 
+    // Validate username slug if provided
+    let cleanUsername = undefined;
+    if (username) {
+      cleanUsername = username.trim().toLowerCase();
+      if (!/^[a-z0-9_-]+$/.test(cleanUsername)) {
+        return NextResponse.json({ error: 'Username must contain only letters, numbers, hyphens, and underscores' }, { status: 400 });
+      }
+      const existingUsername = await User.findOne({ username: cleanUsername });
+      if (existingUsername) {
+        return NextResponse.json({ error: 'Username slug is already taken' }, { status: 409 });
+      }
+    }
+
     // Determine target role (default to admin)
     const targetRole = role && ['admin', 'super_admin', 'user'].includes(role) ? role : 'admin';
 
@@ -277,6 +333,7 @@ export async function POST(req: NextRequest) {
     const newUser = new User({
       name: name.trim(),
       email: cleanEmail,
+      username: cleanUsername,
       phone: phone ? phone.trim() : '',
       password: hashedPassword,
       role: targetRole,
@@ -290,6 +347,7 @@ export async function POST(req: NextRequest) {
         id: newUser._id,
         name: newUser.name,
         email: newUser.email,
+        username: newUser.username || '',
         phone: newUser.phone,
         role: newUser.role,
         createdAt: newUser.createdAt,

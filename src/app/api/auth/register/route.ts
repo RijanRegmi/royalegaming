@@ -21,10 +21,32 @@ export async function POST(req: NextRequest) {
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-
+    
     // Determine role - first registered user is super_admin, others are users
     const userCount = await User.countDocuments();
     const role = userCount === 0 ? 'super_admin' : 'user';
+
+    // Read pending admin cookie or fallback to oldest active admin
+    const pendingAdminSlug = req.cookies.get('pending_admin_slug')?.value;
+    let linkedAdmins: any[] = [];
+    let primaryAdmin = null;
+
+    if (pendingAdminSlug) {
+      primaryAdmin = await User.findOne({ username: pendingAdminSlug.toLowerCase(), role: { $in: ['admin', 'super_admin'] } });
+    }
+
+    if (!primaryAdmin) {
+      // Fallback: oldest active admin
+      primaryAdmin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
+    }
+    if (!primaryAdmin) {
+      // Fallback fallback: super admin
+      primaryAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
+    }
+
+    if (primaryAdmin) {
+      linkedAdmins.push(primaryAdmin._id);
+    }
 
     const newUser = new User({
       name,
@@ -32,6 +54,7 @@ export async function POST(req: NextRequest) {
       phone: phone || '',
       password: hashedPassword,
       role,
+      linkedAdmins,
     });
 
     await newUser.save();
@@ -39,13 +62,13 @@ export async function POST(req: NextRequest) {
     // Create a system join message so admins see them in their inbox list immediately
     if (newUser.role === 'user') {
       try {
-        const admin = await User.findOne({ role: { $in: ['super_admin', 'admin'] } }).sort({ createdAt: 1 });
-        if (admin) {
+        if (primaryAdmin) {
           const Message = (await import('@/models/Message')).default;
           const systemMessage = new Message({
             senderId: newUser._id,
-            recipientId: admin._id,
+            recipientId: primaryAdmin._id,
             chatUserId: newUser._id,
+            adminId: primaryAdmin._id,
             content: `${newUser.name} joined support chat`,
             isRead: false,
             isSystem: true,
@@ -55,16 +78,12 @@ export async function POST(req: NextRequest) {
           const { chatEmitter } = await import('@/lib/events');
           chatEmitter.emit('message', systemMessage);
 
-          // Send push notification to all administrators (Web & Mobile Push)
+          // Send push notification to the linked admin (Web & Mobile Push)
           try {
             const { sendPushNotification } = await import('@/lib/notifications');
-            const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } });
-            const notificationPromises = admins.map((adminUser) =>
-              sendPushNotification(adminUser._id.toString(), 'New User Joined', systemMessage)
-            );
-            await Promise.allSettled(notificationPromises);
+            await sendPushNotification(primaryAdmin._id.toString(), 'New User Joined', systemMessage);
           } catch (pushErr) {
-            console.error('Error sending registration push notification to admins:', pushErr);
+            console.error('Error sending registration push notification to admin:', pushErr);
           }
         }
       } catch (err) {

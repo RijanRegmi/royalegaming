@@ -1,11 +1,10 @@
 'use strict';
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   Shield, 
-  MessageSquare, 
   Users, 
   UserCheck, 
   ArrowLeft, 
@@ -27,6 +26,47 @@ import {
   CreditCard
 } from 'lucide-react';
 
+interface User {
+  id: string;
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  username?: string;
+  phone?: string;
+  linkedAdmins?: string[] | User[];
+  avatar?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface Game {
+  id: string;
+  _id: string;
+  name: string;
+  link: string;
+  agentLink?: string;
+  image?: string;
+  isActive?: boolean;
+}
+
+interface Credential {
+  id: string;
+  _id: string;
+  gameName: string;
+  gameId: string;
+  password?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+interface Payment {
+  id: string;
+  _id: string;
+  name: string;
+  qrImage: string;
+  isActive: boolean;
+}
 
 export default function AdminSettingsPage() {
   const router = useRouter();
@@ -35,17 +75,18 @@ export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState<'users' | 'games' | 'credentials' | 'payments'>('users');
   
   // Common states
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<boolean>(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
   // --- Users management states ---
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [profiles, setProfiles] = useState<User[]>([]);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [newAdminName, setNewAdminName] = useState('');
   const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminUsername, setNewAdminUsername] = useState('');
   const [newAdminPhone, setNewAdminPhone] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newAdminRole, setNewAdminRole] = useState('admin');
@@ -53,19 +94,20 @@ export default function AdminSettingsPage() {
 
   // --- Edit/Delete user states ---
   const [showEditUserModal, setShowEditUserModal] = useState<boolean>(false);
-  const [editingUserProfile, setEditingUserProfile] = useState<any>(null);
+  const [editingUserProfile, setEditingUserProfile] = useState<User | null>(null);
   const [editUserName, setEditUserName] = useState('');
   const [editUserEmail, setEditUserEmail] = useState('');
+  const [editUserUsername, setEditUserUsername] = useState('');
   const [editUserPhone, setEditUserPhone] = useState('');
   const [editUserRole, setEditUserRole] = useState('user');
   const [editUserPassword, setEditUserPassword] = useState('');
   const [updatingUser, setUpdatingUser] = useState(false);
 
   // --- Games management states ---
-  const [games, setGames] = useState<any[]>([]);
+  const [games, setGames] = useState<Game[]>([]);
   const [loadingGames, setLoadingGames] = useState<boolean>(true);
   const [showGameModal, setShowGameModal] = useState<boolean>(false);
-  const [editingGame, setEditingGame] = useState<any>(null); // null for create, game object for edit
+  const [editingGame, setEditingGame] = useState<Game | null>(null); // null for create, game object for edit
   const [gameName, setGameName] = useState('');
   const [gameLink, setGameLink] = useState('');
   const [gameAgentLink, setGameAgentLink] = useState('');
@@ -75,10 +117,10 @@ export default function AdminSettingsPage() {
   const [savingGame, setSavingGame] = useState(false);
 
   // --- Secure Credentials management states ---
-  const [credentials, setCredentials] = useState<any[]>([]);
+  const [credentials, setCredentials] = useState<Credential[]>([]);
   const [loadingCredentials, setLoadingCredentials] = useState<boolean>(true);
   const [showCredentialModal, setShowCredentialModal] = useState<boolean>(false);
-  const [editingCredential, setEditingCredential] = useState<any>(null); // null for create, credential object for edit
+  const [editingCredential, setEditingCredential] = useState<Credential | null>(null); // null for create, credential object for edit
   const [credGameName, setCredGameName] = useState('');
   const [credGameId, setCredGameId] = useState('');
   const [credPassword, setCredPassword] = useState('');
@@ -87,10 +129,10 @@ export default function AdminSettingsPage() {
   const [copiedField, setCopiedField] = useState<'gameId' | 'password' | null>(null);
 
   // --- Payments management states ---
-  const [payments, setPayments] = useState<any[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [loadingPayments, setLoadingPayments] = useState<boolean>(true);
   const [showPaymentModal, setShowPaymentModal] = useState<boolean>(false);
-  const [editingPayment, setEditingPayment] = useState<any>(null); // null for create, payment object for edit
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null); // null for create, payment object for edit
   const [paymentName, setPaymentName] = useState('');
   const [paymentQrUrl, setPaymentQrUrl] = useState('');
   const [paymentQrFile, setPaymentQrFile] = useState<File | null>(null);
@@ -99,7 +141,7 @@ export default function AdminSettingsPage() {
   const [savingPayment, setSavingPayment] = useState(false);
 
   // Fetch admin dashboard details (users profiles)
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(false);
     try {
@@ -125,7 +167,7 @@ export default function AdminSettingsPage() {
         const profilesData = await profilesRes.json();
         
         if (profilesRes.ok && profilesData.success) {
-          const sanitized = profilesData.profiles.map((p: any) => ({
+          const sanitized = profilesData.profiles.map((p: User) => ({
             ...p,
             _id: p._id || p.id,
             id: p.id || p._id,
@@ -144,10 +186,10 @@ export default function AdminSettingsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
 
   // Fetch games
-  const fetchGames = async () => {
+  const fetchGames = useCallback(async () => {
     setLoadingGames(true);
     try {
       const res = await fetch('/api/games');
@@ -160,10 +202,10 @@ export default function AdminSettingsPage() {
     } finally {
       setLoadingGames(false);
     }
-  };
+  }, []);
 
   // Fetch secure credentials
-  const fetchCredentials = async () => {
+  const fetchCredentials = useCallback(async () => {
     setLoadingCredentials(true);
     try {
       const res = await fetch('/api/admin/credentials');
@@ -176,7 +218,7 @@ export default function AdminSettingsPage() {
     } finally {
       setLoadingCredentials(false);
     }
-  };
+  }, []);
 
   const handleCopyToClipboard = async (text: string, id: string, field: 'gameId' | 'password') => {
     try {
@@ -201,11 +243,11 @@ export default function AdminSettingsPage() {
     setFeedback(null);
   };
 
-  const openEditCredentialModal = (cred: any) => {
+  const openEditCredentialModal = (cred: Credential) => {
     setEditingCredential(cred);
     setCredGameName(cred.gameName);
     setCredGameId(cred.gameId);
-    setCredPassword(cred.password);
+    setCredPassword(cred.password || '');
     setShowCredentialModal(true);
     setFeedback(null);
   };
@@ -263,16 +305,16 @@ export default function AdminSettingsPage() {
         type: 'success',
         message: `Successfully ${editingCredential ? 'updated' : 'created'} secure credential for ${credGameName}!`,
       });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
       setSavingCredential(false);
     }
   };
 
   const handleDeleteCredential = async (credId: string) => {
-    if (currentUser?.role !== 'super_admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can delete secure credentials' });
+    if (currentUser?.role !== 'admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only admins can delete secure credentials' });
       return;
     }
     if (!window.confirm('Are you sure you want to delete this secure game credential? This action cannot be undone!')) return;
@@ -290,13 +332,13 @@ export default function AdminSettingsPage() {
 
       setCredentials((prev) => prev.filter((c) => c._id !== credId));
       setFeedback({ type: 'success', message: 'Successfully deleted secure game credential!' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     }
   };
 
   // Fetch payments
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     setLoadingPayments(true);
     try {
       const res = await fetch('/api/admin/payments');
@@ -309,7 +351,7 @@ export default function AdminSettingsPage() {
     } finally {
       setLoadingPayments(false);
     }
-  };
+  }, []);
 
   const openCreatePaymentModal = () => {
     setEditingPayment(null);
@@ -322,7 +364,7 @@ export default function AdminSettingsPage() {
     setFeedback(null);
   };
 
-  const openEditPaymentModal = (payment: any) => {
+  const openEditPaymentModal = (payment: Payment) => {
     setEditingPayment(payment);
     setPaymentName(payment.name);
     setPaymentQrUrl(payment.qrImage);
@@ -334,8 +376,8 @@ export default function AdminSettingsPage() {
   };
 
   const handleDeletePayment = async (paymentId: string) => {
-    if (currentUser?.role !== 'super_admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can delete payment channels' });
+    if (currentUser?.role !== 'admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only admins can delete payment channels' });
       return;
     }
     if (!window.confirm('Are you sure you want to delete this payment channel?')) return;
@@ -353,15 +395,15 @@ export default function AdminSettingsPage() {
 
       setPayments((prev) => prev.filter((p) => p._id !== paymentId));
       setFeedback({ type: 'success', message: 'Successfully deleted payment channel!' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     }
   };
 
   const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentUser?.role !== 'super_admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can save payment channels' });
+    if (currentUser?.role !== 'admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only admins can save payment channels' });
       return;
     }
     if (!paymentName) {
@@ -417,18 +459,20 @@ export default function AdminSettingsPage() {
         type: 'success',
         message: `Successfully ${editingPayment ? 'updated' : 'created'} payment channel: ${paymentName}!`,
       });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
       setSavingPayment(false);
     }
   };
 
   useEffect(() => {
-    fetchDashboardData();
-    fetchGames();
-    fetchCredentials();
-    fetchPayments();
+    Promise.resolve().then(() => {
+      fetchDashboardData();
+      fetchGames();
+      fetchCredentials();
+      fetchPayments();
+    });
 
     // Allow document scrolling for admin dashboard page
     const originalBodyOverflow = document.body.style.overflow;
@@ -440,7 +484,7 @@ export default function AdminSettingsPage() {
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
-  }, [router]);
+  }, [fetchDashboardData, fetchGames, fetchCredentials, fetchPayments]);
 
   // Handle user roles changes (users tab)
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -468,8 +512,8 @@ export default function AdminSettingsPage() {
       );
 
       setFeedback({ type: 'success', message: `Successfully updated user role to ${newRole}` });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
       setUpdatingId(null);
     }
@@ -497,6 +541,7 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({
           name: newAdminName,
           email: newAdminEmail,
+          username: newAdminRole === 'admin' ? newAdminUsername : undefined,
           phone: newAdminPhone,
           password: newAdminPassword,
           role: newAdminRole,
@@ -516,23 +561,25 @@ export default function AdminSettingsPage() {
       setProfiles((prev) => [newUser, ...prev]);
       setNewAdminName('');
       setNewAdminEmail('');
+      setNewAdminUsername('');
       setNewAdminPhone('');
       setNewAdminPassword('');
       setNewAdminRole('admin');
       setShowCreateModal(false);
 
       setFeedback({ type: 'success', message: 'Successfully created administrative account' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
       setCreatingAdmin(false);
     }
   };
 
-  const openEditUserModal = (profile: any) => {
+  const openEditUserModal = (profile: User) => {
     setEditingUserProfile(profile);
     setEditUserName(profile.name);
     setEditUserEmail(profile.email);
+    setEditUserUsername(profile.username || '');
     setEditUserPhone(profile.phone || '');
     setEditUserRole(profile.role);
     setEditUserPassword('');
@@ -544,6 +591,10 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     if (currentUser?.role !== 'super_admin') {
       setFeedback({ type: 'error', message: 'Forbidden: Only super admins can edit accounts' });
+      return;
+    }
+    if (!editingUserProfile) {
+      setFeedback({ type: 'error', message: 'No user selected to edit' });
       return;
     }
     if (!editUserName || !editUserEmail) {
@@ -562,6 +613,7 @@ export default function AdminSettingsPage() {
           userId: editingUserProfile._id || editingUserProfile.id,
           name: editUserName,
           email: editUserEmail,
+          username: editUserRole === 'admin' ? editUserUsername : undefined,
           phone: editUserPhone,
           role: editUserRole,
           password: editUserPassword || undefined,
@@ -583,8 +635,8 @@ export default function AdminSettingsPage() {
 
       setShowEditUserModal(false);
       setFeedback({ type: 'success', message: 'Successfully updated user account' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
       setUpdatingUser(false);
     }
@@ -614,8 +666,8 @@ export default function AdminSettingsPage() {
 
       setProfiles((prev) => prev.filter((p) => (p._id || p.id) !== userId));
       setFeedback({ type: 'success', message: 'Successfully deleted user account!' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     }
   };
 
@@ -633,13 +685,13 @@ export default function AdminSettingsPage() {
     setFeedback(null);
   };
 
-  const openEditModal = (game: any) => {
+  const openEditModal = (game: Game) => {
     setEditingGame(game);
     setGameName(game.name);
     setGameLink(game.link);
     setGameAgentLink(game.agentLink || '');
-    setGameImageUrl(game.image);
-    setGameImagePreview(game.image);
+    setGameImageUrl(game.image || '');
+    setGameImagePreview(game.image || '');
     setGameImageFile(null);
     setShowGameModal(true);
     setFeedback(null);
@@ -665,8 +717,8 @@ export default function AdminSettingsPage() {
 
       setGames((prev) => prev.filter((g) => g._id !== gameId));
       setFeedback({ type: 'success', message: 'Successfully deleted game platform!' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     }
   };
 
@@ -732,8 +784,8 @@ export default function AdminSettingsPage() {
         type: 'success',
         message: `Successfully ${editingGame ? 'updated' : 'created'} game platform: ${gameName}!`,
       });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
       setSavingGame(false);
     }
@@ -894,57 +946,61 @@ export default function AdminSettingsPage() {
             <Users size={16} /> User Accounts
           </button>
         )}
-        <button
-          className={`tab-btn ${activeTab === 'games' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('games');
-            fetchGames();
-          }}
-          style={{
-            padding: '10px 18px',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            borderBottom: activeTab === 'games' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
-            color: activeTab === 'games' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            background: 'none',
-            outline: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s',
-            flexShrink: 0,
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <Gamepad2 size={16} /> Lobby Game Platforms
-        </button>
-        <button
-          className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`}
-          onClick={() => {
-            setActiveTab('credentials');
-            fetchCredentials();
-          }}
-          style={{
-            padding: '10px 18px',
-            fontSize: '14px',
-            fontWeight: 600,
-            cursor: 'pointer',
-            borderBottom: activeTab === 'credentials' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
-            color: activeTab === 'credentials' ? 'var(--text-primary)' : 'var(--text-secondary)',
-            background: 'none',
-            outline: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            transition: 'all 0.2s',
-            flexShrink: 0,
-            whiteSpace: 'nowrap'
-          }}
-        >
-          <Key size={16} /> Game Accounts (Secure)
-        </button>
         {currentUser.role === 'super_admin' && (
+          <button
+            className={`tab-btn ${activeTab === 'games' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('games');
+              fetchGames();
+            }}
+            style={{
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: activeTab === 'games' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+              color: activeTab === 'games' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: 'none',
+              outline: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Gamepad2 size={16} /> Lobby Game Platforms
+          </button>
+        )}
+        {currentUser.role === 'admin' && (
+          <button
+            className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('credentials');
+              fetchCredentials();
+            }}
+            style={{
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: activeTab === 'credentials' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+              color: activeTab === 'credentials' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: 'none',
+              outline: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Key size={16} /> Game Accounts (Secure)
+          </button>
+        )}
+        {currentUser.role === 'admin' && (
           <button
             className={`tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
             onClick={() => {
@@ -1038,7 +1094,7 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
-      ) : currentUser.role === 'super_admin' ? (
+      ) : activeTab === 'credentials' ? (
         <div className="admin-stats-grid">
           <div className="stat-card glass">
             <div className="stat-icon-wrapper users" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>
@@ -1057,7 +1113,7 @@ export default function AdminSettingsPage() {
             <div>
               <div className="stat-label">Access Level</div>
               <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>
-                {currentUser.role === 'super_admin' ? 'Read / Write' : 'Read Only'}
+                Admin (Owner)
               </div>
             </div>
           </div>
@@ -1100,7 +1156,7 @@ export default function AdminSettingsPage() {
             </div>
             <div>
               <div className="stat-label">Access Level</div>
-              <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>Super Admin</div>
+              <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>Admin (Owner)</div>
             </div>
           </div>
         </div>
@@ -1164,6 +1220,7 @@ export default function AdminSettingsPage() {
                       <div className="profile-cell">
                         <div className="avatar-wrapper" style={{ width: '36px', height: '36px', fontSize: '13px' }}>
                           {profile.avatar ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
                             <img src={profile.avatar} alt={profile.name} className="avatar-image" />
                           ) : (
                             profile.name
@@ -1175,7 +1232,14 @@ export default function AdminSettingsPage() {
                           )}
                         </div>
                         <div className="profile-cell-details">
-                          <span className="profile-cell-name">{profile.name}</span>
+                          <span className="profile-cell-name">
+                            {profile.name}
+                            {profile.role === 'admin' && profile.username && (
+                              <span style={{ fontSize: '11px', color: 'var(--super-admin-color)', marginLeft: '8px', background: 'rgba(168, 85, 247, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                /{profile.username}
+                              </span>
+                            )}
+                          </span>
                           <span className="profile-cell-email">{profile.email}</span>
                         </div>
                       </div>
@@ -1282,7 +1346,7 @@ export default function AdminSettingsPage() {
             </div>
           ) : games.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              No games found. Click "Add Game Card" to create one.
+              No games found. Click &quot;Add Game Card&quot; to create one.
             </div>
           ) : (
             <table className="admin-table">
@@ -1308,6 +1372,7 @@ export default function AdminSettingsPage() {
                           background: 'rgba(0,0,0,0.3)',
                           flexShrink: 0
                         }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img 
                             src={game.image} 
                             alt={game.name} 
@@ -1417,13 +1482,13 @@ export default function AdminSettingsPage() {
             <div>
               <span style={{ fontWeight: 600, display: 'block' }}>Secure Game Credentials</span>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                {currentUser.role === 'super_admin' 
+                {currentUser.role === 'admin' 
                   ? 'Manage and assign game accounts' 
                   : 'View and copy credentials for players (Read-only)'}
               </span>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              {currentUser.role === 'super_admin' && (
+              {currentUser.role === 'admin' && (
                 <button
                   className="btn-primary"
                   style={{
@@ -1466,7 +1531,7 @@ export default function AdminSettingsPage() {
                   <th>Game ID / Username</th>
                   <th>Password</th>
                   <th>Last Updated</th>
-                  {currentUser.role === 'super_admin' && <th style={{ textAlign: 'right' }}>Actions</th>}
+                  {currentUser.role === 'admin' && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -1550,7 +1615,7 @@ export default function AdminSettingsPage() {
                         <button
                           className="icon-btn"
                           title="Copy Password"
-                          onClick={() => handleCopyToClipboard(cred.password, cred._id, 'password')}
+                          onClick={() => handleCopyToClipboard(cred.password || '', cred._id, 'password')}
                           style={{ 
                             padding: '4px', 
                             background: 'rgba(255,255,255,0.05)', 
@@ -1595,7 +1660,7 @@ export default function AdminSettingsPage() {
                         day: 'numeric',
                       })}
                     </td>
-                    {currentUser.role === 'super_admin' && (
+                    {currentUser.role === 'admin' && (
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
                           <button 
@@ -1623,7 +1688,7 @@ export default function AdminSettingsPage() {
             </table>
           )}
         </div>
-      ) : activeTab === 'payments' && currentUser.role === 'super_admin' ? (
+      ) : activeTab === 'payments' && currentUser.role === 'admin' ? (
         <div className="admin-table-container glass">
           <div
             style={{
@@ -1669,7 +1734,7 @@ export default function AdminSettingsPage() {
             </div>
           ) : payments.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              No payment channels found. Click "Add Payment Method" to create one.
+              No payment channels found. Click &quot;Add Payment Method&quot; to create one.
             </div>
           ) : (
             <table className="admin-table">
@@ -1699,6 +1764,7 @@ export default function AdminSettingsPage() {
                           justifyContent: 'center',
                           padding: '2px'
                         }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img 
                             src={payment.qrImage} 
                             alt={payment.name} 
@@ -1780,6 +1846,7 @@ export default function AdminSettingsPage() {
                       onChange={(e) => setNewAdminName(e.target.value)}
                       disabled={creatingAdmin}
                       required
+                      autoComplete="off"
                     />
                   </div>
                 </div>
@@ -1796,9 +1863,31 @@ export default function AdminSettingsPage() {
                       onChange={(e) => setNewAdminEmail(e.target.value)}
                       disabled={creatingAdmin}
                       required
+                      autoComplete="off"
                     />
                   </div>
                 </div>
+
+                {newAdminRole === 'admin' && (
+                  <div className="form-group">
+                    <label>Admin Slug / Username (e.g. admin1) *</label>
+                    <div className="input-wrapper">
+                      <Globe size={16} className="input-icon" />
+                      <input
+                        type="text"
+                        placeholder="admin1"
+                        className="form-input"
+                        value={newAdminUsername}
+                        onChange={(e) => setNewAdminUsername(e.target.value)}
+                        disabled={creatingAdmin}
+                        required
+                        pattern="^[a-z0-9_-]+$"
+                        title="Only lowercase letters, numbers, hyphens, and underscores are allowed"
+                        autoComplete="off"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label>Phone Number</label>
@@ -1905,6 +1994,7 @@ export default function AdminSettingsPage() {
                       border: '2px solid var(--super-admin-color)',
                       boxShadow: '0 0 15px rgba(168, 85, 247, 0.2)'
                     }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={gameImagePreview} 
                         alt="Slot preview" 
@@ -2209,6 +2299,7 @@ export default function AdminSettingsPage() {
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img 
                         src={paymentQrPreview} 
                         alt="QR code preview" 
@@ -2414,6 +2505,26 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+
+                {editUserRole === 'admin' && (
+                  <div className="form-group">
+                    <label>Admin Slug / Username (e.g. admin1) *</label>
+                    <div className="input-wrapper">
+                      <Globe size={16} className="input-icon" />
+                      <input
+                        type="text"
+                        placeholder="admin1"
+                        className="form-input"
+                        value={editUserUsername}
+                        onChange={(e) => setEditUserUsername(e.target.value)}
+                        disabled={updatingUser}
+                        required
+                        pattern="^[a-z0-9_-]+$"
+                        title="Only lowercase letters, numbers, hyphens, and underscores are allowed"
+                      />
+                    </div>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label>Phone Number</label>

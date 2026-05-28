@@ -26,6 +26,7 @@ export async function POST(req: NextRequest) {
     const fileType = formData.get('type') as 'image' | 'voice' | 'document' | null;
     const content = formData.get('content') as string | null;
     const bodyChatUserId = formData.get('chatUserId') as string | null;
+    const bodyAdminId = formData.get('adminId') as string | null;
     const durationStr = formData.get('duration') as string | null;
     const replyTo = formData.get('replyTo') as string | null;
 
@@ -40,17 +41,31 @@ export async function POST(req: NextRequest) {
     // Determine chat session routing
     let chatUserId = '';
     let recipientId = '';
+    let adminIdStr = '';
 
     if (payload.role === 'user') {
-      // Users can only send to admins
+      // Users can only send to their linked admins
       chatUserId = payload.userId;
 
-      // Find the first admin or super_admin to receive the message
-      const admin = await User.findOne({ role: { $in: ['super_admin', 'admin'] } }).sort({ createdAt: 1 });
-      if (!admin) {
-        return NextResponse.json({ error: 'No administrator available to receive messages' }, { status: 503 });
+      let reqAdminId = bodyAdminId;
+      const userObj = await User.findById(payload.userId);
+      if (!reqAdminId) {
+        // Fallback: use first linked admin
+        if (userObj && userObj.linkedAdmins && userObj.linkedAdmins.length > 0) {
+          reqAdminId = userObj.linkedAdmins[0].toString();
+        }
       }
-      recipientId = admin._id.toString();
+      if (!reqAdminId) {
+        return NextResponse.json({ error: 'No associated administrator found. Please link with an admin.' }, { status: 400 });
+      }
+
+      // Verify link
+      if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
+        return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+      }
+
+      recipientId = reqAdminId;
+      adminIdStr = reqAdminId;
     } else {
       // Admins must specify which user's chat they are replying to
       if (!bodyChatUserId) {
@@ -58,6 +73,20 @@ export async function POST(req: NextRequest) {
       }
       chatUserId = bodyChatUserId;
       recipientId = bodyChatUserId;
+
+      const targetUser = await User.findById(chatUserId);
+      const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
+
+      if (payload.role === 'admin' && !isTargetAdmin) {
+        // Standard admins can only reply to linked players
+        if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
+          return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
+        }
+        adminIdStr = payload.userId;
+      } else {
+        // Super admin or admin-to-admin DM
+        adminIdStr = bodyAdminId || payload.userId;
+      }
     }
 
     const originalName = file.name || 'upload';
@@ -91,6 +120,7 @@ export async function POST(req: NextRequest) {
       senderId: payload.userId,
       recipientId,
       chatUserId,
+      adminId: adminIdStr,
       content: content?.trim() || '',
       isRead: false,
       fileUrl,
@@ -115,18 +145,10 @@ export async function POST(req: NextRequest) {
     // Broadcast the new message in real-time
     chatEmitter.emit('message', populatedMessage);
 
-    // Send push notification to the recipient(s) (blocking so serverless completes)
+    // Send push notification to the specific recipient (blocking so serverless completes)
     const senderName = (populatedMessage.senderId as any)?.name || 'Support Chat';
     try {
-      if (payload.role === 'user') {
-        const admins = await User.find({ role: { $in: ['admin', 'super_admin'] } });
-        const notificationPromises = admins.map((adminUser) =>
-          sendPushNotification(adminUser._id.toString(), senderName, populatedMessage)
-        );
-        await Promise.allSettled(notificationPromises);
-      } else {
-        await sendPushNotification(recipientId, senderName, populatedMessage);
-      }
+      await sendPushNotification(recipientId, senderName, populatedMessage);
     } catch (err) {
       console.error('Error sending push notification:', err);
     }

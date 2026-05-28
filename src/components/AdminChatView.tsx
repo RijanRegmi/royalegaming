@@ -795,7 +795,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const res = await fetch('/api/payments');
+        const res = await fetch(`/api/payments?adminId=${currentUser.id}`);
         const data = await res.json();
         if (res.ok && data.success) {
           setPayments(data.payments);
@@ -805,7 +805,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       }
     };
     fetchPayments();
-  }, []);
+  }, [currentUser.id]);
 
   // Send configured QR code to chat
   const handleSendPaymentQr = async (payment: any) => {

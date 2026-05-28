@@ -11,7 +11,10 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    const user = await User.findById(payload.userId).select('-password');
+    const user = await User.findById(payload.userId)
+      .select('-password')
+      .populate('linkedAdmins', 'name username avatar');
+      
     if (!user) {
       return NextResponse.json({ authenticated: false }, { status: 404 });
     }
@@ -25,6 +28,8 @@ export async function GET(req: NextRequest) {
         phone: user.phone || '',
         role: user.role,
         avatar: user.avatar || '',
+        username: user.username || '',
+        linkedAdmins: user.linkedAdmins || [],
       },
     });
   } catch (error) {

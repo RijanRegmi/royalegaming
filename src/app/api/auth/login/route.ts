@@ -33,6 +33,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid credentials' }, { status: 401 });
     }
 
+    // Link user to pending admin or fallback admin
+    if (user.role === 'user') {
+      const pendingAdminSlug = req.cookies.get('pending_admin_slug')?.value;
+      let didUpdate = false;
+      user.linkedAdmins = user.linkedAdmins || [];
+
+      if (pendingAdminSlug) {
+        const admin = await User.findOne({ username: pendingAdminSlug.toLowerCase(), role: { $in: ['admin', 'super_admin'] } });
+        if (admin && !user.linkedAdmins.map((id: any) => id.toString()).includes(admin._id.toString())) {
+          user.linkedAdmins.push(admin._id);
+          didUpdate = true;
+        }
+      }
+
+      if (user.linkedAdmins.length === 0) {
+        const defaultAdmin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
+        if (defaultAdmin) {
+          user.linkedAdmins.push(defaultAdmin._id);
+          didUpdate = true;
+        } else {
+          const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
+          if (superAdmin) {
+            user.linkedAdmins.push(superAdmin._id);
+            didUpdate = true;
+          }
+        }
+      }
+
+      if (didUpdate) {
+        await user.save();
+      }
+    }
+
     // Create session token
     const token = signToken({ userId: user._id.toString(), role: user.role });
 

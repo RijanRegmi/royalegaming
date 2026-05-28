@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard, Bell, BellOff } from 'lucide-react';
+import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard, Bell, BellOff, ArrowLeft } from 'lucide-react';
 
 interface UserChatViewProps {
   currentUser: {
@@ -13,6 +13,7 @@ interface UserChatViewProps {
     phone?: string;
     role: string;
     avatar?: string;
+    linkedAdmins?: Array<{ _id: string; name: string; username: string; avatar?: string }>;
   };
 }
 
@@ -172,6 +173,30 @@ function CustomAudioPlayer({ src, duration, senderName, senderAvatar }: CustomAu
 
 export default function UserChatView({ currentUser }: UserChatViewProps) {
   const router = useRouter();
+  const linkedAdmins = currentUser.linkedAdmins || [];
+  const [selectedAdmin, setSelectedAdmin] = useState<any>(linkedAdmins[0] || null);
+  const selectedAdminRef = useRef(selectedAdmin);
+
+  useEffect(() => {
+    selectedAdminRef.current = selectedAdmin;
+  }, [selectedAdmin]);
+
+  useEffect(() => {
+    if (!selectedAdmin && linkedAdmins.length > 0) {
+      setSelectedAdmin(linkedAdmins[0]);
+    }
+  }, [linkedAdmins, selectedAdmin]);
+
+  const getInitials = (nameStr?: string) => {
+    if (!nameStr) return 'U';
+    return nameStr
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
@@ -517,12 +542,14 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   };
 
   const handleDeleteWholeChat = async () => {
+    if (!selectedAdmin) return;
+    const adminId = selectedAdmin._id || selectedAdmin.id;
     showConfirm(
       'Clear Chat History',
       'Are you sure you want to delete the entire chat history? This action cannot be undone.',
       async () => {
         try {
-          const res = await fetch('/api/messages', {
+          const res = await fetch(`/api/messages?adminId=${adminId}`, {
             method: 'DELETE',
           });
           const data = await res.json();
@@ -604,8 +631,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   // Fetch active payments
   useEffect(() => {
     const fetchPayments = async () => {
+      if (!selectedAdmin) {
+        setPayments([]);
+        return;
+      }
       try {
-        const res = await fetch('/api/payments');
+        const adminId = selectedAdmin._id || selectedAdmin.id;
+        const res = await fetch(`/api/payments?adminId=${adminId}`);
         const data = await res.json();
         if (res.ok && data.success) {
           setPayments(data.payments);
@@ -615,7 +647,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       }
     };
     fetchPayments();
-  }, []);
+  }, [selectedAdmin]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -640,10 +672,16 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
   // Fetch initial messages
   const fetchMessages = async () => {
+    if (!selectedAdmin) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch('/api/messages');
+      const adminId = selectedAdmin._id || selectedAdmin.id;
+      const res = await fetch(`/api/messages?adminId=${adminId}`);
       const data = await res.json();
       if (res.ok && data.success) {
         setMessages(data.messages);
@@ -660,7 +698,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
   useEffect(() => {
     fetchMessages();
-  }, []);
+  }, [selectedAdmin]);
 
   // Click listener to close emoji picker when clicking outside
   useEffect(() => {
@@ -709,12 +747,25 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         }
 
         if (data.isChatCleared) {
-          setMessages(data.systemMessage ? [data.systemMessage] : []);
+          const currentAdmin = selectedAdminRef.current;
+          const currentAdminId = currentAdmin ? (currentAdmin._id || currentAdmin.id)?.toString() : '';
+          const msgAdminId = data.adminId?.toString();
+          if (msgAdminId === currentAdminId) {
+            setMessages(data.systemMessage ? [data.systemMessage] : []);
+          }
           return;
         }
 
         // Append or update message in-place
         if (data._id) {
+          const currentAdmin = selectedAdminRef.current;
+          const currentAdminId = currentAdmin ? (currentAdmin._id || currentAdmin.id)?.toString() : '';
+          const msgAdminId = data.adminId?.toString();
+          
+          if (msgAdminId && msgAdminId !== currentAdminId) {
+            return; // Ignore message for another admin
+          }
+
           if (data.isDeleted) {
             setMessages((prev) => prev.filter((msg) => msg._id !== data._id));
             return;
@@ -745,8 +796,11 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   useEffect(() => {
     const pollInterval = setInterval(() => {
       const fetchSilent = async () => {
+        const currentAdmin = selectedAdminRef.current;
+        if (!currentAdmin) return;
+        const adminId = currentAdmin._id || currentAdmin.id;
         try {
-          const res = await fetch('/api/messages');
+          const res = await fetch(`/api/messages?adminId=${adminId}`);
           const data = await res.json();
           if (res.ok && data.success) {
             setMessages((prev) => {
@@ -906,6 +960,8 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
   // Upload Voice Message
   const uploadVoiceMessage = async (audioBlob: Blob, duration: number) => {
+    if (!selectedAdmin) return;
+    const adminId = selectedAdmin._id || selectedAdmin.id;
     setSending(true);
     try {
       const file = new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
@@ -913,6 +969,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       formData.append('file', file);
       formData.append('type', 'voice');
       formData.append('duration', duration.toString());
+      formData.append('adminId', adminId);
       if (replyingToMessage) {
         formData.append('replyTo', replyingToMessage._id);
       }
@@ -945,6 +1002,8 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   // Send Message (Text & File Upload)
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedAdmin) return;
+    const adminId = selectedAdmin._id || selectedAdmin.id;
     
     const hasText = !!inputText.trim();
     const hasFile = !!selectedFile;
@@ -959,6 +1018,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         const formData = new FormData();
         formData.append('file', selectedFile!);
         formData.append('type', fileType!);
+        formData.append('adminId', adminId);
         if (replyingToMessage) {
           formData.append('replyTo', replyingToMessage._id);
         }
@@ -992,6 +1052,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             content: inputText.trim(),
+            adminId,
             replyTo: replyingToMessage ? replyingToMessage._id : undefined
           }),
         });
@@ -1043,6 +1104,53 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       <div className="fullscreen-loader">
         <div className="spinner"></div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '12px' }}>Loading chat history...</p>
+      </div>
+    );
+  }
+
+  if (linkedAdmins.length === 0) {
+    return (
+      <div className="fullscreen-loader" style={{ flexDirection: 'column', gap: '20px', padding: '20px', textAlign: 'center' }}>
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.05)',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+          padding: '40px 30px',
+          borderRadius: 'var(--radius-lg)',
+          maxWidth: '450px',
+          width: '100%',
+          boxShadow: 'var(--shadow-lg)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '20px'
+        }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            borderRadius: '50%',
+            background: 'rgba(255, 180, 0, 0.1)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#ffb400'
+          }}>
+            <MessageSquare size={28} />
+          </div>
+          <h2 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>No Support Channel</h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5', margin: 0 }}>
+            You are not connected to any support administrator. Please access the site through an administrator's referral link to start a conversation.
+          </p>
+          <div style={{ display: 'flex', gap: '12px', width: '100%', marginTop: '8px' }}>
+            <button 
+              className="btn-primary" 
+              onClick={() => window.location.href = '/'}
+              style={{ flex: 1, margin: 0, padding: '12px', fontSize: '14px', width: '100%' }}
+            >
+              Go to Lobby Front
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1106,63 +1214,159 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   }
 
   return (
-    <div className="chat-area">
-      {/* Header */}
-      <header className="chat-header">
-        <div className="chat-user-info">
-          <div className="avatar-wrapper">
-            <MessageSquare size={18} fill="white" />
-          </div>
-          <div className="chat-user-details">
-            <span className="chat-user-name">RoyaleGaming Admin Support</span>
-            <div className="chat-user-status-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', rowGap: '2px', marginTop: '2px' }}>
-              {Object.values(onlineUsers).some(role => role === 'admin' || role === 'super_admin') ? (
-                <span className="chat-user-status" style={{ color: 'var(--success-color)', fontSize: '11px' }}>
-                  ● Online & Ready to Help
-                </span>
+    <div className={`dashboard-container ${selectedAdmin ? 'has-selected-user' : ''}`}>
+      {/* Left Sidebar */}
+      <aside className="sidebar">
+        <div className="sidebar-header">
+          <div className="user-profile-badge">
+            <div className="avatar-wrapper">
+              {currentUser.avatar ? (
+                <img src={currentUser.avatar} alt={currentUser.name} className="avatar-image" />
               ) : (
-                <span className="chat-user-status" style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                  ○ Offline (Replies may be delayed)
-                </span>
+                getInitials(currentUser.name)
               )}
-              <span className="chat-logged-in-as" style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', borderLeft: '1px solid rgba(255, 255, 255, 0.15)', paddingLeft: '8px', whiteSpace: 'nowrap' }}>
-                Logged in as: <strong style={{ color: '#ffffff' }}>{currentUser.name}</strong>
-              </span>
+            </div>
+            <div className="profile-info">
+              <span className="profile-name">{currentUser.name}</span>
+              <span className="role-badge user" style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#ffffff' }}>Player</span>
             </div>
           </div>
-        </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {pushSupported && (
-            <button 
-              type="button" 
-              className={`icon-btn ${isSubscribed ? 'active-bell' : ''}`} 
-              title={isSubscribed ? "Disable Push Notifications" : "Enable Push Notifications"} 
-              onClick={handleTogglePush}
-              disabled={subscribing}
-            >
-              {isSubscribed ? (
-                <Bell size={20} style={{ color: 'var(--success-color)' }} />
-              ) : (
-                <BellOff size={20} style={{ opacity: 0.6 }} />
-              )}
+          <div className="sidebar-actions">
+            <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
+              <Gamepad2 size={18} />
             </button>
-          )}
-          <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
-            <Gamepad2 size={20} />
-          </button>
-          <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
-            <Trash2 size={20} />
-          </button>
-          {currentUser.role === 'super_admin' && (
-            <button className="icon-btn" title="Go to Admin Panel" onClick={() => window.location.href = '/admin'}>
-              <Shield size={20} />
+            <button className="icon-btn" title="Log Out" onClick={handleLogout}>
+              <LogOut size={18} />
             </button>
-          )}
-          <button className="icon-btn" title="Log Out" onClick={handleLogout}>
-            <LogOut size={20} />
-          </button>
+          </div>
         </div>
-      </header>
+
+        <div className="sidebar-title" style={{ padding: '16px 20px 8px 20px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+          Support Admins
+        </div>
+
+        <div className="conversation-list">
+          {linkedAdmins.map((admin: any) => {
+            const adminId = admin._id || admin.id;
+            const isSelected = selectedAdmin && (selectedAdmin._id === adminId || selectedAdmin.id === adminId);
+            const isOnline = Object.entries(onlineUsers).some(([uId, uRole]) => uId === adminId && (uRole === 'admin' || uRole === 'super_admin'));
+            return (
+              <div
+                key={adminId}
+                className={`conversation-item ${isSelected ? 'active' : ''}`}
+                onClick={() => setSelectedAdmin(admin)}
+              >
+                <div className="sidebar-avatar-container">
+                  <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px' }}>
+                    {admin.avatar ? (
+                      <img src={admin.avatar} alt={admin.name} className="avatar-image" />
+                    ) : (
+                      getInitials(admin.name)
+                    )}
+                  </div>
+                  {isOnline && <span className="sidebar-online-badge" />}
+                </div>
+                <div className="convo-details">
+                  <div className="convo-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{admin.name}</span>
+                    <span className="role-badge admin" style={{ fontSize: '8px', padding: '1px 4px', textTransform: 'uppercase', flexShrink: 0, marginTop: 0 }}>
+                      Admin
+                    </span>
+                  </div>
+                  <div className="convo-row">
+                    <span className="convo-message-preview">
+                      @{admin.username || 'admin'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </aside>
+
+      {/* Main Chat Area */}
+      <section className="chat-area">
+        {selectedAdmin ? (
+          <>
+            {/* Header */}
+            <header className="chat-header">
+              <div className="chat-user-info" style={{ minWidth: 0, overflow: 'hidden' }}>
+                <button 
+                  className="mobile-back-btn icon-btn" 
+                  onClick={() => setSelectedAdmin(null)}
+                  style={{ marginRight: '8px', flexShrink: 0 }}
+                  title="Back to admin list"
+                >
+                  <ArrowLeft size={20} />
+                </button>
+                <div className="avatar-wrapper" style={{ flexShrink: 0 }}>
+                  {selectedAdmin.avatar ? (
+                    <img src={selectedAdmin.avatar} alt={selectedAdmin.name} className="avatar-image" />
+                  ) : (
+                    getInitials(selectedAdmin.name)
+                  )}
+                </div>
+                <div className="chat-user-details" style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                    <span className="chat-user-name" style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '120px'
+                    }}>{selectedAdmin.name}</span>
+                    <span className="role-badge admin" style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0, flexShrink: 0 }}>
+                      Admin
+                    </span>
+                  </div>
+                  <div className="chat-user-status-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', rowGap: '2px', marginTop: '2px' }}>
+                    {Object.entries(onlineUsers).some(([uId, uRole]) => uId === (selectedAdmin._id || selectedAdmin.id) && (uRole === 'admin' || uRole === 'super_admin')) ? (
+                      <span className="chat-user-status" style={{ color: 'var(--success-color)', fontSize: '11px' }}>
+                        ● Online & Ready to Help
+                      </span>
+                    ) : (
+                      <span className="chat-user-status" style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
+                        ○ Offline (Replies may be delayed)
+                      </span>
+                    )}
+                    <span className="chat-logged-in-as" style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', borderLeft: '1px solid rgba(255, 255, 255, 0.15)', paddingLeft: '8px', whiteSpace: 'nowrap' }}>
+                      Logged in as: <strong style={{ color: '#ffffff' }}>{currentUser.name}</strong>
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                {pushSupported && (
+                  <button 
+                    type="button" 
+                    className={`icon-btn ${isSubscribed ? 'active-bell' : ''}`} 
+                    title={isSubscribed ? "Disable Push Notifications" : "Enable Push Notifications"} 
+                    onClick={handleTogglePush}
+                    disabled={subscribing}
+                  >
+                    {isSubscribed ? (
+                      <Bell size={20} style={{ color: 'var(--success-color)' }} />
+                    ) : (
+                      <BellOff size={20} style={{ opacity: 0.6 }} />
+                    )}
+                  </button>
+                )}
+                <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
+                  <Gamepad2 size={20} />
+                </button>
+                <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
+                  <Trash2 size={20} />
+                </button>
+                {currentUser.role === 'super_admin' && (
+                  <button className="icon-btn" title="Go to Admin Panel" onClick={() => window.location.href = '/admin'}>
+                    <Shield size={20} />
+                  </button>
+                )}
+                <button className="icon-btn" title="Log Out" onClick={handleLogout}>
+                  <LogOut size={20} />
+                </button>
+              </div>
+            </header>
 
       {/* Messages Pane */}
       <div className="messages-container">
@@ -1581,6 +1785,17 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           </>
         )}
       </form>
+    </>
+  ) : (
+          <div className="chat-empty-state" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+            <div className="chat-empty-icon" style={{ marginBottom: '16px' }}>
+              <MessageSquare size={64} />
+            </div>
+            <h2>No Admin Selected</h2>
+            <p>Please select an administrator from the list to start support chat.</p>
+          </div>
+        )}
+      </section>
 
       {/* Fullscreen Lightbox Modal */}
       {lightboxImage && (

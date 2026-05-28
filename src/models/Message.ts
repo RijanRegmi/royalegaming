@@ -4,6 +4,7 @@ const MessageSchema = new Schema({
   senderId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   recipientId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   chatUserId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true }, // The regular user's ID whose inbox this is
+  adminId: { type: Schema.Types.ObjectId, ref: 'User', index: true }, // The admin's ID whose thread this is
   content: { type: String }, // Optional to allow sending only files
   isRead: { type: Boolean, default: false },
   fileUrl: { type: String }, // Path to local public folder file (e.g. /upload/chats/abc.ext)
