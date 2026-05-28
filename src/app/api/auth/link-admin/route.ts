@@ -3,6 +3,43 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 
+export async function GET(req: NextRequest) {
+  try {
+    await dbConnect();
+    const { searchParams } = new URL(req.url);
+    const adminSlug = searchParams.get('slug');
+
+    if (!adminSlug) {
+      return NextResponse.json({ error: 'Admin slug is required' }, { status: 400 });
+    }
+
+    const cleanSlug = adminSlug.trim().toLowerCase();
+
+    // Find the admin
+    const admin = await User.findOne({ 
+      username: cleanSlug, 
+      role: { $in: ['admin', 'super_admin'] } 
+    });
+
+    if (!admin) {
+      return NextResponse.json({ error: 'Administrator not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      admin: {
+        id: admin._id.toString(),
+        name: admin.name,
+        username: admin.username,
+        avatar: admin.avatar || '',
+      }
+    });
+  } catch (error) {
+    console.error('Fetch link admin error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();

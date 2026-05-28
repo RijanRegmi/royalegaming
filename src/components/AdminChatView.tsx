@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard, Bell, BellOff } from 'lucide-react';
+import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard, Bell, BellOff, UserPlus } from 'lucide-react';
 
 interface AdminChatViewProps {
   currentUser: {
@@ -13,6 +13,7 @@ interface AdminChatViewProps {
     phone?: string;
     role: 'super_admin' | 'admin';
     avatar?: string;
+    username?: string;
   };
 }
 
@@ -186,6 +187,17 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [pushSupported, setPushSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [subscribing, setSubscribing] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteCopied, setInviteCopied] = useState(false);
+
+  const handleCopyInviteLink = () => {
+    if (typeof window === 'undefined') return;
+    const slug = currentUser.username || currentUser.id;
+    const inviteLink = `${window.location.origin}/invite/${slug}`;
+    navigator.clipboard.writeText(inviteLink);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  };
 
   // Helper to convert base64 VAPID public key to Uint8Array for subscribe option
   const urlBase64ToUint8Array = (base64String: string) => {
@@ -1459,21 +1471,14 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             </div>
           </div>
           <div className="sidebar-actions">
-            {pushSupported && (
-              <button 
-                type="button" 
-                className={`icon-btn ${isSubscribed ? 'active-bell' : ''}`} 
-                title={isSubscribed ? "Disable Push Notifications" : "Enable Push Notifications"} 
-                onClick={handleTogglePush}
-                disabled={subscribing}
-              >
-                {isSubscribed ? (
-                  <Bell size={18} style={{ color: 'var(--success-color)' }} />
-                ) : (
-                  <BellOff size={18} style={{ opacity: 0.6 }} />
-                )}
-              </button>
-            )}
+            <button 
+              type="button" 
+              className="icon-btn" 
+              title="Invite Player" 
+              onClick={() => setShowInviteModal(true)}
+            >
+              <UserPlus size={18} />
+            </button>
             <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
               <Gamepad2 size={18} />
             </button>
@@ -2390,6 +2395,129 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           >
             <Trash2 size={16} /> Delete Chat
           </button>
+        </div>
+      )}
+
+      {showInviteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.75)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          padding: '20px'
+        }}>
+          <div className="glass" style={{
+            background: 'rgba(30, 41, 59, 0.85)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '30px',
+            borderRadius: '16px',
+            maxWidth: '480px',
+            width: '100%',
+            boxShadow: 'var(--shadow-2xl)',
+            textAlign: 'center',
+            position: 'relative'
+          }}>
+            <button 
+              type="button"
+              onClick={() => setShowInviteModal(false)}
+              style={{
+                position: 'absolute',
+                top: '16px',
+                right: '16px',
+                background: 'none',
+                border: 'none',
+                color: 'rgba(255,255,255,0.4)',
+                cursor: 'pointer',
+                padding: '4px',
+                transition: 'color 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.color = '#ffffff'}
+              onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(255,255,255,0.4)'}
+            >
+              <X size={20} />
+            </button>
+
+            <div style={{ 
+              width: '56px', 
+              height: '56px', 
+              borderRadius: '12px', 
+              background: 'rgba(168, 85, 247, 0.1)', 
+              border: '1px solid rgba(168, 85, 247, 0.2)', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center', 
+              color: '#a855f7',
+              margin: '0 auto 20px auto'
+            }}>
+              <UserPlus size={24} />
+            </div>
+
+            <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#ffffff', margin: '0 0 8px 0' }}>Invite Player</h2>
+            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '13.5px', lineHeight: '1.5', margin: '0 0 24px 0' }}>
+              Share this invite link with players. Once they register or log in and accept, they will be linked to your community and appear in your support inbox list.
+            </p>
+
+            <div style={{ display: 'flex', gap: '8px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '8px', padding: '6px', marginBottom: '24px' }}>
+              <input
+                type="text"
+                readOnly
+                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/invite/${currentUser.username || currentUser.id}`}
+                style={{
+                  flex: 1,
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255,255,255,0.85)',
+                  fontSize: '13.5px',
+                  padding: '8px 10px',
+                  outline: 'none',
+                  width: '100%'
+                }}
+                onClick={(e) => (e.target as HTMLInputElement).select()}
+              />
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={handleCopyInviteLink}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  width: 'auto',
+                  margin: 0
+                }}
+              >
+                {inviteCopied ? (
+                  <>
+                    <Check size={14} />
+                    Copied!
+                  </>
+                ) : (
+                  'Copy Link'
+                )}
+              </button>
+            </div>
+
+            <button
+              type="button"
+              className="guest-btn"
+              onClick={() => setShowInviteModal(false)}
+              style={{ width: '100%', padding: '12px', borderRadius: '8px', cursor: 'pointer' }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>
