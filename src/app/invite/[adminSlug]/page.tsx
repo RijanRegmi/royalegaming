@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { Loader2, Shield, Check, LogIn, ArrowLeft } from 'lucide-react';
+import Image from 'next/image';
 
 interface AdminInfo {
   id: string;
@@ -154,7 +155,7 @@ export default function InvitePage() {
                   overflow: 'hidden'
                 }}>
                   {admin.avatar ? (
-                    <img src={admin.avatar} alt={admin.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <Image src={admin.avatar} alt={admin.name} fill={true} style={{ objectFit: 'cover' }} />
                   ) : (
                     getInitials(admin.name)
                   )}

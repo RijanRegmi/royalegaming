@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import User, { UserDocument } from '@/models/User';
+import User from '@/models/User';
 import { getUserFromRequest, TokenPayload } from '@/lib/auth';
 
 // Type for the admin query used in both GET and POST
@@ -118,10 +118,10 @@ export async function POST(req: NextRequest) {
       // Send notification to the admin that a user has accepted the invitation
       try {
         const { sendPushNotification } = await import('@/lib/notifications');
-        await sendPushNotification(admin._id.toString(), userName, {
-          content: `${userName} accepted your invitation`,
-          isSystem: false,
-        } as any);
+          await sendPushNotification(admin._id.toString(), userName, {
+            content: `${userName} accepted your invitation`,
+            isSystem: false,
+          });
       } catch (notifyErr) {
         console.error('Failed to send admin acceptance notification:', notifyErr);
       }
