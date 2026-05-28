@@ -248,12 +248,12 @@ export default function SecurePasswordPage() {
   return (
     <div className="auth-page" style={{ overflowY: 'auto' }}>
       <div className="auth-card glass" style={{ maxWidth: '520px', width: '100%', margin: '40px auto' }}>
-        
+
         {/* Header Navigation */}
         <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '24px' }}>
-          <button 
-            onClick={() => router.push('/profile')} 
-            className="icon-btn" 
+          <button
+            onClick={() => router.push('/profile')}
+            className="icon-btn"
             style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', width: 'auto', padding: '6px 12px', borderRadius: '8px' }}
           >
             <ArrowLeft size={16} /> Back to Settings
@@ -262,9 +262,9 @@ export default function SecurePasswordPage() {
 
         {/* Title */}
         <div className="auth-logo" style={{ marginBottom: '28px' }}>
-          <img 
-            src="/royale_logo.jpg" 
-            alt="Royale Gaming Logo" 
+          <img
+            src="/royale_logo.jpg"
+            alt="Royale Gaming Logo"
             style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
           />
           <h1>Secure Change</h1>
@@ -280,9 +280,9 @@ export default function SecurePasswordPage() {
             <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
               We will send a 6-digit secure verification code to your registered Gmail address: <strong>{user?.email}</strong>.
             </p>
-            <button 
-              type="button" 
-              className="btn-primary" 
+            <button
+              type="button"
+              className="btn-primary"
               onClick={handleRequestCode}
               disabled={requestingCode}
               style={{ marginTop: '12px' }}
@@ -329,9 +329,9 @@ export default function SecurePasswordPage() {
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              className="btn-primary" 
+            <button
+              type="submit"
+              className="btn-primary"
               disabled={verifyingCode}
               style={{ marginTop: '12px' }}
             >
@@ -345,7 +345,7 @@ export default function SecurePasswordPage() {
             </button>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
-              <span 
+              <span
                 onClick={() => {
                   setStep('request');
                   setError(null);
@@ -355,7 +355,7 @@ export default function SecurePasswordPage() {
               >
                 Back
               </span>
-              
+
               <button
                 type="button"
                 onClick={handleRequestCode}
@@ -418,9 +418,9 @@ export default function SecurePasswordPage() {
               </div>
             </div>
 
-            <button 
-              type="submit" 
-              className="btn-primary" 
+            <button
+              type="submit"
+              className="btn-primary"
               disabled={resettingPassword}
               style={{ marginTop: '12px' }}
             >

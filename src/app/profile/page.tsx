@@ -1,22 +1,20 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import './profile.module.css';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import styles from './profile.module.css';
-import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut } from 'lucide-react';
+import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, PenTool } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
-  
+
   // Auth & loading states
-  interface UserProfile { _id?: string; id?: string; name: string; email: string; avatar?: string; role: string; phone?: string; }
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [updatingProfile, setUpdatingProfile] = useState<boolean>(false);
-  // const [sendingCode, setSendingCode] = useState<boolean>(false); // removed unused
+  const [sendingCode, setSendingCode] = useState<boolean>(false);
   const [resettingPassword, setResettingPassword] = useState<boolean>(false);
-  
+
   // Alert/Message states
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -27,8 +25,6 @@ export default function ProfilePage() {
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
-  // Avatar handling state
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState<string>('');
@@ -37,13 +33,34 @@ export default function ProfilePage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
   const [showNewPassword, setShowNewPassword] = useState<boolean>(false);
 
+  // Avatar upload handling
+  const [avatar, setAvatar] = useState<string>(user?.avatar || '');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAvatarEdit = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => setAvatar(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatar('');
+  };
+
   // Fetch current user details
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
-        
+
         if (res.ok && data.authenticated) {
           setUser(data.user);
           setName(data.user.name);
@@ -112,60 +129,8 @@ export default function ProfilePage() {
 
       setSuccess('Profile updated successfully!');
       setUser(data.user);
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message); else setError(String(err));
-    } finally {
-      setUpdatingProfile(false);
-    }
-  };
-
-  // Handle Avatar Upload
-  const handleAvatarUpload = async () => {
-    if (!avatarFile) {
-      setError('No avatar selected');
-      return;
-    }
-    setUpdatingProfile(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const formData = new FormData();
-      formData.append('avatar', avatarFile);
-      const res = await fetch('/api/auth/profile/avatar', {
-        method: 'PUT',
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to upload avatar');
-      }
-      setSuccess('Avatar updated successfully');
-      setUser(data.user);
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message); else setError(String(err));
-    } finally {
-      setUpdatingProfile(false);
-      setAvatarFile(null);
-    }
-  };
-
-  // Handle Avatar Removal
-  const handleRemoveAvatar = async () => {
-    setUpdatingProfile(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const res = await fetch('/api/auth/profile/avatar', {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to remove avatar');
-      }
-      setSuccess('Avatar removed');
-      setUser(data.user);
-    } catch (err: unknown) {
-      if (err instanceof Error) setError(err.message); else setError(String(err));
+    } catch (err: any) {
+      setError(err.message);
     } finally {
       setUpdatingProfile(false);
     }
@@ -209,8 +174,8 @@ export default function ProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: unknown) {
-      if (err instanceof Error) setPasswordError(err.message); else setPasswordError(String(err));
+    } catch (err: any) {
+      setPasswordError(err.message);
     } finally {
       setResettingPassword(false);
     }
@@ -227,33 +192,33 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className={styles.pageWrapper}>
-      <div className={styles.background} />
-      <div className={`auth-card glass ${styles.card}`}>
+    <div className="auth-page" style={{ overflowY: 'auto' }}>
+      <div className="auth-card" style={{ maxWidth: '640px', width: '100%', margin: '40px auto' }}>
+
         {/* Header Navigation */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <button 
-            onClick={() => router.push('/')} 
-            className="icon-btn" 
+          <button
+            onClick={() => router.push('/')}
+            className="icon-btn"
             style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', width: 'auto', padding: '6px 12px', borderRadius: '8px' }}
           >
             <ArrowLeft size={16} /> Back to Lobby
           </button>
-          
+
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             {user && (user.role === 'super_admin' || user.role === 'admin') && (
-              <button 
+              <button
                 onClick={() => router.push('/admin')}
-                className="lobby-btn-secondary" 
+                className="lobby-btn-secondary"
                 style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px', borderRadius: '8px' }}
               >
                 <Shield size={14} /> Control Room
               </button>
             )}
 
-            <button 
+            <button
               onClick={handleLogout}
-              className="lobby-btn-secondary" 
+              className="lobby-btn-secondary"
               style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '6px 12px', borderRadius: '8px', color: 'var(--error-color)', borderColor: 'rgba(234, 0, 56, 0.2)' }}
               title="Sign Out"
             >
@@ -264,23 +229,18 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Logo/Title */}
-        <div className="auth-logo" style={{ marginBottom: '24px', textAlign: 'center' }}>
-          <Image 
-            src={user?.avatar || '/default_avatar.png'} 
-            alt="User Avatar" 
-            width={80}
-            height={80}
-            style={{ borderRadius: '50%', objectFit: 'cover', marginBottom: '12px', border: '2px solid var(--border-color)' }}
-          />
-          <h1>Account Settings</h1>
-          <p>Manage your details and security settings</p>
-          {/* Avatar Upload Controls */}
-          <div style={{ marginTop: '12px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
-            <input type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} disabled={updatingProfile} />
-            <button className="btn-primary" onClick={handleAvatarUpload} disabled={updatingProfile || !avatarFile}>Save Avatar</button>
-            <button className="btn-secondary" onClick={handleRemoveAvatar} disabled={updatingProfile}>Remove Avatar</button>
-          </div>
+        <div className="avatar-container" style={{ marginBottom: '24px', textAlign: 'center' }}>
+        <div className="avatar-wrapper" style={{ position: 'relative', display: 'inline-block' }}>
+          <img src={avatar || '/default_avatar.png'} alt="User Avatar" className="avatar-image" />
+          <PenTool className="avatar-edit-icon" onClick={handleAvatarEdit} size={20} />
         </div>
+        <input type="file" accept="image/*" ref={fileInputRef} style={{ display: 'none' }} onChange={handleAvatarChange} />
+        {avatar && (
+          <button type="button" onClick={handleRemoveAvatar} className="remove-avatar-btn">Remove</button>
+        )}
+        <h1>Account Settings</h1>
+        <p>Manage your details and security settings</p>
+      </div>
 
         {/* PROFILE INFORMATION SECTION */}
         <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
@@ -433,7 +393,7 @@ export default function ProfilePage() {
             </button>
 
             <div style={{ textAlign: 'center', marginTop: '16px' }}>
-              <span 
+              <span
                 onClick={() => router.push('/profile/secure-password')}
                 className="auth-switch-link"
                 style={{ fontSize: '13px' }}
