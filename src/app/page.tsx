@@ -1,41 +1,52 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useState, useEffect, Fragment, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, LogOut, LogIn, Shield, Gamepad2, ArrowRight, Loader2, User as UserIcon } from 'lucide-react';
+import { MessageSquare, LogOut, LogIn, Shield, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 
-interface GameItem {
+interface PostItem {
   _id: string;
-  name: string;
-  image: string;
-  link: string;
-  agentLink?: string;
+  adminId: {
+    _id: string;
+    name: string;
+    username: string;
+    avatar?: string;
+    role: string;
+  };
+  content: string;
+  image?: string;
+  likes: string[];
+  createdAt: string;
 }
 
 export default function Home() {
   const router = useRouter();
-  const [games, setGames] = useState<GameItem[]>([]);
+  const [posts, setPosts] = useState<PostItem[]>([]);
   const [user, setUser] = useState<any>(null);
   const [authenticated, setAuthenticated] = useState<boolean>(false);
-  const [loadingGames, setLoadingGames] = useState<boolean>(true);
+  const [loadingPosts, setLoadingPosts] = useState<boolean>(true);
   const [verifyingAuth, setVerifyingAuth] = useState<boolean>(true);
-  const [linkMode, setLinkMode] = useState<'player' | 'agent'>('player');
-  const [isFeedAdFilled, setIsFeedAdFilled] = useState<boolean>(false);
 
-  // Fetch games and verify authentication
+  // Post Creator State
+  const [content, setContent] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
-    const fetchGames = async () => {
+    const fetchPosts = async () => {
       try {
-        const res = await fetch('/api/games');
+        const res = await fetch('/api/posts');
         const data = await res.json();
         if (res.ok && data.success) {
-          setGames(data.games);
+          setPosts(data.posts || []);
         }
       } catch (err) {
-        console.error('Error fetching games:', err);
+        console.error('Error fetching posts:', err);
       } finally {
-        setLoadingGames(false);
+        setLoadingPosts(false);
       }
     };
 
@@ -54,7 +65,7 @@ export default function Home() {
       }
     };
 
-    fetchGames();
+    fetchPosts();
     checkAuth();
 
     // Allow document scrolling for lobby page
@@ -90,6 +101,133 @@ export default function Home() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  };
+
+  const handleRemoveAttachedImage = () => {
+    setFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleCreatePost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!content.trim() && !file) return;
+
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('content', content);
+      if (file) {
+        formData.append('file', file);
+      }
+
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPosts((prev) => [data.post, ...prev]);
+        setContent('');
+        setFile(null);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      } else {
+        alert(data.error || 'Failed to create post');
+      }
+    } catch (err) {
+      console.error('Create post error:', err);
+      alert('Error creating post. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleLikePost = async (postId: string) => {
+    if (!authenticated) {
+      router.push('/login');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/posts/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postId }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPosts((prev) =>
+          prev.map((post) => {
+            if (post._id === postId) {
+              const currentUserId = user._id;
+              const newLikes = data.liked
+                ? [...post.likes, currentUserId]
+                : post.likes.filter((id) => id !== currentUserId);
+              return { ...post, likes: newLikes };
+            }
+            return post;
+          })
+        );
+      }
+    } catch (err) {
+      console.error('Like error:', err);
+    }
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    if (!confirm('Are you sure you want to delete this post?')) return;
+
+    try {
+      const res = await fetch(`/api/posts?postId=${postId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPosts((prev) => prev.filter((post) => post._id !== postId));
+      } else {
+        alert(data.error || 'Failed to delete post');
+      }
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  const formatPostTime = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch {
+      return '';
+    }
+  };
+
+  const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+
   return (
     <div className="lobby-page">
       {/* Header Navbar */}
@@ -97,12 +235,12 @@ export default function Home() {
         <div className="lobby-logo" onClick={() => router.push('/')}>
           <img 
             src="/royale_logo.jpg" 
-            alt="Royale Gaming Logo" 
+            alt="Royale Logo" 
             style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', marginRight: '10px' }}
           />
           <div>
-            <span className="lobby-logo-text">Royale Gaming</span>
-            <div className="lobby-logo-sub">Vegas Casino Lobby</div>
+            <span className="lobby-logo-text">Royale Hub</span>
+            <div className="lobby-logo-sub">Community Feed</div>
           </div>
         </div>
 
@@ -115,11 +253,11 @@ export default function Home() {
               <div className="lobby-user-badge" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '4px' }}>
                 <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{user.name}</span>
                 <span style={{ fontSize: '10px', color: '#a855f7', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
-                  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Player'}
+                  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Member'}
                 </span>
               </div>
               
-              {(user.role === 'super_admin' || user.role === 'admin') && (
+              {isAdmin && (
                 <button onClick={() => router.push('/admin')} className="lobby-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="Control Room">
                   <Shield size={15} />
                   <span className="lobby-btn-label">Control Room</span>
@@ -153,10 +291,10 @@ export default function Home() {
       <div className="lobby-container">
         
         {/* Hero Section */}
-        <section className="lobby-hero">
-          <h2>Royale <span style={{ color: '#a855f7', textShadow: '0 0 15px rgba(168, 85, 247, 0.3)' }}>Gaming Portal</span></h2>
+        <section className="lobby-hero" style={{ marginBottom: '32px' }}>
+          <h2>Royale <span style={{ color: '#a855f7', textShadow: '0 0 15px rgba(168, 85, 247, 0.3)' }}>Community Portal</span></h2>
           <p>
-            Access the industry's premium slot platforms directly. Get real-time support from our administrators whenever you need.
+            Connect directly with our community managers, view official announcements, and request real-time support whenever needed.
           </p>
         </section>
 
@@ -165,116 +303,139 @@ export default function Home() {
           <AdSenseBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} />
         )}
 
-        {/* Link Mode Switcher */}
-        {authenticated && (user?.role === 'super_admin' || user?.role === 'admin') && (
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <h2 style={{
-              fontSize: '24px',
-              fontWeight: 800,
-              color: '#a855f7',
-              textTransform: 'uppercase',
-              letterSpacing: '2px',
-              marginBottom: '16px',
-              textShadow: '0 0 15px rgba(168, 85, 247, 0.4)'
-            }}>
-              Game Links
-            </h2>
-            <div className="lobby-mode-container">
-              <div className={`lobby-mode-switcher ${linkMode}-active`}>
-                <button
-                  type="button"
-                  onClick={() => setLinkMode('player')}
-                  className={`lobby-mode-btn ${linkMode === 'player' ? 'active-player' : ''}`}
+        <div className="feed-container">
+          {/* Post Creator (Admins only) */}
+          {authenticated && isAdmin && (
+            <form onSubmit={handleCreatePost} className="post-creator-card">
+              <div className="post-creator-header">
+                <img 
+                  src={user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
+                  alt={user.name} 
+                  className="post-avatar"
+                />
+                <span className="post-creator-title">Create Official Announcement</span>
+              </div>
+              
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="What announcements do you want to share with the community today?"
+                className="post-textarea"
+              />
+
+              {imagePreview && (
+                <div className="post-creator-preview">
+                  <img src={imagePreview} alt="Attached Preview" />
+                  <button 
+                    type="button" 
+                    onClick={handleRemoveAttachedImage}
+                    className="post-creator-preview-remove"
+                    title="Remove Image"
+                  >
+                    ×
+                  </button>
+                </div>
+              )}
+
+              <div className="post-creator-actions">
+                <label className="post-attach-btn">
+                  <ImageIcon size={18} />
+                  <span>Attach Photo</span>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleFileChange}
+                    style={{ display: 'none' }}
+                  />
+                </label>
+
+                <button 
+                  type="submit" 
+                  disabled={submitting || (!content.trim() && !file)}
+                  className="post-create-btn"
                 >
-                  <span>Player Links</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLinkMode('agent')}
-                  className={`lobby-mode-btn ${linkMode === 'agent' ? 'active-agent' : ''}`}
-                >
-                  <span>Agent Links</span>
+                  {submitting ? 'Posting...' : 'Post'}
                 </button>
               </div>
-            </div>
-          </div>
-        )}
+            </form>
+          )}
 
-        {/* Game Lobby Grid */}
-        <main>
-          {loadingGames ? (
+          {/* Posts Feed */}
+          {loadingPosts ? (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: '16px' }}>
               <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={40} />
-              <p style={{ fontSize: '13px', color: '#8fa0b5' }}>Loading gaming platforms...</p>
+              <p style={{ fontSize: '13px', color: '#8fa0b5' }}>Loading official feed...</p>
             </div>
-          ) : games.length === 0 ? (
+          ) : posts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'rgba(18, 31, 69, 0.4)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '480px', margin: '0 auto' }}>
-              <Gamepad2 size={48} style={{ color: '#8fa0b5', marginBottom: '16px', opacity: 0.5, margin: '0 auto 16px auto' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>No Gaming Platforms</h3>
-              <p style={{ fontSize: '13px', color: '#8fa0b5' }}>Ask the super administrator to add some game platforms to the lobby.</p>
+              <ImageIcon size={48} style={{ color: '#8fa0b5', marginBottom: '16px', opacity: 0.5, margin: '0 auto 16px auto' }} />
+              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>No Announcements</h3>
+              <p style={{ fontSize: '13px', color: '#8fa0b5' }}>
+                {authenticated 
+                  ? 'There are no active posts from your linked administrators at this time.' 
+                  : 'Please sign in to link with an administrator and view the feed.'}
+              </p>
             </div>
           ) : (
-            <div className="lobby-grid-layout">
-              {games.map((game, index) => (
-                <Fragment key={game._id}>
-                  {index === 4 && process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT_ID && (
-                    <div 
-                      className="lobby-card adsense-feed-card" 
-                      style={{ 
-                        display: isFeedAdFilled ? 'flex' : 'none', 
-                        alignItems: 'center', 
-                        justifyContent: 'center', 
-                        minHeight: isFeedAdFilled ? '320px' : '0', 
-                        padding: isFeedAdFilled ? '16px' : '0', 
-                        background: 'rgba(18, 31, 69, 0.4)', 
-                        borderRadius: '20px', 
-                        border: isFeedAdFilled ? '1px solid rgba(255,255,255,0.05)' : 'none' 
-                      }}
-                    >
-                      <AdSenseBanner 
-                        adSlot={process.env.NEXT_PUBLIC_ADSENSE_FEED_SLOT_ID} 
-                        adFormat="fluid" 
-                        fullWidthResponsive={false} 
-                        onStatusChange={(status) => setIsFeedAdFilled(status === 'filled')}
+            posts.map((post) => {
+              const hasLiked = user && post.likes.includes(user._id);
+              const isMyPost = user && post.adminId._id === user._id;
+
+              return (
+                <div key={post._id} className="post-card">
+                  {/* Post Header */}
+                  <div className="post-header">
+                    <div className="post-author-info">
+                      <img 
+                        src={post.adminId.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
+                        alt={post.adminId.name} 
+                        className="post-avatar"
                       />
+                      <div className="post-author-details">
+                        <span className="post-author-name">{post.adminId.name}</span>
+                        <span className="post-time">{formatPostTime(post.createdAt)}</span>
+                      </div>
+                    </div>
+
+                    {(isMyPost || (user && user.role === 'super_admin')) && (
+                      <button 
+                        onClick={() => handleDeletePost(post._id)}
+                        className="post-delete-btn"
+                        title="Delete Announcement"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Post Content */}
+                  {post.content && (
+                    <div className="post-content">{post.content}</div>
+                  )}
+
+                  {/* Post Image */}
+                  {post.image && (
+                    <div className="post-image-container">
+                      <img src={post.image} alt="Announcement Media" className="post-image" />
                     </div>
                   )}
-                  <div className="lobby-card">
-                    {/* Image container */}
-                    <div className="lobby-card-img-container">
-                      <img
-                        src={game.image}
-                        alt={game.name}
-                        className="lobby-card-img"
-                        onError={(e) => {
-                          e.currentTarget.src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=400';
-                        }}
-                      />
-                    </div>
 
-                    {/* Platform Name */}
-                    <h3 className="lobby-card-title">{game.name}</h3>
-
-                    {/* Play Button */}
-                    <button
-                      onClick={() => {
-                        if (!authenticated) {
-                          router.push('/login');
-                          return;
-                        }
-                        const targetLink = linkMode === 'agent' && game.agentLink ? game.agentLink : game.link;
-                        window.open(targetLink, '_blank');
-                      }}
-                      className={`lobby-play-button ${linkMode === 'agent' ? 'agent-mode' : ''}`}
+                  {/* Post Actions (Likes) */}
+                  <div className="post-actions">
+                    <button 
+                      onClick={() => handleLikePost(post._id)}
+                      className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
                     >
-                      PLAY NOW
+                      <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
+                      <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
                     </button>
                   </div>
-                </Fragment>
-              ))}
-            </div>
+                </div>
+              );
+            })
           )}
-        </main>
+        </div>
       </div>
 
       {/* Floating Chat Support FAB */}
@@ -288,7 +449,7 @@ export default function Home() {
       {!authenticated && !verifyingAuth && (
         <div className="lobby-announcement-bar">
           <span style={{ fontSize: '13px', color: '#8fa0b5' }}>
-            Have questions or issues with deposits/withdrawals? Talk to our managers.
+            Have questions or issues? Talk to our managers.
           </span>
           <button
             onClick={handleChatAccess}
