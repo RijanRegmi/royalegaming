@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut } from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
   
   // Auth & loading states
-  const [user, setUser] = useState<any>(null);
+  interface UserProfile { _id?: string; id?: string; name: string; email: string; avatar?: string; role: string; phone?: string; }
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [updatingProfile, setUpdatingProfile] = useState<boolean>(false);
-  const [sendingCode, setSendingCode] = useState<boolean>(false);
+  // const [sendingCode, setSendingCode] = useState<boolean>(false); // removed unused
   const [resettingPassword, setResettingPassword] = useState<boolean>(false);
   
   // Alert/Message states
@@ -24,6 +26,8 @@ export default function ProfilePage() {
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  // Avatar handling state
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState<string>('');
@@ -107,8 +111,60 @@ export default function ProfilePage() {
 
       setSuccess('Profile updated successfully!');
       setUser(data.user);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message); else setError(String(err));
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
+  // Handle Avatar Upload
+  const handleAvatarUpload = async () => {
+    if (!avatarFile) {
+      setError('No avatar selected');
+      return;
+    }
+    setUpdatingProfile(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', avatarFile);
+      const res = await fetch('/api/auth/profile/avatar', {
+        method: 'PUT',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload avatar');
+      }
+      setSuccess('Avatar updated successfully');
+      setUser(data.user);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message); else setError(String(err));
+    } finally {
+      setUpdatingProfile(false);
+      setAvatarFile(null);
+    }
+  };
+
+  // Handle Avatar Removal
+  const handleRemoveAvatar = async () => {
+    setUpdatingProfile(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch('/api/auth/profile/avatar', {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to remove avatar');
+      }
+      setSuccess('Avatar removed');
+      setUser(data.user);
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message); else setError(String(err));
     } finally {
       setUpdatingProfile(false);
     }
@@ -152,8 +208,8 @@ export default function ProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-    } catch (err: any) {
-      setPasswordError(err.message);
+    } catch (err: unknown) {
+      if (err instanceof Error) setPasswordError(err.message); else setPasswordError(String(err));
     } finally {
       setResettingPassword(false);
     }
@@ -207,14 +263,22 @@ export default function ProfilePage() {
         </div>
 
         {/* Profile Logo/Title */}
-        <div className="auth-logo" style={{ marginBottom: '24px' }}>
-          <img 
-            src="/royale_logo.jpg" 
-            alt="Royale Gaming Logo" 
-            style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
+        <div className="auth-logo" style={{ marginBottom: '24px', textAlign: 'center' }}>
+          <Image 
+            src={user?.avatar || '/default_avatar.png'} 
+            alt="User Avatar" 
+            width={80}
+            height={80}
+            style={{ borderRadius: '50%', objectFit: 'cover', marginBottom: '12px', border: '2px solid var(--border-color)' }}
           />
           <h1>Account Settings</h1>
           <p>Manage your details and security settings</p>
+          {/* Avatar Upload Controls */}
+          <div style={{ marginTop: '12px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
+            <input type="file" accept="image/*" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} disabled={updatingProfile} />
+            <button className="btn-primary" onClick={handleAvatarUpload} disabled={updatingProfile || !avatarFile}>Save Avatar</button>
+            <button className="btn-secondary" onClick={handleRemoveAvatar} disabled={updatingProfile}>Remove Avatar</button>
+          </div>
         </div>
 
         {/* PROFILE INFORMATION SECTION */}
