@@ -505,7 +505,7 @@ export default function ProfilePage() {
 
   return (
     <div className="auth-page" style={{ overflowY: 'auto' }}>
-      <div className="auth-card" style={{ maxWidth: '640px', width: '100%', margin: '40px auto' }}>
+      <div className="auth-card" style={{ maxWidth: '800px', width: '100%', margin: '40px auto' }}>
 
         {/* Header Navigation */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
