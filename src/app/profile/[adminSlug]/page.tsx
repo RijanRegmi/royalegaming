@@ -234,8 +234,8 @@ export default function AdminProfilePublicPage() {
         {/* Left Vertical Ad Sidebar */}
         {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
           <div 
-            className="desktop-ad-sidebar left" 
-            style={{ display: leftAdStatus === 'filled' ? 'block' : 'none', marginTop: '0' }}
+            className={`desktop-ad-sidebar left ${leftAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
+            style={{ marginTop: '0' }}
           >
             <div className="desktop-ad-sidebar-title">Partner Ad</div>
             <AdSenseBanner 
@@ -449,8 +449,8 @@ export default function AdminProfilePublicPage() {
     {/* Right Vertical Ad Sidebar */}
     {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
       <div 
-        className="desktop-ad-sidebar right" 
-        style={{ display: rightAdStatus === 'filled' ? 'block' : 'none', marginTop: '0' }}
+        className={`desktop-ad-sidebar right ${rightAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
+        style={{ marginTop: '0' }}
       >
         <div className="desktop-ad-sidebar-title">Partner Ad</div>
         <AdSenseBanner 

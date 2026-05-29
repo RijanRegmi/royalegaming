@@ -3551,4 +3551,8 @@ button, input, select, textarea {
   }
 }
 
+.desktop-ad-sidebar.ad-hidden {
+  display: none !important;
+}
+
 
