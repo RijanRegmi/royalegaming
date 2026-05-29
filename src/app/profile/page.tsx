@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import styles from './profile.module.css';
 import { useRouter } from 'next/navigation';
 import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X } from 'lucide-react';
+import AdSenseBanner from '@/components/AdSenseBanner';
 
 interface User {
   _id: string;
@@ -505,7 +506,33 @@ export default function ProfilePage() {
 
   return (
     <div className="auth-page" style={{ overflowY: 'auto' }}>
-      <div className="auth-card" style={{ maxWidth: '900px', width: '100%', margin: '40px auto' }}>
+      <div className="lobby-content-layout" style={{ maxWidth: '1400px', margin: '40px auto', width: '100%' }}>
+        {/* Left Vertical Ad Sidebar */}
+        <div className="desktop-ad-sidebar left" style={{ marginTop: '0' }}>
+          <div className="desktop-ad-sidebar-title">Partner Ad</div>
+          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID ? (
+            <AdSenseBanner 
+              adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
+              adFormat="vertical" 
+              style={{ display: 'block', width: '136px', height: '600px' }} 
+            />
+          ) : (
+            <div style={{
+              height: '400px',
+              background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.05), transparent)',
+              borderRadius: '8px',
+              border: '1px dashed rgba(255, 255, 255, 0.08)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '12px'
+            }}>
+              <span style={{ fontSize: '11px', color: '#8fa0b5' }}>Vertical Ad Slot</span>
+            </div>
+          )}
+        </div>
+
+        <div className="auth-card" style={{ maxWidth: '900px', width: '100%', margin: '0' }}>
 
         {/* Header Navigation */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -852,12 +879,13 @@ export default function ProfilePage() {
                   <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0 }}>You haven&apos;t published any announcements yet.</p>
                 </div>
               ) : (
-                myPosts.map((post) => {
+                myPosts.map((post, index) => {
                   const hasLiked = user && post.likes.includes(user._id);
                   const isEditing = editingPostId === post._id;
 
                   return (
-                    <div key={post._id} className="post-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
+                    <Fragment key={post._id}>
+                      <div className="post-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
                       {isEditing ? (
                         <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}>
                           <textarea
@@ -1000,13 +1028,92 @@ export default function ProfilePage() {
                         </>
                       )}
                     </div>
-                  );
-                })
-              )}
-            </div>
+
+                    {/* Inline sponsored ad block */}
+                    {(index + 1) % 3 === 0 && (
+                      <div className="sponsored-post-card" style={{ marginTop: '20px', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-color)' }}>
+                        <div className="sponsored-badge">Sponsored Announcement</div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                          <div style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #a855f7, #6366f1)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            color: '#ffffff',
+                            fontSize: '14px'
+                          }}>
+                            RG
+                          </div>
+                          <div>
+                            <h4 style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px', margin: 0 }}>Royale Gaming Premium Events</h4>
+                            <span style={{ color: '#8fa0b5', fontSize: '11px' }}>Sponsored Partner</span>
+                          </div>
+                        </div>
+                        <p style={{ color: '#e9edef', fontSize: '14px', lineHeight: '1.5', margin: '0 0 12px 0' }}>
+                          Join the next big tournament! Compete with players worldwide and win big prizes. High speed servers, verified anti-cheat, and massive prize pools await.
+                        </p>
+                        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID ? (
+                          <AdSenseBanner 
+                            adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
+                            adFormat="fluid" 
+                            style={{ display: 'block' }} 
+                          />
+                        ) : (
+                          <div style={{ 
+                            height: '180px', 
+                            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.05), rgba(99, 102, 241, 0.05))',
+                            borderRadius: '8px',
+                            border: '1px dashed rgba(168, 85, 247, 0.25)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}>
+                            <span style={{ fontSize: '12px', color: '#a855f7', fontWeight: 600 }}>Google AdSense Spot</span>
+                            <span style={{ fontSize: '11px', color: '#8fa0b5' }}>Setup NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID to load live ads</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Fragment>
+                );
+              })
+            )}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+    </div>
+
+    {/* Right Vertical Ad Sidebar */}
+    <div className="desktop-ad-sidebar right" style={{ marginTop: '0' }}>
+      <div className="desktop-ad-sidebar-title">Partner Ad</div>
+      {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID ? (
+        <AdSenseBanner 
+          adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
+          adFormat="vertical" 
+          style={{ display: 'block', width: '136px', height: '600px' }} 
+        />
+      ) : (
+        <div style={{
+          height: '400px',
+          background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.05), transparent)',
+          borderRadius: '8px',
+          border: '1px dashed rgba(255, 255, 255, 0.08)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '12px'
+        }}>
+          <span style={{ fontSize: '11px', color: '#8fa0b5' }}>Vertical Ad Slot</span>
+        </div>
+      )}
+    </div>
+  </div>
 
       {showAvatarModal && (
         <div className={styles.modalOverlay} onClick={() => setShowAvatarModal(false)}>
