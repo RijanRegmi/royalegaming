@@ -94,6 +94,17 @@ export default function AdminProfilePublicPage() {
     };
 
     checkAccessAndLoad();
+
+    // Allow document scrolling for profile page
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
   }, [adminSlug, router]);
 
   const handleLikePost = async (postId: string) => {
