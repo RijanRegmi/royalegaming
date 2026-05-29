@@ -1312,7 +1312,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   style={{ flexShrink: 0, cursor: 'pointer' }}
                   onClick={() => {
                     const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
-                    window.location.href = `/?viewAdmin=${adminSlug}`;
+                    window.location.href = `/profile/${adminSlug}`;
                   }}
                   title="View Admin Profile"
                 >
@@ -1335,7 +1335,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                       }}
                       onClick={() => {
                         const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
-                        window.location.href = `/?viewAdmin=${adminSlug}`;
+                        window.location.href = `/profile/${adminSlug}`;
                       }}
                       title="View Admin Profile"
                     >{selectedAdmin.name}</span>

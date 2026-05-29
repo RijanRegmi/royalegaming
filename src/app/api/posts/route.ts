@@ -41,6 +41,16 @@ export async function GET(req: NextRequest) {
 
     let posts = [];
     if (filterAdminId) {
+      if (payload.role === 'user') {
+        const user = await User.findById(payload.userId);
+        if (!user) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const isLinked = user.linkedAdmins?.some((id: any) => id.toString() === filterAdminId);
+        if (!isLinked) {
+          return NextResponse.json({ error: 'Forbidden: You are not connected to this administrator' }, { status: 403 });
+        }
+      }
       posts = await Post.find({ adminId: filterAdminId })
         .sort({ createdAt: -1 })
         .populate('adminId', 'name username avatar role');

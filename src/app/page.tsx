@@ -352,25 +352,14 @@ export default function Home() {
     }
   };
 
-  const handleViewAdminProfile = async (adminId: string, adminObj: any) => {
+  const handleViewAdminProfile = (adminId: string, adminObj: any) => {
     const actualAdminId = adminId || adminObj?.id || adminObj?._id;
     if (!actualAdminId) {
       console.error('No admin ID found for profile view', adminId, adminObj);
       return;
     }
-    setViewingAdmin(adminObj);
-    setLoadingAdminPosts(true);
-    try {
-      const res = await fetch(`/api/posts?adminId=${actualAdminId}`);
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setAdminPosts(data.posts || []);
-      }
-    } catch (err) {
-      console.error('Error fetching admin posts:', err);
-    } finally {
-      setLoadingAdminPosts(false);
-    }
+    const adminSlug = adminObj?.username || actualAdminId;
+    router.push(`/profile/${adminSlug}`);
   };
 
   const formatPostTime = (isoString: string) => {
