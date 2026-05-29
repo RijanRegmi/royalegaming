@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { signToken } from '@/lib/auth';
+import { encryptSlug } from '@/lib/crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +81,10 @@ export async function POST(req: NextRequest) {
     // Create session token
     const token = signToken({ userId: user._id.toString(), role: user.role });
 
+    const inviteCode = (user.role === 'admin' || user.role === 'super_admin')
+      ? encryptSlug(user.username || user._id.toString())
+      : '';
+
     const response = NextResponse.json({
       success: true,
       token,
@@ -89,6 +94,8 @@ export async function POST(req: NextRequest) {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        username: user.username || '',
+        inviteCode,
       },
     });
 

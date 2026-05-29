@@ -142,7 +142,11 @@ export default function InvitePage() {
                 <div className={styles.avatarWrapper}>
                   <div className={styles.avatarCircle}>
                     {admin.avatar ? (
-                      <Image src={admin.avatar} alt={admin.name} fill={true} style={{ objectFit: 'cover' }} />
+                      <img 
+                        src={admin.avatar.startsWith('http') || admin.avatar.startsWith('/') ? admin.avatar : `/${admin.avatar}`} 
+                        alt={admin.name} 
+                        style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
                     ) : (
                       getInitials(admin.name)
                     )}

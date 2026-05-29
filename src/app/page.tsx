@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, LogOut, LogIn, Shield, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp } from 'lucide-react';
+import { MessageSquare, LogOut, LogIn, Shield, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 
 interface PostItem {
@@ -34,6 +34,38 @@ export default function Home() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Post Edit State
+  const [editingPostId, setEditingPostId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState<string>('');
+  const [editFile, setEditFile] = useState<File | null>(null);
+  const [editImagePreview, setEditImagePreview] = useState<string | null>(null);
+  const [editDeleteImage, setEditDeleteImage] = useState<boolean>(false);
+  const [editSubmitting, setEditSubmitting] = useState<boolean>(false);
+  const editFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Admin Profile View State
+  const [viewingAdmin, setViewingAdmin] = useState<any | null>(null);
+  const [adminPosts, setAdminPosts] = useState<PostItem[]>([]);
+  const [loadingAdminPosts, setLoadingAdminPosts] = useState<boolean>(false);
+
+  // Lightbox State
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  // Close lightbox on Esc key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLightboxImage(null);
+      }
+    };
+    if (lightboxImage) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [lightboxImage]);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -67,6 +99,35 @@ export default function Home() {
 
     fetchPosts();
     checkAuth();
+
+    // Check if query param viewAdmin is set to open profile modal automatically
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const viewAdminId = urlParams.get('viewAdmin');
+      if (viewAdminId) {
+        const fetchAdminAndPosts = async () => {
+          try {
+            const adminRes = await fetch(`/api/auth/link-admin?slug=${viewAdminId}`);
+            const adminData = await adminRes.json();
+            if (adminRes.ok && adminData.success) {
+              setViewingAdmin(adminData.admin);
+              setLoadingAdminPosts(true);
+              const actualAdminId = adminData.admin.id || adminData.admin._id || viewAdminId;
+              const postsRes = await fetch(`/api/posts?adminId=${actualAdminId}`);
+              const postsData = await postsRes.json();
+              if (postsRes.ok && postsData.success) {
+                setAdminPosts(postsData.posts || []);
+              }
+            }
+          } catch (err) {
+            console.error('Error loading admin profile from URL:', err);
+          } finally {
+            setLoadingAdminPosts(false);
+          }
+        };
+        fetchAdminAndPosts();
+      }
+    }
 
     // Allow document scrolling for lobby page
     const originalBodyOverflow = document.body.style.overflow;
@@ -176,7 +237,7 @@ export default function Home() {
         setPosts((prev) =>
           prev.map((post) => {
             if (post._id === postId) {
-              const currentUserId = user._id;
+              const currentUserId = user.id || user._id;
               const newLikes = data.liked
                 ? [...post.likes, currentUserId]
                 : post.likes.filter((id) => id !== currentUserId);
@@ -207,6 +268,99 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Delete error:', err);
+    }
+  };
+
+  const startEditPost = (post: PostItem) => {
+    setEditingPostId(post._id);
+    setEditContent(post.content);
+    setEditImagePreview(post.image || null);
+    setEditFile(null);
+    setEditDeleteImage(false);
+  };
+
+  const handleEditFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      setEditFile(selectedFile);
+      setEditDeleteImage(false);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(selectedFile);
+    }
+  };
+
+  const handleRemoveEditImage = () => {
+    setEditFile(null);
+    setEditImagePreview(null);
+    setEditDeleteImage(true);
+    if (editFileInputRef.current) {
+      editFileInputRef.current.value = '';
+    }
+  };
+
+  const handleEditPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPostId) return;
+
+    setEditSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append('postId', editingPostId);
+      formData.append('content', editContent);
+      if (editFile) {
+        formData.append('file', editFile);
+      }
+      formData.append('deleteImage', editDeleteImage ? 'true' : 'false');
+
+      const res = await fetch('/api/posts', {
+        method: 'PUT',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPosts((prev) =>
+          prev.map((post) => (post._id === editingPostId ? data.post : post))
+        );
+        setEditingPostId(null);
+        // Also update adminPosts if currently viewing
+        if (viewingAdmin) {
+          setAdminPosts((prev) =>
+            prev.map((post) => (post._id === editingPostId ? data.post : post))
+          );
+        }
+      } else {
+        alert(data.error || 'Failed to update post');
+      }
+    } catch (err) {
+      console.error('Update post error:', err);
+      alert('Error updating post');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleViewAdminProfile = async (adminId: string, adminObj: any) => {
+    const actualAdminId = adminId || adminObj?.id || adminObj?._id;
+    if (!actualAdminId) {
+      console.error('No admin ID found for profile view', adminId, adminObj);
+      return;
+    }
+    setViewingAdmin(adminObj);
+    setLoadingAdminPosts(true);
+    try {
+      const res = await fetch(`/api/posts?adminId=${actualAdminId}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setAdminPosts(data.posts || []);
+      }
+    } catch (err) {
+      console.error('Error fetching admin posts:', err);
+    } finally {
+      setLoadingAdminPosts(false);
     }
   };
 
@@ -379,58 +533,161 @@ export default function Home() {
             </div>
           ) : (
             posts.map((post) => {
-              const hasLiked = user && post.likes.includes(user._id);
-              const isMyPost = user && post.adminId._id === user._id;
+              const hasLiked = user && post.likes.includes(user.id || user._id);
+              const isMyPost = user && (post.adminId?._id === (user.id || user._id));
+
+              const isEditing = editingPostId === post._id;
 
               return (
                 <div key={post._id} className="post-card">
-                  {/* Post Header */}
-                  <div className="post-header">
-                    <div className="post-author-info">
-                      <img 
-                        src={post.adminId.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
-                        alt={post.adminId.name} 
-                        className="post-avatar"
-                      />
-                      <div className="post-author-details">
-                        <span className="post-author-name">{post.adminId.name}</span>
-                        <span className="post-time">{formatPostTime(post.createdAt)}</span>
+                  {isEditing ? (
+                    <>
+                      {/* Post Header (Editing) */}
+                      <div className="post-header">
+                        <div className="post-author-info">
+                          <img 
+                            src={post.adminId.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
+                            alt={post.adminId.name} 
+                            className="post-avatar"
+                          />
+                          <div className="post-author-details">
+                            <span className="post-author-name">{post.adminId.name}</span>
+                            <span className="post-time">{formatPostTime(post.createdAt)} (Editing)</span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
 
-                    {(isMyPost || (user && user.role === 'super_admin')) && (
-                      <button 
-                        onClick={() => handleDeletePost(post._id)}
-                        className="post-delete-btn"
-                        title="Delete Announcement"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
+                      {/* Edit Form */}
+                      <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: '12px 0 0 0' }}>
+                        <textarea
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          placeholder="Update announcement..."
+                          className="post-textarea"
+                          style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
+                          required
+                        />
 
-                  {/* Post Content */}
-                  {post.content && (
-                    <div className="post-content">{post.content}</div>
+                        {editImagePreview && (
+                          <div className="post-creator-preview" style={{ marginTop: '10px' }}>
+                            <img src={editImagePreview} alt="Edit Attachment" />
+                            <button 
+                              type="button" 
+                              onClick={handleRemoveEditImage}
+                              className="post-creator-preview-remove"
+                              title="Remove Image"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                              <ImageIcon size={16} />
+                              <span>Change Photo</span>
+                              <input
+                                type="file"
+                                ref={editFileInputRef}
+                                accept="image/*"
+                                onChange={handleEditFileChange}
+                                style={{ display: 'none' }}
+                              />
+                            </label>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button 
+                              type="button" 
+                              onClick={() => setEditingPostId(null)}
+                              className="lobby-btn-secondary"
+                              style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
+                            >
+                              Cancel
+                            </button>
+                            <button 
+                              type="submit" 
+                              disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
+                              className="post-create-btn"
+                              style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
+                            >
+                              {editSubmitting ? 'Saving...' : 'Save'}
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+                    </>
+                  ) : (
+                    <>
+                      {/* Post Header */}
+                      <div className="post-header">
+                        <div className="post-author-info" onClick={() => handleViewAdminProfile(post.adminId?._id, post.adminId)} style={{ cursor: 'pointer' }} title="View Profile">
+                          <img 
+                            src={post.adminId.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
+                            alt={post.adminId.name} 
+                            className="post-avatar"
+                          />
+                          <div className="post-author-details">
+                            <span className="post-author-name">{post.adminId.name}</span>
+                            <span className="post-time">{formatPostTime(post.createdAt)}</span>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          {(isMyPost || (user && user.role === 'super_admin')) && (
+                            <>
+                              <button 
+                                onClick={() => startEditPost(post)}
+                                className="post-edit-btn"
+                                style={{ background: 'none', border: 'none', color: '#8fa0b5', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                title="Edit Announcement"
+                              >
+                                <Pencil size={16} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeletePost(post._id)}
+                                className="post-delete-btn"
+                                title="Delete Announcement"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Post Content */}
+                      {post.content && (
+                        <div className="post-content">{post.content}</div>
+                      )}
+
+                      {/* Post Image */}
+                      {post.image && (
+                        <div className="post-image-container">
+                          <img 
+                            src={post.image} 
+                            alt="Announcement Media" 
+                            className="post-image" 
+                            onClick={() => setLightboxImage(post.image!)} 
+                            style={{ cursor: 'pointer' }} 
+                            title="Click to view full screen"
+                          />
+                        </div>
+                      )}
+
+                      {/* Post Actions (Likes) */}
+                      <div className="post-actions">
+                        <button 
+                          onClick={() => handleLikePost(post._id)}
+                          className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
+                        >
+                          <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
+                          <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
+                        </button>
+                      </div>
+                    </>
                   )}
-
-                  {/* Post Image */}
-                  {post.image && (
-                    <div className="post-image-container">
-                      <img src={post.image} alt="Announcement Media" className="post-image" />
-                    </div>
-                  )}
-
-                  {/* Post Actions (Likes) */}
-                  <div className="post-actions">
-                    <button 
-                      onClick={() => handleLikePost(post._id)}
-                      className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
-                    >
-                      <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
-                      <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
-                    </button>
-                  </div>
                 </div>
               );
             })
@@ -458,6 +715,265 @@ export default function Home() {
           >
             Sign In to Live Support <ArrowRight size={14} />
           </button>
+        </div>
+      )}
+
+      {/* Fullscreen Admin Profile Modal */}
+      {viewingAdmin && (
+        <div className="lightbox-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(11, 20, 26, 0.98)',
+          zIndex: 99998,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          padding: '40px 20px',
+          overflowY: 'auto'
+        }} onClick={() => setViewingAdmin(null)}>
+          <div style={{
+            maxWidth: '640px',
+            width: '100%',
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '24px'
+          }} onClick={(e) => e.stopPropagation()}>
+            {/* Close Button */}
+            <button 
+              onClick={() => setViewingAdmin(null)} 
+              style={{
+                position: 'absolute',
+                top: '-10px',
+                right: '0px',
+                color: 'white',
+                background: 'rgba(255,255,255,0.05)',
+                border: 'none',
+                cursor: 'pointer',
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
+            >
+              <X size={20} />
+            </button>
+
+            {/* Profile Info Header */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', marginTop: '20px' }}>
+              <div style={{
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '3px solid #a855f7',
+                boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)'
+              }}>
+                <img 
+                  src={viewingAdmin.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
+                  alt={viewingAdmin.name} 
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+              </div>
+              <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'white', margin: 0 }}>{viewingAdmin.name}</h2>
+              <span style={{ fontSize: '14px', color: '#a855f7', fontWeight: 600 }}>@{viewingAdmin.username || 'admin'}</span>
+              <span style={{ fontSize: '11px', color: '#8fa0b5', textTransform: 'uppercase', letterSpacing: '1px', background: 'rgba(168, 85, 247, 0.1)', padding: '4px 10px', borderRadius: '12px' }}>
+                {viewingAdmin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+              </span>
+            </div>
+
+            <div style={{ width: '100%', height: '1px', background: 'rgba(255,255,255,0.08)', margin: '10px 0' }} />
+
+            {/* Feed Section Title */}
+            <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'white', alignSelf: 'flex-start', margin: '0 0 8px 0' }}>Announcements by {viewingAdmin.name}</h3>
+
+            {/* Scrollable list of posts */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {loadingAdminPosts ? (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px 0', gap: '12px' }}>
+                  <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={32} />
+                  <p style={{ fontSize: '13px', color: '#8fa0b5' }}>Loading admin feed...</p>
+                </div>
+              ) : adminPosts.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', backgroundColor: 'rgba(255,255,255,0.02)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.04)' }}>
+                  <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>No announcements published yet by this admin.</p>
+                </div>
+              ) : (
+                adminPosts.map((post) => {
+                  const hasLiked = user && post.likes.includes(user.id || user._id);
+                  const isMyPost = user && (post.adminId?._id === (user.id || user._id));
+                  const isEditing = editingPostId === post._id;
+
+                  return (
+                    <div key={post._id} className="post-card" style={{ width: '100%' }}>
+                      {isEditing ? (
+                        <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}>
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            placeholder="Update announcement..."
+                            className="post-textarea"
+                            style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
+                            required
+                          />
+
+                          {editImagePreview && (
+                            <div className="post-creator-preview" style={{ marginTop: '10px' }}>
+                              <img src={editImagePreview} alt="Edit Attachment" />
+                              <button 
+                                type="button" 
+                                onClick={handleRemoveEditImage}
+                                className="post-creator-preview-remove"
+                                title="Remove Image"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                                <ImageIcon size={16} />
+                                <span>Change Photo</span>
+                                <input
+                                  type="file"
+                                  ref={editFileInputRef}
+                                  accept="image/*"
+                                  onChange={handleEditFileChange}
+                                  style={{ display: 'none' }}
+                                />
+                              </label>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button 
+                                type="button" 
+                                onClick={() => setEditingPostId(null)}
+                                className="lobby-btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
+                              >
+                                Cancel
+                              </button>
+                              <button 
+                                type="submit" 
+                                disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
+                                className="post-create-btn"
+                                style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
+                              >
+                                {editSubmitting ? 'Saving...' : 'Save'}
+                              </button>
+                            </div>
+                          </div>
+                        </form>
+                      ) : (
+                        <>
+                          <div className="post-header">
+                            <div className="post-author-info">
+                              <img 
+                                src={viewingAdmin.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
+                                alt={viewingAdmin.name} 
+                                className="post-avatar"
+                              />
+                              <div className="post-author-details">
+                                <span className="post-author-name">{viewingAdmin.name}</span>
+                                <span className="post-time">{formatPostTime(post.createdAt)}</span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              {(isMyPost || (user && user.role === 'super_admin')) && (
+                                <>
+                                  <button 
+                                    onClick={() => startEditPost(post)}
+                                    className="post-edit-btn"
+                                    style={{ background: 'none', border: 'none', color: '#8fa0b5', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                    title="Edit Announcement"
+                                  >
+                                    <Pencil size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeletePost(post._id)}
+                                    className="post-delete-btn"
+                                    title="Delete Announcement"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {post.content && (
+                            <div className="post-content">{post.content}</div>
+                          )}
+
+                          {post.image && (
+                            <div className="post-image-container">
+                              <img 
+                                src={post.image} 
+                                alt="Announcement Media" 
+                                className="post-image" 
+                                onClick={() => setLightboxImage(post.image!)} 
+                                style={{ cursor: 'pointer' }} 
+                                title="Click to view full screen"
+                              />
+                            </div>
+                          )}
+
+                          <div className="post-actions">
+                            <button 
+                              onClick={() => handleLikePost(post._id)}
+                              className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
+                            >
+                              <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
+                              <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Fullscreen Lightbox Modal */}
+      {lightboxImage && (
+        <div className="lightbox-overlay" onClick={() => setLightboxImage(null)}>
+          <div className="lightbox-header" onClick={(e) => e.stopPropagation()}>
+            <span className="lightbox-title">Image View</span>
+            <div className="lightbox-actions">
+              <button 
+                type="button" 
+                className="lightbox-action-btn" 
+                onClick={() => setLightboxImage(null)}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+            </div>
+          </div>
+          <div className="lightbox-body">
+            <img 
+              src={lightboxImage} 
+              alt="Fullscreen Preview" 
+              className="lightbox-image" 
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
         </div>
       )}
     </div>

@@ -91,6 +91,7 @@
   border: none;
   box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
   transition: transform 0.12s ease-in-out;
+  margin-bottom: 12px;
 }
 .btnPrimary:hover {
   transform: translateY(-2px);
@@ -112,11 +113,50 @@
   background: rgba(255, 255, 255, 0.04);
 }
 
+/* Logo section styling */
+.authLogo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.logoImage {
+  border-radius: 12px;
+  object-fit: cover;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.logoTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 2px 0;
+  letter-spacing: -0.02em;
+}
+
+.logoSubtitle {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  margin: 0;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 /* Avatar container */
 .avatarWrapper {
   position: relative;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  display: inline-block;
 }
+.avatarWrapper:hover {
+  transform: scale(1.05);
+}
+
 .avatarCircle {
   width: 90px;
   height: 90px;
@@ -131,7 +171,9 @@
   border: 3px solid rgba(255, 255, 255, 0.1);
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
   overflow: hidden;
+  position: relative;
 }
+
 .avatarBadge {
   position: absolute;
   bottom: 2px;
@@ -150,14 +192,17 @@
 
 /* Text titles */
 .title {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
   color: #ffffff;
-  margin: 0 0 8px 0;
+  margin: 0 0 10px 0;
+  letter-spacing: -0.01em;
 }
+
 .subtitle {
   font-size: 14px;
   color: rgba(255, 255, 255, 0.6);
-  line-height: 1.5;
-  margin: 0 0 32px 0;
+  line-height: 1.6;
+  margin: 0 auto 28px auto;
+  max-width: 340px;
 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest, TokenPayload } from '@/lib/auth';
+import { decryptSlug } from '@/lib/crypto';
 
 // Type for the admin query used in both GET and POST
 interface AdminQuery {
@@ -20,7 +21,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Admin slug is required' }, { status: 400 });
     }
 
-    const cleanSlug = adminSlug.trim().toLowerCase();
+    const decryptedSlug = decryptSlug(adminSlug.trim());
+    const cleanSlug = decryptedSlug.toLowerCase();
 
     // Find the admin by username or _id (if valid ObjectId)
     const mongoose = (await import('mongoose')).default;
@@ -64,7 +66,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Admin slug is required' }, { status: 400 });
     }
 
-    const cleanSlug = adminSlug.trim().toLowerCase();
+    const decryptedSlug = decryptSlug(adminSlug.trim());
+    const cleanSlug = decryptedSlug.toLowerCase();
 
     // Find the admin by username or _id (if valid ObjectId)
     const mongoose = (await import('mongoose')).default;

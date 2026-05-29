@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard, Bell, BellOff, UserPlus } from 'lucide-react';
+import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, UserPlus } from 'lucide-react';
 
 interface AdminChatViewProps {
   currentUser: {
@@ -192,7 +192,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
   const handleCopyInviteLink = () => {
     if (typeof window === 'undefined') return;
-    const slug = currentUser.username || currentUser.id;
+    const slug = (currentUser as any).inviteCode || currentUser.username || currentUser.id;
     const inviteLink = `${window.location.origin}/invite/${slug}`;
     navigator.clipboard.writeText(inviteLink);
     setInviteCopied(true);
@@ -1480,7 +1480,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               <UserPlus size={18} />
             </button>
             <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
-              <Gamepad2 size={18} />
+              <Home size={18} />
             </button>
             {(currentUser.role === 'super_admin' || currentUser.role === 'admin') && (
               <button className="icon-btn" title="Admin Settings" onClick={() => window.location.href = '/admin'}>

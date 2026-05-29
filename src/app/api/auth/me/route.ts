@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
+import { encryptSlug } from '@/lib/crypto';
 
 export async function GET(req: NextRequest) {
   try {
@@ -19,6 +20,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ authenticated: false }, { status: 404 });
     }
 
+    const inviteCode = (user.role === 'admin' || user.role === 'super_admin')
+      ? encryptSlug(user.username || user._id.toString())
+      : '';
+
     return NextResponse.json({
       authenticated: true,
       user: {
@@ -29,6 +34,7 @@ export async function GET(req: NextRequest) {
         role: user.role,
         avatar: user.avatar || '',
         username: user.username || '',
+        inviteCode,
         linkedAdmins: user.linkedAdmins || [],
       },
     });

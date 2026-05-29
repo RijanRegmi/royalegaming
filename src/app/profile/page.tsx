@@ -34,6 +34,7 @@ export default function ProfilePage() {
   const [name, setName] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
   const [email, setEmail] = useState<string>('');
+  const [username, setUsername] = useState<string>('');
 
   // Password change states
   const [currentPassword, setCurrentPassword] = useState<string>('');
@@ -129,6 +130,7 @@ export default function ProfilePage() {
           setPhone(data.user.phone || '');
           setEmail(data.user.email);
           setAvatar(data.user.avatar || '');
+          setUsername(data.user.username || '');
         } else {
           router.push('/login?redirect=/profile');
         }
@@ -166,7 +168,7 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Profile Update (Name, Phone)
+  // Handle Profile Update (Name, Phone, Username)
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -179,10 +181,15 @@ export default function ProfilePage() {
     setSuccess(null);
 
     try {
+      const isUserAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
       const res = await fetch('/api/auth/profile/update', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, phone }),
+        body: JSON.stringify({ 
+          name, 
+          phone, 
+          username: isUserAdmin ? username : undefined 
+        }),
       });
 
       const data = await res.json();
@@ -192,6 +199,9 @@ export default function ProfilePage() {
 
       setSuccess('Profile updated successfully!');
       setUser(data.user);
+      if (data.user.username) {
+        setUsername(data.user.username);
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to update profile';
       setError(msg);
@@ -358,6 +368,24 @@ export default function ProfilePage() {
                 />
               </div>
             </div>
+
+            {user && (user.role === 'admin' || user.role === 'super_admin') && (
+              <div className="form-group">
+                <label>Username (Custom Invite Slug) *</label>
+                <div className="input-wrapper">
+                  <UserIcon size={16} className="input-icon" />
+                  <input
+                    type="text"
+                    placeholder="e.g. alex-support"
+                    className="form-input"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    disabled={updatingProfile}
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="form-group">
               <label>Email Address (Cannot be changed)</label>

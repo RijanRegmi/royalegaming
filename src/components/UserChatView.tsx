@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Gamepad2, CreditCard, Bell, BellOff, ArrowLeft } from 'lucide-react';
+import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft } from 'lucide-react';
 
 interface UserChatViewProps {
   currentUser: {
@@ -1233,7 +1233,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           </div>
           <div className="sidebar-actions">
             <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
-              <Gamepad2 size={18} />
+              <Home size={18} />
             </button>
             <button className="icon-btn" title="Log Out" onClick={handleLogout}>
               <LogOut size={18} />
@@ -1273,11 +1273,6 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                       Admin
                     </span>
                   </div>
-                  <div className="convo-row">
-                    <span className="convo-message-preview">
-                      @{admin.username || 'admin'}
-                    </span>
-                  </div>
                 </div>
               </div>
             );
@@ -1300,7 +1295,15 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 >
                   <ArrowLeft size={20} />
                 </button>
-                <div className="avatar-wrapper" style={{ flexShrink: 0 }}>
+                 <div 
+                  className="avatar-wrapper" 
+                  style={{ flexShrink: 0, cursor: 'pointer' }}
+                  onClick={() => {
+                    const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
+                    window.location.href = `/?viewAdmin=${adminSlug}`;
+                  }}
+                  title="View Admin Profile"
+                >
                   {selectedAdmin.avatar ? (
                     <img src={selectedAdmin.avatar} alt={selectedAdmin.name} className="avatar-image" />
                   ) : (
@@ -1309,12 +1312,21 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 </div>
                 <div className="chat-user-details" style={{ minWidth: 0, overflow: 'hidden' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    <span className="chat-user-name" style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      maxWidth: '120px'
-                    }}>{selectedAdmin.name}</span>
+                    <span 
+                      className="chat-user-name" 
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '120px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
+                        window.location.href = `/?viewAdmin=${adminSlug}`;
+                      }}
+                      title="View Admin Profile"
+                    >{selectedAdmin.name}</span>
                     <span className="role-badge admin" style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0, flexShrink: 0 }}>
                       Admin
                     </span>
@@ -1352,7 +1364,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   </button>
                 )}
                 <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
-                  <Gamepad2 size={20} />
+                  <Home size={20} />
                 </button>
                 <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
                   <Trash2 size={20} />
@@ -1536,7 +1548,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   >
                   {!isMe && (
                     <span className="message-sender-name">
-                      {msg.senderId.name} ({senderRole === 'super_admin' ? 'Super Admin' : 'Admin'})
+                      {msg.senderId.name}
                     </span>
                   )}
 

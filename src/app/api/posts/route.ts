@@ -36,8 +36,15 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
+    const { searchParams } = new URL(req.url);
+    const filterAdminId = searchParams.get('adminId');
+
     let posts = [];
-    if (payload.role === 'user') {
+    if (filterAdminId) {
+      posts = await Post.find({ adminId: filterAdminId })
+        .sort({ createdAt: -1 })
+        .populate('adminId', 'name username avatar role');
+    } else if (payload.role === 'user') {
       const user = await User.findById(payload.userId);
       if (!user || !user.linkedAdmins || user.linkedAdmins.length === 0) {
         return NextResponse.json({ success: true, posts: [] });
@@ -109,6 +116,75 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, post: populatedPost });
   } catch (error: any) {
     console.error('Create post error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+export async function PUT(req: NextRequest) {
+  try {
+    const payload = getUserFromRequest(req);
+    if (!payload || (payload.role !== 'admin' && payload.role !== 'super_admin')) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    await dbConnect();
+
+    const formData = await req.formData();
+    const postId = formData.get('postId') as string | null;
+    const content = formData.get('content') as string | null;
+    const file = formData.get('file') as File | null;
+    const deleteImageStr = formData.get('deleteImage') as string | null;
+    const deleteImage = deleteImageStr === 'true';
+
+    if (!postId) {
+      return NextResponse.json({ error: 'Post ID is required' }, { status: 400 });
+    }
+
+    const post = await Post.findById(postId);
+    if (!post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+
+    // Admins can only edit their own posts (unless they are super_admin)
+    if (payload.role !== 'super_admin' && post.adminId.toString() !== payload.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    if (content !== null) {
+      post.content = content.trim();
+    }
+
+    if (deleteImage) {
+      post.image = undefined;
+    }
+
+    if (file) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const isCloudinaryConfigured = 
+        process.env.CLOUDINARY_CLOUD_NAME && 
+        process.env.CLOUDINARY_CLOUD_NAME !== 'your_cloudinary_cloud_name';
+
+      let imageUrl = '';
+      if (isCloudinaryConfigured) {
+        try {
+          const result = await uploadToCloudinary(buffer, 'posts', 'image');
+          imageUrl = result.secure_url;
+        } catch (cloudinaryError) {
+          console.error('Cloudinary upload error, falling back to local disk:', cloudinaryError);
+          imageUrl = await savePostFileLocally(file, buffer);
+        }
+      } else {
+        imageUrl = await savePostFileLocally(file, buffer);
+      }
+      post.image = imageUrl;
+    }
+
+    await post.save();
+
+    const populatedPost = await Post.findById(post._id).populate('adminId', 'name username avatar role');
+    return NextResponse.json({ success: true, post: populatedPost });
+  } catch (error: any) {
+    console.error('Edit post error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
