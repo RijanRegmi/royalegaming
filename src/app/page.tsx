@@ -61,6 +61,10 @@ export default function Home() {
   // Lightbox State
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
+  // Ad loading status state
+  const [leftAdStatus, setLeftAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
+  const [rightAdStatus, setRightAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
+
   // Close lightbox on Esc key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -457,29 +461,20 @@ export default function Home() {
 
         <div className="lobby-content-layout">
           {/* Left Vertical Ad Sidebar */}
-          <div className="desktop-ad-sidebar left">
-            <div className="desktop-ad-sidebar-title">Partner Ad</div>
-            {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID ? (
+          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+            <div 
+              className="desktop-ad-sidebar left" 
+              style={{ display: leftAdStatus === 'filled' ? 'block' : 'none' }}
+            >
+              <div className="desktop-ad-sidebar-title">Partner Ad</div>
               <AdSenseBanner 
                 adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
                 adFormat="vertical" 
                 style={{ display: 'block', width: '136px', height: '600px' }} 
+                onStatusChange={(status) => setLeftAdStatus(status)}
               />
-            ) : (
-              <div style={{
-                height: '400px',
-                background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.05), transparent)',
-                borderRadius: '8px',
-                border: '1px dashed rgba(255, 255, 255, 0.08)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '12px'
-              }}>
-                <span style={{ fontSize: '11px', color: '#8fa0b5' }}>Vertical Ad Slot</span>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="feed-container">
           {/* Post Creator (Admins only) */}
@@ -815,29 +810,20 @@ export default function Home() {
       </div>
 
       {/* Right Vertical Ad Sidebar */}
-      <div className="desktop-ad-sidebar right">
-        <div className="desktop-ad-sidebar-title">Partner Ad</div>
-        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID ? (
+      {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+        <div 
+          className="desktop-ad-sidebar right" 
+          style={{ display: rightAdStatus === 'filled' ? 'block' : 'none' }}
+        >
+          <div className="desktop-ad-sidebar-title">Partner Ad</div>
           <AdSenseBanner 
             adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
             adFormat="vertical" 
             style={{ display: 'block', width: '136px', height: '600px' }} 
+            onStatusChange={(status) => setRightAdStatus(status)}
           />
-        ) : (
-          <div style={{
-            height: '400px',
-            background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.05), transparent)',
-            borderRadius: '8px',
-            border: '1px dashed rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '12px'
-          }}>
-            <span style={{ fontSize: '11px', color: '#8fa0b5' }}>Vertical Ad Slot</span>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   </div>
 

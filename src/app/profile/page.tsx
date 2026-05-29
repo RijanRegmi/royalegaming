@@ -62,6 +62,10 @@ export default function ProfilePage() {
   const [editSubmitting, setEditSubmitting] = useState<boolean>(false);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
+  // Ad loading status state
+  const [leftAdStatus, setLeftAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
+  const [rightAdStatus, setRightAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
+
   // Post creator states
   const [content, setContent] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
@@ -508,29 +512,20 @@ export default function ProfilePage() {
     <div className="auth-page" style={{ overflowY: 'auto' }}>
       <div className="lobby-content-layout" style={{ maxWidth: '1400px', margin: '40px auto', width: '100%' }}>
         {/* Left Vertical Ad Sidebar */}
-        <div className="desktop-ad-sidebar left" style={{ marginTop: '0' }}>
-          <div className="desktop-ad-sidebar-title">Partner Ad</div>
-          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID ? (
+        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+          <div 
+            className="desktop-ad-sidebar left" 
+            style={{ display: leftAdStatus === 'filled' ? 'block' : 'none', marginTop: '0' }}
+          >
+            <div className="desktop-ad-sidebar-title">Partner Ad</div>
             <AdSenseBanner 
               adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
               adFormat="vertical" 
               style={{ display: 'block', width: '136px', height: '600px' }} 
+              onStatusChange={(status) => setLeftAdStatus(status)}
             />
-          ) : (
-            <div style={{
-              height: '400px',
-              background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.05), transparent)',
-              borderRadius: '8px',
-              border: '1px dashed rgba(255, 255, 255, 0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '12px'
-            }}>
-              <span style={{ fontSize: '11px', color: '#8fa0b5' }}>Vertical Ad Slot</span>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
         <div className="auth-card" style={{ maxWidth: '900px', width: '100%', margin: '0' }}>
 
@@ -1090,29 +1085,20 @@ export default function ProfilePage() {
     </div>
 
     {/* Right Vertical Ad Sidebar */}
-    <div className="desktop-ad-sidebar right" style={{ marginTop: '0' }}>
-      <div className="desktop-ad-sidebar-title">Partner Ad</div>
-      {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID ? (
+    {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+      <div 
+        className="desktop-ad-sidebar right" 
+        style={{ display: rightAdStatus === 'filled' ? 'block' : 'none', marginTop: '0' }}
+      >
+        <div className="desktop-ad-sidebar-title">Partner Ad</div>
         <AdSenseBanner 
           adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
           adFormat="vertical" 
           style={{ display: 'block', width: '136px', height: '600px' }} 
+          onStatusChange={(status) => setRightAdStatus(status)}
         />
-      ) : (
-        <div style={{
-          height: '400px',
-          background: 'linear-gradient(180deg, rgba(168, 85, 247, 0.05), transparent)',
-          borderRadius: '8px',
-          border: '1px dashed rgba(255, 255, 255, 0.08)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '12px'
-        }}>
-          <span style={{ fontSize: '11px', color: '#8fa0b5' }}>Vertical Ad Slot</span>
-        </div>
-      )}
-    </div>
+      </div>
+    )}
   </div>
 
       {showAvatarModal && (
