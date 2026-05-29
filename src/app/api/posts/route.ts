@@ -62,6 +62,11 @@ export async function GET(req: NextRequest) {
       posts = await Post.find({ adminId: { $in: user.linkedAdmins } })
         .sort({ createdAt: -1 })
         .populate('adminId', 'name username avatar role');
+    } else if (payload.role === 'super_admin') {
+      // Super admins see all posts from all administrators
+      posts = await Post.find({})
+        .sort({ createdAt: -1 })
+        .populate('adminId', 'name username avatar role');
     } else {
       // Admins see their own posts
       posts = await Post.find({ adminId: payload.userId })
