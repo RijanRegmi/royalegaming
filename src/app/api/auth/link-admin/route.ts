@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { adminSlug } = await req.json();
+    const { adminSlug, referredBy } = await req.json();
 
     if (!adminSlug) {
       return NextResponse.json({ error: 'Admin slug is required' }, { status: 400 });
@@ -107,26 +107,51 @@ export async function POST(req: NextRequest) {
       path: '/',
     });
 
+    if (referredBy) {
+      response.cookies.set('pending_referrer', referredBy, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'strict',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      });
+    }
+
     // If user is logged in, link immediately in the database
     if (payload && payload.userId) {
-      // Link admin to the user in DB
-      await User.findByIdAndUpdate(payload.userId, {
-        $addToSet: { linkedAdmins: admin._id }
-      });
-
-      // Retrieve user details for notification (name)
       const userRecord = await User.findById(payload.userId);
-      const userName = userRecord?.name || 'A user';
-
-      // Send notification to the admin that a user has accepted the invitation
-      try {
-        const { sendPushNotification } = await import('@/lib/notifications');
-          await sendPushNotification(admin._id.toString(), userName, {
-            content: `${userName} accepted your invitation`,
-            isSystem: false,
+      if (userRecord) {
+        const alreadyLinked = userRecord.linkedAdmins?.some((id: any) => id.toString() === admin._id.toString());
+        if (!alreadyLinked) {
+          // Link admin to the user in DB
+          await User.findByIdAndUpdate(payload.userId, {
+            $addToSet: { linkedAdmins: admin._id }
           });
-      } catch (notifyErr) {
-        console.error('Failed to send admin acceptance notification:', notifyErr);
+
+          // Retrieve user details for notification (name)
+          const userName = userRecord.name || 'A user';
+
+          // Send notification to the admin that a user has accepted the invitation
+          try {
+            const { sendPushNotification } = await import('@/lib/notifications');
+            await sendPushNotification(admin._id.toString(), userName, {
+              content: `${userName} accepted your invitation`,
+              isSystem: false,
+            });
+          } catch (notifyErr) {
+            console.error('Failed to send admin acceptance notification:', notifyErr);
+          }
+
+          // Handle referral system message immediately since user is logged in
+          if (referredBy) {
+            try {
+              const { handleReferralSystemMessage } = await import('@/lib/referral');
+              await handleReferralSystemMessage(payload.userId, admin._id.toString(), referredBy);
+            } catch (refErr) {
+              console.error('Failed to create referral system message in link-admin:', refErr);
+            }
+          }
+        }
       }
     }
 

@@ -37,6 +37,8 @@ export async function POST(req: NextRequest) {
     // Link user to pending admin or fallback admin
     if (user.role === 'user') {
       const pendingAdminSlug = req.cookies.get('pending_admin_slug')?.value;
+      const pendingReferrer = req.cookies.get('pending_referrer')?.value;
+      let triggerReferralAdminId: string | null = null;
       let didUpdate = false;
       user.linkedAdmins = user.linkedAdmins || [];
 
@@ -56,6 +58,9 @@ export async function POST(req: NextRequest) {
         if (admin && !user.linkedAdmins.map((id: any) => id.toString()).includes(admin._id.toString())) {
           user.linkedAdmins.push(admin._id);
           didUpdate = true;
+          if (pendingReferrer) {
+            triggerReferralAdminId = admin._id.toString();
+          }
         }
       }
 
@@ -75,6 +80,14 @@ export async function POST(req: NextRequest) {
 
       if (didUpdate) {
         await user.save();
+        if (triggerReferralAdminId && pendingReferrer) {
+          try {
+            const { handleReferralSystemMessage } = await import('@/lib/referral');
+            await handleReferralSystemMessage(user._id.toString(), triggerReferralAdminId, pendingReferrer);
+          } catch (refErr) {
+            console.error('Failed to create referral system message on login:', refErr);
+          }
+        }
       }
     }
 
@@ -107,6 +120,10 @@ export async function POST(req: NextRequest) {
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
     });
+
+    // Clear pending referral/admin cookies
+    response.cookies.delete('pending_admin_slug');
+    response.cookies.delete('pending_referrer');
 
     return response;
   } catch (error: any) {

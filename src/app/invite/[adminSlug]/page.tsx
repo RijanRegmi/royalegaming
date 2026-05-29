@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import styles from './invite.module.css';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Loader2, Shield, Check, LogIn, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
@@ -17,7 +17,9 @@ interface AdminInfo {
 export default function InvitePage() {
   const router = useRouter();
   const params = useParams();
+  const searchParams = useSearchParams();
   const adminSlug = params.adminSlug as string;
+  const referredBy = searchParams ? searchParams.get('referredBy') || '' : '';
 
   const [admin, setAdmin] = useState<AdminInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
@@ -63,7 +65,7 @@ export default function InvitePage() {
       const res = await fetch('/api/auth/link-admin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminSlug }),
+        body: JSON.stringify({ adminSlug, referredBy }),
       });
 
       if (!res.ok) {

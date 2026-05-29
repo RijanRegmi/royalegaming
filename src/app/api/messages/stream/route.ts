@@ -89,6 +89,9 @@ export async function GET(req: NextRequest) {
         if (payload.role === 'user' && message.chatUserId.toString() !== payload.userId) {
           return;
         }
+        if (message.systemMessageFor && message.systemMessageFor.toString() !== payload.userId) {
+          return;
+        }
         try {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`));
         } catch (e) {}
@@ -100,6 +103,9 @@ export async function GET(req: NextRequest) {
           return;
         }
         if (payload.role === 'user' && message.chatUserId?.toString() !== payload.userId) {
+          return;
+        }
+        if (message.systemMessageFor && message.systemMessageFor.toString() !== payload.userId) {
           return;
         }
         try {

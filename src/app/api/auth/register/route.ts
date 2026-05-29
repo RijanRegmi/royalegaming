@@ -26,8 +26,9 @@ export async function POST(req: NextRequest) {
     const userCount = await User.countDocuments();
     const role = userCount === 0 ? 'super_admin' : 'user';
 
-    // Read pending admin cookie or fallback to oldest active admin
+    // Read pending admin and referrer cookies or fallback to oldest active admin
     const pendingAdminSlug = req.cookies.get('pending_admin_slug')?.value;
+    const pendingReferrer = req.cookies.get('pending_referrer')?.value;
     let linkedAdmins: any[] = [];
     let primaryAdmin = null;
 
@@ -96,6 +97,16 @@ export async function POST(req: NextRequest) {
           } catch (pushErr) {
             console.error('Error sending registration push notification to admin:', pushErr);
           }
+
+          // Handle referral system message if pending referrer exists
+          if (pendingReferrer) {
+            try {
+              const { handleReferralSystemMessage } = await import('@/lib/referral');
+              await handleReferralSystemMessage(newUser._id.toString(), primaryAdmin._id.toString(), pendingReferrer);
+            } catch (refErr) {
+              console.error('Failed to create referral system message on registration:', refErr);
+            }
+          }
         }
       } catch (err) {
         console.error('Error creating system join message on registration:', err);
@@ -125,6 +136,10 @@ export async function POST(req: NextRequest) {
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
     });
+
+    // Clear pending referral/admin cookies
+    response.cookies.delete('pending_admin_slug');
+    response.cookies.delete('pending_referrer');
 
     return response;
   } catch (error) {

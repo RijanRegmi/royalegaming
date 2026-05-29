@@ -22,6 +22,15 @@ interface PostItem {
 
 export default function Home() {
   const router = useRouter();
+  const getInitials = (fullName: string) => {
+    if (!fullName) return '';
+    return fullName
+      .split(' ')
+      .map((n) => n[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
   const [posts, setPosts] = useState<PostItem[]>([]);
   const [user, setUser] = useState<any>(null);
   const [authenticated, setAuthenticated] = useState<boolean>(false);
@@ -462,11 +471,25 @@ export default function Home() {
           {authenticated && isAdmin && (
             <form onSubmit={handleCreatePost} className="post-creator-card">
               <div className="post-creator-header">
-                <img 
-                  src={user.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
-                  alt={user.name} 
-                  className="post-avatar"
-                />
+                {user.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    className="post-avatar"
+                  />
+                ) : (
+                  <div className="post-avatar" style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
+                    color: 'white', 
+                    fontWeight: 600, 
+                    fontSize: '14px' 
+                  }}>
+                    {getInitials(user.name)}
+                  </div>
+                )}
                 <span className="post-creator-title">Create Official Announcement</span>
               </div>
               
@@ -545,11 +568,25 @@ export default function Home() {
                       {/* Post Header (Editing) */}
                       <div className="post-header">
                         <div className="post-author-info">
-                          <img 
-                            src={post.adminId.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
-                            alt={post.adminId.name} 
-                            className="post-avatar"
-                          />
+                          {post.adminId.avatar ? (
+                            <img 
+                              src={post.adminId.avatar} 
+                              alt={post.adminId.name} 
+                              className="post-avatar"
+                            />
+                          ) : (
+                            <div className="post-avatar" style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
+                              color: 'white', 
+                              fontWeight: 600, 
+                              fontSize: '14px' 
+                            }}>
+                              {getInitials(post.adminId.name)}
+                            </div>
+                          )}
                           <div className="post-author-details">
                             <span className="post-author-name">{post.adminId.name}</span>
                             <span className="post-time">{formatPostTime(post.createdAt)} (Editing)</span>
@@ -623,11 +660,25 @@ export default function Home() {
                       {/* Post Header */}
                       <div className="post-header">
                         <div className="post-author-info" onClick={() => handleViewAdminProfile(post.adminId?._id, post.adminId)} style={{ cursor: 'pointer' }} title="View Profile">
-                          <img 
-                            src={post.adminId.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
-                            alt={post.adminId.name} 
-                            className="post-avatar"
-                          />
+                          {post.adminId.avatar ? (
+                            <img 
+                              src={post.adminId.avatar} 
+                              alt={post.adminId.name} 
+                              className="post-avatar"
+                            />
+                          ) : (
+                            <div className="post-avatar" style={{ 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
+                              color: 'white', 
+                              fontWeight: 600, 
+                              fontSize: '14px' 
+                            }}>
+                              {getInitials(post.adminId.name)}
+                            </div>
+                          )}
                           <div className="post-author-details">
                             <span className="post-author-name">{post.adminId.name}</span>
                             <span className="post-time">{formatPostTime(post.createdAt)}</span>
@@ -776,13 +827,24 @@ export default function Home() {
                 borderRadius: '50%',
                 overflow: 'hidden',
                 border: '3px solid #a855f7',
-                boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)'
+                boxShadow: '0 0 20px rgba(168, 85, 247, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: viewingAdmin.avatar ? 'none' : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+                color: 'white',
+                fontSize: '36px',
+                fontWeight: 700
               }}>
-                <img 
-                  src={viewingAdmin.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
-                  alt={viewingAdmin.name} 
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
+                {viewingAdmin.avatar ? (
+                  <img 
+                    src={viewingAdmin.avatar} 
+                    alt={viewingAdmin.name} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  getInitials(viewingAdmin.name)
+                )}
               </div>
               <h2 style={{ fontSize: '24px', fontWeight: 700, color: 'white', margin: 0 }}>{viewingAdmin.name}</h2>
               <span style={{ fontSize: '14px', color: '#a855f7', fontWeight: 600 }}>@{viewingAdmin.username || 'admin'}</span>
@@ -879,11 +941,25 @@ export default function Home() {
                         <>
                           <div className="post-header">
                             <div className="post-author-info">
-                              <img 
-                                src={viewingAdmin.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=100'} 
-                                alt={viewingAdmin.name} 
-                                className="post-avatar"
-                              />
+                              {viewingAdmin.avatar ? (
+                                <img 
+                                  src={viewingAdmin.avatar} 
+                                  alt={viewingAdmin.name} 
+                                  className="post-avatar"
+                                />
+                              ) : (
+                                <div className="post-avatar" style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  justifyContent: 'center', 
+                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
+                                  color: 'white', 
+                                  fontWeight: 600, 
+                                  fontSize: '14px' 
+                                }}>
+                                  {getInitials(viewingAdmin.name)}
+                                </div>
+                              )}
                               <div className="post-author-details">
                                 <span className="post-author-name">{viewingAdmin.name}</span>
                                 <span className="post-time">{formatPostTime(post.createdAt)}</span>
