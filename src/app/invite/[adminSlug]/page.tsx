@@ -22,6 +22,7 @@ export default function InvitePage() {
   const referredBy = searchParams ? searchParams.get('referredBy') || '' : '';
 
   const [admin, setAdmin] = useState<AdminInfo | null>(null);
+  const [referrerName, setReferrerName] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState<boolean>(false);
@@ -39,11 +40,14 @@ export default function InvitePage() {
           setAuthenticated(true);
         }
 
-        // 2. Fetch admin details
-        const adminRes = await fetch(`/api/auth/link-admin?slug=${adminSlug}`);
+        // 2. Fetch admin details and resolve referrerName if referredBy query is present
+        const adminRes = await fetch(`/api/auth/link-admin?slug=${adminSlug}&referredBy=${referredBy}`);
         const adminData = await adminRes.json();
         if (adminRes.ok && adminData.success) {
           setAdmin(adminData.admin);
+          if (adminData.referrerName) {
+            setReferrerName(adminData.referrerName);
+          }
         } else {
           setError(adminData.error || 'This invitation link is invalid or expired.');
         }
@@ -56,7 +60,7 @@ export default function InvitePage() {
     };
 
     checkAuthAndFetchAdmin();
-  }, [adminSlug]);
+  }, [adminSlug, referredBy]);
 
   const handleAcceptInvite = async () => {
     if (!adminSlug) return;
@@ -161,7 +165,11 @@ export default function InvitePage() {
 
               {/* Text Context */}
               <h2 className={styles.title}>Join {admin.name}&apos;s Community</h2>
-              <p className={styles.subtitle}>You have been invited to connect with <strong>{admin.name}</strong> for direct game credentials, private support chat, and custom checkout options.</p>
+              {referrerName ? (
+                <p className={styles.subtitle}>You have been invited by <strong>{referrerName}</strong> to connect with <strong>{admin.name}</strong> for direct game credentials, private support chat, and custom checkout options.</p>
+              ) : (
+                <p className={styles.subtitle}>You have been invited to connect with <strong>{admin.name}</strong> for direct game credentials, private support chat, and custom checkout options.</p>
+              )}
 
               {/* Accept Trigger Button */}
               <button

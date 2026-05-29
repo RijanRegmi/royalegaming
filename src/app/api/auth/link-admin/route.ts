@@ -42,6 +42,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Administrator not found' }, { status: 404 });
     }
 
+    const referredBy = searchParams.get('referredBy');
+    let referrerName = '';
+
+    if (referredBy) {
+      const referrerQuery: any = {};
+      if (mongoose.Types.ObjectId.isValid(referredBy)) {
+        referrerQuery.$or = [
+          { username: referredBy },
+          { _id: referredBy }
+        ];
+      } else {
+        referrerQuery.username = referredBy;
+      }
+      const referrer = await User.findOne(referrerQuery);
+      if (referrer) {
+        referrerName = referrer.name || referrer.username || '';
+      }
+    }
+
     return NextResponse.json({ 
       success: true, 
       admin: {
@@ -49,7 +68,8 @@ export async function GET(req: NextRequest) {
         name: admin.name,
         username: admin.username,
         avatar: admin.avatar || '',
-      }
+      },
+      referrerName
     });
   } catch (error) {
     console.error('Fetch link admin error:', error);
