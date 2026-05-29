@@ -1551,11 +1551,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                       }
                     }}
                   >
-                  {!isMe && (
-                    <span className="message-sender-name">
-                      {msg.senderId.name}
-                    </span>
-                  )}
+
 
                   {/* Reply Reference Quote */}
                   {msg.replyTo && (
