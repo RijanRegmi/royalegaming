@@ -2949,7 +2949,7 @@ export default function AdminSettingsPage() {
                 <X size={18} />
               </button>
             </div>
-            <div className="modal-body" style={{ padding: '24px 0', color: 'rgba(255, 255, 255, 0.7)', fontSize: '15px', lineHeight: '1.6' }}>
+            <div className="modal-body" style={{ padding: '24px', color: 'rgba(255, 255, 255, 0.7)', fontSize: '15px', lineHeight: '1.6' }}>
               {confirmModal.message}
             </div>
             <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'none', paddingTop: 0 }}>
