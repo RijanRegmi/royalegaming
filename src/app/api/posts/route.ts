@@ -208,6 +208,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
     if (!payload || (payload.role !== 'admin' && payload.role !== 'super_admin')) {
+      console.error('Delete post unauthorized payload:', payload);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -226,8 +227,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     // Admins can only delete their own posts (unless they are super_admin)
-    if (payload.role !== 'super_admin' && post.adminId.toString() !== payload.userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const postAdminIdStr = post.adminId?.toString();
+    if (payload.role !== 'super_admin' && postAdminIdStr !== payload.userId) {
+      console.error(`Forbidden post delete attempt: postAdminId=${postAdminIdStr}, payload.userId=${payload.userId}`);
+      return NextResponse.json({ error: 'Forbidden: You can only delete your own posts' }, { status: 403 });
     }
 
     await Post.findByIdAndDelete(postId);

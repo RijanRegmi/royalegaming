@@ -65,6 +65,46 @@ export default function Home() {
   const [leftAdStatus, setLeftAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
   const [rightAdStatus, setRightAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
 
+  // Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      },
+      confirmText,
+      cancelText,
+    });
+  };
+
+  const showAlert = (title: string, message: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),
+      confirmText: 'OK',
+      cancelText: '',
+    });
+  };
+
   // Close lightbox on Esc key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -222,11 +262,11 @@ export default function Home() {
           fileInputRef.current.value = '';
         }
       } else {
-        alert(data.error || 'Failed to create post');
+        showAlert('Error', data.error || 'Failed to create post');
       }
     } catch (err) {
       console.error('Create post error:', err);
-      alert('Error creating post. Please try again.');
+      showAlert('Error', 'Error creating post. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -265,23 +305,30 @@ export default function Home() {
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+  const handleDeletePost = (postId: string) => {
+    showConfirm(
+      'Delete Post',
+      'Are you sure you want to delete this post?',
+      async () => {
+        try {
+          const res = await fetch(`/api/posts?postId=${postId}`, {
+            method: 'DELETE',
+          });
 
-    try {
-      const res = await fetch(`/api/posts?postId=${postId}`, {
-        method: 'DELETE',
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setPosts((prev) => prev.filter((post) => post._id !== postId));
-      } else {
-        alert(data.error || 'Failed to delete post');
-      }
-    } catch (err) {
-      console.error('Delete error:', err);
-    }
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setPosts((prev) => prev.filter((post) => post._id !== postId));
+          } else {
+            showAlert('Error', data.error || 'Failed to delete post');
+          }
+        } catch (err) {
+          console.error('Delete error:', err);
+          showAlert('Error', 'Error deleting post. Please try again.');
+        }
+      },
+      'Delete',
+      'Cancel'
+    );
   };
 
   const startEditPost = (post: PostItem) => {
@@ -346,11 +393,11 @@ export default function Home() {
           );
         }
       } else {
-        alert(data.error || 'Failed to update post');
+        showAlert('Error', data.error || 'Failed to update post');
       }
     } catch (err) {
       console.error('Update post error:', err);
-      alert('Error updating post');
+      showAlert('Error', 'Error updating post');
     } finally {
       setEditSubmitting(false);
     }
@@ -1128,6 +1175,32 @@ export default function Home() {
               className="lightbox-image" 
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {confirmModal.isOpen && (
+        <div className="custom-modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+          <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className={`modal-header ${confirmModal.cancelText ? 'warning' : ''}`}>
+              <span className="modal-title">{confirmModal.title}</span>
+              <button type="button" className="modal-close-btn" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>{confirmModal.message}</p>
+            </div>
+            <div className="modal-actions">
+              {confirmModal.cancelText && (
+                <button type="button" className="btn-secondary" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                  {confirmModal.cancelText}
+                </button>
+              )}
+              <button type="button" className="btn-danger" onClick={confirmModal.onConfirm}>
+                {confirmModal.confirmText || 'OK'}
+              </button>
+            </div>
           </div>
         </div>
       )}

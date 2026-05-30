@@ -66,6 +66,46 @@ export default function ProfilePage() {
   const [leftAdStatus, setLeftAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
   const [rightAdStatus, setRightAdStatus] = useState<'filled' | 'unfilled' | 'loading'>('loading');
 
+  // Confirmation Modal State
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Confirm', cancelText = 'Cancel') => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => {
+        onConfirm();
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+      },
+      confirmText,
+      cancelText,
+    });
+  };
+
+  const showAlert = (title: string, message: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm: () => setConfirmModal((prev) => ({ ...prev, isOpen: false })),
+      confirmText: 'OK',
+      cancelText: '',
+    });
+  };
+
   // Post creator states
   const [content, setContent] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
@@ -353,11 +393,11 @@ export default function ProfilePage() {
         }
         setMyPosts((prev) => [data.post, ...prev]);
       } else {
-        alert(data.error || 'Failed to publish announcement');
+        showAlert('Error', data.error || 'Failed to publish announcement');
       }
     } catch (err) {
       console.error('Publish error:', err);
-      alert('Error publishing announcement');
+      showAlert('Error', 'Error publishing announcement');
     } finally {
       setSubmitting(false);
     }
@@ -420,32 +460,39 @@ export default function ProfilePage() {
         );
         setEditingPostId(null);
       } else {
-        alert(data.error || 'Failed to update post');
+        showAlert('Error', data.error || 'Failed to update post');
       }
     } catch (err) {
       console.error('Update post error:', err);
-      alert('Error updating post');
+      showAlert('Error', 'Error updating post');
     } finally {
       setEditSubmitting(false);
     }
   };
 
-  const handleDeletePost = async (postId: string) => {
-    if (!confirm('Are you sure you want to delete this announcement?')) return;
-    try {
-      const res = await fetch(`/api/posts?postId=${postId}`, {
-        method: 'DELETE'
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setMyPosts(prev => prev.filter(p => p._id !== postId));
-      } else {
-        alert(data.error || 'Failed to delete post');
-      }
-    } catch (err) {
-      console.error('Delete post error:', err);
-      alert('Error deleting post');
-    }
+  const handleDeletePost = (postId: string) => {
+    showConfirm(
+      'Delete Announcement',
+      'Are you sure you want to delete this announcement?',
+      async () => {
+        try {
+          const res = await fetch(`/api/posts?postId=${postId}`, {
+            method: 'DELETE'
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            setMyPosts(prev => prev.filter(p => p._id !== postId));
+          } else {
+            showAlert('Error', data.error || 'Failed to delete post');
+          }
+        } catch (err) {
+          console.error('Delete post error:', err);
+          showAlert('Error', 'Error deleting post');
+        }
+      },
+      'Delete',
+      'Cancel'
+    );
   };
 
   const handleLikePost = async (postId: string) => {
@@ -1188,6 +1235,32 @@ export default function ProfilePage() {
               boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
             }} 
           />
+        </div>
+      )}
+
+      {confirmModal.isOpen && (
+        <div className="custom-modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+          <div className="custom-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className={`modal-header ${confirmModal.cancelText ? 'warning' : ''}`}>
+              <span className="modal-title">{confirmModal.title}</span>
+              <button type="button" className="modal-close-btn" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <p>{confirmModal.message}</p>
+            </div>
+            <div className="modal-actions">
+              {confirmModal.cancelText && (
+                <button type="button" className="btn-secondary" onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}>
+                  {confirmModal.cancelText}
+                </button>
+              )}
+              <button type="button" className="btn-danger" onClick={confirmModal.onConfirm}>
+                {confirmModal.confirmText || 'OK'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
