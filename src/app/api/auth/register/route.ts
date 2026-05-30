@@ -3,11 +3,16 @@ import bcrypt from 'bcryptjs';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { signToken } from '@/lib/auth';
+import { getSafeJson } from '@/lib/security';
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { name, email, phone, password } = await req.json();
+    const body = await getSafeJson(req);
+    const name = typeof body.name === 'string' ? body.name : '';
+    const email = typeof body.email === 'string' ? body.email : '';
+    const phone = typeof body.phone === 'string' ? body.phone : '';
+    const password = typeof body.password === 'string' ? body.password : '';
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });

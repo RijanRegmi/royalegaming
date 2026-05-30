@@ -5,6 +5,7 @@ import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 import { chatEmitter } from '@/lib/events';
 import { sendPushNotification } from '@/lib/notifications';
+import { getSafeJson, getSafeQueryParam } from '@/lib/security';
 
 
 // GET: Fetch messages for a conversation
@@ -19,11 +20,10 @@ export async function GET(req: NextRequest) {
     
     // Check if the current user is frozen
     const currentUserObj = await User.findById(payload.userId);
-    const { searchParams } = new URL(req.url);
     if (currentUserObj?.isFrozen) {
       const targetId = payload.role === 'user' 
-        ? searchParams.get('adminId') 
-        : searchParams.get('userId');
+        ? getSafeQueryParam(req, 'adminId') 
+        : getSafeQueryParam(req, 'userId');
         
       if (!targetId) {
         return NextResponse.json({ error: 'Target user is required' }, { status: 400 });
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       // Users can only access their own messages, but must target a specific admin
       chatUserId = payload.userId;
       
-      let reqAdminId = searchParams.get('adminId');
+      let reqAdminId = getSafeQueryParam(req, 'adminId');
       const userObj = await User.findById(payload.userId);
       if (!reqAdminId) {
         // Fallback: use first linked admin
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
       adminIdStr = reqAdminId;
     } else {
       // Admins (or super admin) must specify which user's chat they are viewing
-      const targetUserId = searchParams.get('userId');
+      const targetUserId = getSafeQueryParam(req, 'userId');
       if (!targetUserId) {
         return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
       }
@@ -80,7 +80,7 @@ export async function GET(req: NextRequest) {
         adminIdStr = payload.userId;
       } else {
         // Super admin can specify an adminId query parameter or default to self
-        adminIdStr = searchParams.get('adminId') || payload.userId;
+        adminIdStr = getSafeQueryParam(req, 'adminId') || payload.userId;
       }
     }
 
@@ -158,7 +158,15 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
-    const { content, chatUserId: bodyChatUserId, adminId: bodyAdminId, replyTo, fileUrl, fileType, fileName, fileSize } = await req.json();
+    const body = await getSafeJson(req);
+    const content = typeof body.content === 'string' ? body.content : '';
+    const bodyChatUserId = typeof body.chatUserId === 'string' ? body.chatUserId : '';
+    const bodyAdminId = typeof body.adminId === 'string' ? body.adminId : '';
+    const replyTo = typeof body.replyTo === 'string' ? body.replyTo : undefined;
+    const fileUrl = typeof body.fileUrl === 'string' ? body.fileUrl : undefined;
+    const fileType = typeof body.fileType === 'string' ? body.fileType : undefined;
+    const fileName = typeof body.fileName === 'string' ? body.fileName : undefined;
+    const fileSize = typeof body.fileSize === 'number' ? body.fileSize : undefined;
 
     if ((!content || !content.trim()) && !fileUrl) {
       return NextResponse.json({ error: 'Message content cannot be empty' }, { status: 400 });

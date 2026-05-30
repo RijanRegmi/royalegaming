@@ -6,6 +6,7 @@ import Post from '@/models/Post';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 import { uploadToCloudinary } from '@/lib/cloudinary';
+import { getSafeQueryParam } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,8 +37,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
 
-    const { searchParams } = new URL(req.url);
-    const filterAdminId = searchParams.get('adminId');
+    const filterAdminId = getSafeQueryParam(req, 'adminId');
 
     let posts = [];
     if (filterAdminId) {
@@ -212,8 +212,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { searchParams } = new URL(req.url);
-    const postId = searchParams.get('postId');
+    const postId = getSafeQueryParam(req, 'postId');
 
     if (!postId) {
       return NextResponse.json({ error: 'Post ID is required' }, { status: 400 });

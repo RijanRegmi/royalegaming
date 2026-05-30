@@ -4,11 +4,14 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { signToken } from '@/lib/auth';
 import { encryptSlug } from '@/lib/crypto';
+import { getSafeJson } from '@/lib/security';
 
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { emailOrPhone, password } = await req.json();
+    const body = await getSafeJson(req);
+    const emailOrPhone = typeof body.emailOrPhone === 'string' ? body.emailOrPhone : '';
+    const password = typeof body.password === 'string' ? body.password : '';
 
     if (!emailOrPhone || !password) {
       return NextResponse.json({ error: 'Email/Phone and password are required' }, { status: 400 });

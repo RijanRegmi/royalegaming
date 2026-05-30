@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import Payment from '@/models/Payment';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
+import { getSafeQueryParam } from '@/lib/security';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +14,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(req.url);
-    let reqAdminId = searchParams.get('adminId');
+    let reqAdminId = getSafeQueryParam(req, 'adminId');
 
     await dbConnect();
 

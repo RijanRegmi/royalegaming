@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest, TokenPayload } from '@/lib/auth';
 import { decryptSlug } from '@/lib/crypto';
+import { getSafeJson, getSafeQueryParam } from '@/lib/security';
 
 // Type for the admin query used in both GET and POST
 interface AdminQuery {
@@ -14,8 +15,7 @@ interface AdminQuery {
 export async function GET(req: NextRequest) {
   try {
     await dbConnect();
-    const { searchParams } = new URL(req.url);
-    const adminSlug = searchParams.get('slug');
+    const adminSlug = getSafeQueryParam(req, 'slug');
 
     if (!adminSlug) {
       return NextResponse.json({ error: 'Admin slug is required' }, { status: 400 });
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Administrator not found' }, { status: 404 });
     }
 
-    const referredBy = searchParams.get('referredBy');
+    const referredBy = getSafeQueryParam(req, 'referredBy');
     let referrerName = '';
 
     if (referredBy) {
@@ -80,7 +80,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     await dbConnect();
-    const { adminSlug, referredBy } = await req.json();
+    const body = await getSafeJson(req);
+    const adminSlug = typeof body.adminSlug === 'string' ? body.adminSlug : '';
+    const referredBy = typeof body.referredBy === 'string' ? body.referredBy : '';
 
     if (!adminSlug) {
       return NextResponse.json({ error: 'Admin slug is required' }, { status: 400 });
