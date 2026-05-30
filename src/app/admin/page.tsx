@@ -14,6 +14,7 @@ import {
   Mail, 
   Phone, 
   Lock, 
+  Unlock,
   Gamepad2, 
   Plus, 
   Edit2, 
@@ -1200,162 +1201,315 @@ export default function AdminSettingsPage() {
       ) : null}
 
       {/* Primary Tab Contents */}
-      {activeTab === 'users' && currentUser.role === 'super_admin' ? (
-        <div className="admin-table-container glass">
-          <div
-            style={{
-              padding: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '1px solid var(--border-color)',
-            }}
-          >
-            <span style={{ fontWeight: 600 }}>System Accounts Directory</span>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button
-                className="btn-primary"
+      {activeTab === 'users' && currentUser.role === 'super_admin' ? (() => {
+        const adminProfiles = profiles.filter((p) => p.role === 'admin' || p.role === 'super_admin');
+        const userProfiles = profiles.filter((p) => p.role === 'user');
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Administrators Table */}
+            <div className="admin-table-container glass">
+              <div
                 style={{
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  width: 'auto',
+                  padding: '20px',
                   display: 'flex',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  gap: '6px',
-                  margin: 0,
-                  boxShadow: 'none'
-                }}
-                onClick={() => {
-                  setShowCreateModal(true);
-                  setFeedback(null);
+                  borderBottom: '1px solid var(--border-color)',
                 }}
               >
-                <UserPlus size={16} /> Create Account
-              </button>
-              <button className="icon-btn" title="Refresh data" onClick={fetchDashboardData}>
-                <RefreshCw size={16} />
-              </button>
+                <div>
+                  <span style={{ fontWeight: 600, display: 'block' }}>Administrative Staff Accounts</span>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Manage system administrators, moderators, and support staff
+                  </span>
+                </div>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <button
+                    className="btn-primary"
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      width: 'auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      margin: 0,
+                      boxShadow: 'none'
+                    }}
+                    onClick={() => {
+                      setShowCreateModal(true);
+                      setFeedback(null);
+                    }}
+                  >
+                    <UserPlus size={16} /> Create Account
+                  </button>
+                  <button className="icon-btn" title="Refresh data" onClick={fetchDashboardData}>
+                    <RefreshCw size={16} />
+                  </button>
+                </div>
+              </div>
+              
+              {adminProfiles.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No administrators found.
+                </div>
+              ) : (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Profile Name / Email</th>
+                      <th>Phone Number</th>
+                      <th>Date Registered</th>
+                      <th>System Role</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {adminProfiles.map((profile) => {
+                      const profileId = profile._id || profile.id;
+                      const isSelf = profileId === currentUser.id;
+                      return (
+                        <tr key={profileId}>
+                          <td>
+                            <div className="profile-cell">
+                              <div className="avatar-wrapper" style={{ width: '36px', height: '36px', fontSize: '13px' }}>
+                                {profile.avatar ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img src={profile.avatar} alt={profile.name} className="avatar-image" />
+                                ) : (
+                                  profile.name
+                                    .split(' ')
+                                    .map((n: string) => n[0])
+                                    .join('')
+                                    .toUpperCase()
+                                    .substring(0, 2)
+                                )}
+                              </div>
+                              <div className="profile-cell-details">
+                                <span className="profile-cell-name">
+                                  {profile.name}
+                                  {profile.role === 'admin' && profile.username && (
+                                    <span style={{ fontSize: '11px', color: 'var(--super-admin-color)', marginLeft: '8px', background: 'rgba(168, 85, 247, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                      /{profile.username}
+                                    </span>
+                                  )}
+                                  {profile.isFrozen && (
+                                    <span style={{ fontSize: '11px', color: '#ef4444', marginLeft: '8px', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                      Frozen
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="profile-cell-email">{profile.email}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{ color: profile.phone ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                              {profile.phone || '—'}
+                            </span>
+                          </td>
+                          <td>
+                            {new Date(profile.createdAt).toLocaleDateString([], {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td>
+                            {isSelf ? (
+                              <span className="role-badge super_admin" style={{ padding: '6px 12px' }}>
+                                Super Admin (You)
+                              </span>
+                            ) : (
+                              <select
+                                className="role-select"
+                                value={profile.role}
+                                onChange={(e) => handleRoleChange(profileId, e.target.value)}
+                                disabled={updatingId === profileId}
+                              >
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                                <option value="super_admin">Super Admin</option>
+                              </select>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '8px' }}>
+                              <button 
+                                className="icon-btn" 
+                                title="Edit User Profile" 
+                                onClick={() => openEditUserModal(profile)}
+                                style={{ color: 'var(--accent-color)' }}
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              {!isSelf && (
+                                <button 
+                                  className="icon-btn" 
+                                  title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
+                                  onClick={() => {
+                                    const action = profile.isFrozen ? 'unlock' : 'lock';
+                                    if (window.confirm(`Do you want to ${action} this account?`)) {
+                                      handleFreezeToggle(profileId, !profile.isFrozen);
+                                    }
+                                  }}
+                                  style={{ color: profile.isFrozen ? '#f59e0b' : '#10b981' }}
+                                  disabled={updatingId === profileId}
+                                >
+                                  {profile.isFrozen ? <Lock size={16} /> : <Unlock size={16} />}
+                                </button>
+                              )}
+                              {!isSelf && (
+                                <button 
+                                  className="icon-btn" 
+                                  title="Delete User" 
+                                  onClick={() => handleDeleteUser(profileId)}
+                                  style={{ color: 'var(--error-color)' }}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Standard Users Table */}
+            <div className="admin-table-container glass">
+              <div
+                style={{
+                  padding: '20px',
+                  borderBottom: '1px solid var(--border-color)',
+                }}
+              >
+                <span style={{ fontWeight: 600, display: 'block' }}>Standard User Accounts (Players)</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Manage game lobby players, customer records, and active account locks
+                </span>
+              </div>
+              
+              {userProfiles.length === 0 ? (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No standard user players found.
+                </div>
+              ) : (
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Profile Name / Email</th>
+                      <th>Phone Number</th>
+                      <th>Date Registered</th>
+                      <th>System Role</th>
+                      <th style={{ textAlign: 'right' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {userProfiles.map((profile) => {
+                      const profileId = profile._id || profile.id;
+                      const isSelf = profileId === currentUser.id;
+                      return (
+                        <tr key={profileId}>
+                          <td>
+                            <div className="profile-cell">
+                              <div className="avatar-wrapper" style={{ width: '36px', height: '36px', fontSize: '13px' }}>
+                                {profile.avatar ? (
+                                  /* eslint-disable-next-line @next/next/no-img-element */
+                                  <img src={profile.avatar} alt={profile.name} className="avatar-image" />
+                                ) : (
+                                  profile.name
+                                    .split(' ')
+                                    .map((n: string) => n[0])
+                                    .join('')
+                                    .toUpperCase()
+                                    .substring(0, 2)
+                                )}
+                              </div>
+                              <div className="profile-cell-details">
+                                <span className="profile-cell-name">
+                                  {profile.name}
+                                  {profile.isFrozen && (
+                                    <span style={{ fontSize: '11px', color: '#ef4444', marginLeft: '8px', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                      Frozen
+                                    </span>
+                                  )}
+                                </span>
+                                <span className="profile-cell-email">{profile.email}</span>
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <span style={{ color: profile.phone ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                              {profile.phone || '—'}
+                            </span>
+                          </td>
+                          <td>
+                            {new Date(profile.createdAt).toLocaleDateString([], {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </td>
+                          <td>
+                            <select
+                              className="role-select"
+                              value={profile.role}
+                              onChange={(e) => handleRoleChange(profileId, e.target.value)}
+                              disabled={updatingId === profileId}
+                            >
+                              <option value="user">User</option>
+                              <option value="admin">Admin</option>
+                              <option value="super_admin">Super Admin</option>
+                            </select>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <div style={{ display: 'inline-flex', gap: '8px' }}>
+                              <button 
+                                className="icon-btn" 
+                                title="Edit User Profile" 
+                                onClick={() => openEditUserModal(profile)}
+                                style={{ color: 'var(--accent-color)' }}
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button 
+                                className="icon-btn" 
+                                title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
+                                onClick={() => {
+                                  const action = profile.isFrozen ? 'unlock' : 'lock';
+                                  if (window.confirm(`Do you want to ${action} this account?`)) {
+                                    handleFreezeToggle(profileId, !profile.isFrozen);
+                                  }
+                                }}
+                                style={{ color: profile.isFrozen ? '#f59e0b' : '#10b981' }}
+                                disabled={updatingId === profileId}
+                              >
+                                {profile.isFrozen ? <Lock size={16} /> : <Unlock size={16} />}
+                              </button>
+                              <button 
+                                className="icon-btn" 
+                                title="Delete User" 
+                                onClick={() => handleDeleteUser(profileId)}
+                                style={{ color: 'var(--error-color)' }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           </div>
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Profile Name / Email</th>
-                <th>Phone Number</th>
-                <th>Date Registered</th>
-                <th>System Role</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {profiles.map((profile) => {
-                const profileId = profile._id || profile.id;
-                const isSelf = profileId === currentUser.id;
-                return (
-                  <tr key={profileId}>
-                    <td>
-                      <div className="profile-cell">
-                        <div className="avatar-wrapper" style={{ width: '36px', height: '36px', fontSize: '13px' }}>
-                          {profile.avatar ? (
-                            /* eslint-disable-next-line @next/next/no-img-element */
-                            <img src={profile.avatar} alt={profile.name} className="avatar-image" />
-                          ) : (
-                            profile.name
-                              .split(' ')
-                              .map((n: string) => n[0])
-                              .join('')
-                              .toUpperCase()
-                              .substring(0, 2)
-                          )}
-                        </div>
-                        <div className="profile-cell-details">
-                          <span className="profile-cell-name">
-                            {profile.name}
-                            {profile.role === 'admin' && profile.username && (
-                              <span style={{ fontSize: '11px', color: 'var(--super-admin-color)', marginLeft: '8px', background: 'rgba(168, 85, 247, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                                /{profile.username}
-                              </span>
-                            )}
-                            {profile.isFrozen && (
-                              <span style={{ fontSize: '11px', color: '#ef4444', marginLeft: '8px', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
-                                Frozen
-                              </span>
-                            )}
-                          </span>
-                          <span className="profile-cell-email">{profile.email}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ color: profile.phone ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                        {profile.phone || '—'}
-                      </span>
-                    </td>
-                    <td>
-                      {new Date(profile.createdAt).toLocaleDateString([], {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })}
-                    </td>
-                    <td>
-                      {isSelf ? (
-                        <span className="role-badge super_admin" style={{ padding: '6px 12px' }}>
-                          Super Admin (You)
-                        </span>
-                      ) : (
-                        <select
-                          className="role-select"
-                          value={profile.role}
-                          onChange={(e) => handleRoleChange(profileId, e.target.value)}
-                          disabled={updatingId === profileId}
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                          <option value="super_admin">Super Admin</option>
-                        </select>
-                      )}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        <button 
-                          className="icon-btn" 
-                          title="Edit User Profile" 
-                          onClick={() => openEditUserModal(profile)}
-                          style={{ color: 'var(--accent-color)' }}
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        {!isSelf && (
-                          <button 
-                            className="icon-btn" 
-                            title={profile.isFrozen ? "Unfreeze Account" : "Freeze Account"}
-                            onClick={() => handleFreezeToggle(profileId, !profile.isFrozen)}
-                            style={{ color: profile.isFrozen ? '#10b981' : '#f59e0b' }}
-                            disabled={updatingId === profileId}
-                          >
-                            <Lock size={16} />
-                          </button>
-                        )}
-                        {!isSelf && (
-                          <button 
-                            className="icon-btn" 
-                            title="Delete User" 
-                            onClick={() => handleDeleteUser(profileId)}
-                            style={{ color: 'var(--error-color)' }}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ) : activeTab === 'games' ? (
+        );
+      })() : activeTab === 'games' ? (
         /* Games Directory Grid view */
         <div className="admin-table-container glass">
           <div

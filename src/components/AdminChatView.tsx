@@ -1544,6 +1544,10 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 key={u.id}
                 className={`conversation-item ${selectedUser?.id === u.id ? 'active' : ''}`}
                 onClick={() => {
+                  if (currentUser.isFrozen && u.role !== 'super_admin') {
+                    showAlert('Account Frozen', 'Your account is frozen. Please check your due payments.');
+                    return;
+                  }
                   setSelectedUser(u);
                   if (typeof window !== 'undefined' && window.innerWidth <= 768) {
                     setShowDetails(false);
