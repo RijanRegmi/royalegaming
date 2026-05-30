@@ -13,6 +13,7 @@ const UserSchema = new Schema({
   resetCodeExpires: { type: Date },
   fcmToken: { type: String, default: null },
   linkedAdmins: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }], // list of admins linked to this player
+  isFrozen: { type: Boolean, default: false },
 }, { timestamps: true });
 
 const User = models.User || model('User', UserSchema);

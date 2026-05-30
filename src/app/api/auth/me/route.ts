@@ -36,6 +36,7 @@ export async function GET(req: NextRequest) {
         username: user.username || '',
         inviteCode,
         linkedAdmins: user.linkedAdmins || [],
+        isFrozen: user.isFrozen || false,
       },
     });
   } catch (error) {

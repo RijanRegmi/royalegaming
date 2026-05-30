@@ -14,6 +14,7 @@ interface AdminChatViewProps {
     role: 'super_admin' | 'admin';
     avatar?: string;
     username?: string;
+    isFrozen?: boolean;
   };
 }
 
@@ -304,6 +305,10 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
   const [payments, setPayments] = useState<any[]>([]);
   const [showPaymentDropdown, setShowPaymentDropdown] = useState(false);
+
+  const [showSuperAdminPaymentModal, setShowSuperAdminPaymentModal] = useState(false);
+  const [superAdminPayments, setSuperAdminPayments] = useState<any[]>([]);
+  const [loadingSuperAdminPayments, setLoadingSuperAdminPayments] = useState(false);
 
   const [chatLoading, setChatLoading] = useState(false);
 
@@ -819,6 +824,26 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     fetchPayments();
   }, [currentUser.id]);
 
+  const handleViewSuperAdminPayments = async () => {
+    if (!selectedUser || selectedUser.role !== 'super_admin') return;
+    setShowSuperAdminPaymentModal(true);
+    setLoadingSuperAdminPayments(true);
+    try {
+      const res = await fetch(`/api/payments?adminId=${selectedUser.id || selectedUser._id}`);
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSuperAdminPayments(data.payments);
+      } else {
+        setSuperAdminPayments([]);
+      }
+    } catch (err) {
+      console.error('Error fetching Super Admin payments:', err);
+      setSuperAdminPayments([]);
+    } finally {
+      setLoadingSuperAdminPayments(false);
+    }
+  };
+
   // Send configured QR code to chat
   const handleSendPaymentQr = async (payment: any) => {
     if (!selectedUser) return;
@@ -1230,6 +1255,11 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUser) return;
+
+    if (currentUser.isFrozen && selectedUser?.role !== 'super_admin') {
+      showAlert('Account Frozen', 'Your account is frozen. You can only message the Super Admin.');
+      return;
+    }
     
     const hasText = !!inputText.trim();
     const hasFile = !!selectedFile;
@@ -1620,6 +1650,16 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                {currentUser.role === 'admin' && selectedUser?.role === 'super_admin' && (
+                  <button 
+                    className="icon-btn" 
+                    title="View Super Admin Payments" 
+                    onClick={handleViewSuperAdminPayments}
+                    style={{ color: 'var(--accent-color)', flexShrink: 0 }}
+                  >
+                    <CreditCard size={20} />
+                  </button>
+                )}
                 <button 
                   className="icon-btn delete-chat-btn" 
                   title="Clear Chat History" 
@@ -1961,6 +2001,25 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               </div>
             )}
 
+            {currentUser.isFrozen && selectedUser?.role !== 'super_admin' && (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#ef4444',
+                padding: '12px',
+                borderRadius: '8px',
+                margin: '10px 16px',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontWeight: 500
+              }}>
+                <Shield size={16} />
+                Your account is frozen. You can only message the Super Admin.
+              </div>
+            )}
+
             {/* Chat Input Form */}
             <form className="chat-input-bar" onSubmit={handleSendMessage}>
               <input 
@@ -1978,7 +2037,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     className="chat-action-btn" 
                     onClick={triggerFileSelect} 
                     title="Attach file or image"
-                    disabled={sending}
+                    disabled={sending || (currentUser.isFrozen && selectedUser?.role !== 'super_admin')}
                   >
                     <Paperclip size={20} />
                   </button>
@@ -1987,7 +2046,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     className={`chat-action-btn ${showPaymentDropdown ? 'active' : ''}`}
                     onClick={() => setShowPaymentDropdown(!showPaymentDropdown)} 
                     title="Send Payment QR"
-                    disabled={sending}
+                    disabled={sending || (currentUser.isFrozen && selectedUser?.role !== 'super_admin')}
                     style={{ color: showPaymentDropdown ? 'var(--accent-color)' : 'var(--text-secondary)' }}
                   >
                     <CreditCard size={20} />
@@ -2084,16 +2143,22 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   <div className="chat-input-wrapper">
                     <input
                       type="text"
-                      placeholder={selectedFile ? "Add a caption..." : `Reply to ${selectedUser.name}...`}
+                      placeholder={
+                        currentUser.isFrozen && selectedUser?.role !== 'super_admin'
+                          ? "Your account is frozen. You can only message the Super Admin."
+                          : selectedFile 
+                            ? "Add a caption..." 
+                            : `Reply to ${selectedUser.name}...`
+                      }
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
-                      disabled={sending}
+                      disabled={sending || (currentUser.isFrozen && selectedUser?.role !== 'super_admin')}
                     />
                   </div>
                   
                   {/* Toggle Mic / Send Button */}
                   {inputText.trim() || selectedFile ? (
-                    <button type="submit" className="send-btn" disabled={sending}>
+                    <button type="submit" className="send-btn" disabled={sending || (currentUser.isFrozen && selectedUser?.role !== 'super_admin')}>
                       {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} fill="white" />}
                     </button>
                   ) : (
@@ -2102,7 +2167,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                       className="send-btn" 
                       onClick={handleStartRecording} 
                       title="Record voice message"
-                      disabled={sending}
+                      disabled={sending || (currentUser.isFrozen && selectedUser?.role !== 'super_admin')}
                     >
                       <Mic size={18} fill="white" />
                     </button>
@@ -2201,6 +2266,75 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               className="lightbox-image" 
               onClick={(e) => e.stopPropagation()}
             />
+          </div>
+        </div>
+      )}
+
+      {showSuperAdminPaymentModal && (
+        <div className="custom-modal-overlay" onClick={() => setShowSuperAdminPaymentModal(false)}>
+          <div className="custom-modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', width: '100%', margin: '0 20px' }}>
+            <div className="modal-header">
+              <span className="modal-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CreditCard size={18} /> Super Admin Payment Gateways
+              </span>
+              <button type="button" className="modal-close-btn" onClick={() => setShowSuperAdminPaymentModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '20px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                Please scan any of the QR codes below to make a payment deposit to the Super Admin. Click on a QR code to view it full screen.
+              </p>
+              {loadingSuperAdminPayments ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+                  <Loader2 size={24} className="animate-spin" />
+                </div>
+              ) : superAdminPayments.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: '14px' }}>
+                  No payment gateways are currently configured by the Super Admin.
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: '16px' }}>
+                  {superAdminPayments.map((payment) => (
+                    <div 
+                      key={payment._id} 
+                      className="payment-gateway-card"
+                      onClick={() => {
+                        setLightboxImage(payment.qrImage);
+                        setLightboxTitle(payment.name);
+                        setShowSuperAdminPaymentModal(false);
+                      }}
+                      style={{
+                        background: 'rgba(255, 255, 255, 0.03)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '12px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <div style={{ width: '100%', aspectRatio: '1', borderRadius: '4px', overflow: 'hidden', background: 'white', padding: '6px' }}>
+                        <img 
+                          src={payment.qrImage} 
+                          alt={payment.name} 
+                          style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
+                        />
+                      </div>
+                      <span style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', textAlign: 'center' }}>{payment.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="modal-footer" style={{ padding: '12px 20px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="button" className="btn-secondary" style={{ padding: '8px 16px', margin: 0, width: '100%' }} onClick={() => setShowSuperAdminPaymentModal(false)}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -5,6 +5,8 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import Message from '@/models/Message';
 import { getUserFromRequest } from '@/lib/auth';
+import { chatEmitter } from '@/lib/events';
+import { sendPushNotification } from '@/lib/notifications';
 
 // GET: Fetch list of users for admin sidebar
 export async function GET(req: NextRequest) {
@@ -21,13 +23,19 @@ export async function GET(req: NextRequest) {
       // Super admin sees all admins
       queryUsers = { role: 'admin' };
     } else {
-      // Standard admin sees players linked to them, plus the super admin
-      queryUsers = {
-        $or: [
-          { role: 'user', linkedAdmins: payload.userId },
-          { role: 'super_admin' }
-        ]
-      };
+      const currentAdmin = await User.findById(payload.userId);
+      if (currentAdmin?.isFrozen) {
+        // Frozen admin can only message/see super admin
+        queryUsers = { role: 'super_admin' };
+      } else {
+        // Standard admin sees players linked to them, plus the super admin
+        queryUsers = {
+          $or: [
+            { role: 'user', linkedAdmins: payload.userId },
+            { role: 'super_admin' }
+          ]
+        };
+      }
     }
 
     const users = await User.find(queryUsers).select('-password');
@@ -161,6 +169,7 @@ export async function GET(req: NextRequest) {
         phone: user.phone || '',
         avatar: user.avatar || '',
         role: user.role,
+        isFrozen: user.isFrozen || false,
         createdAt: user.createdAt,
         lastMessage: latestMessageMap.get(userIdStr) || null,
         unreadCount: unreadCountMap.get(userIdStr) || 0,
@@ -190,7 +199,7 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { userId, name, email, phone, role, password, username } = await req.json();
+    const { userId, name, email, phone, role, password, username, isFrozen } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -268,6 +277,37 @@ export async function PUT(req: NextRequest) {
       userToUpdate.password = await bcrypt.hash(password, 10);
     }
 
+    // Update isFrozen if provided
+    if (isFrozen !== undefined && isFrozen !== userToUpdate.isFrozen) {
+      if (isFrozen === true) {
+        try {
+          const notificationContent = "Your account is frozen. Please check your due payments.";
+          const newMsg = new Message({
+            senderId: payload.userId, // Super Admin
+            recipientId: userId, // Frozen Admin
+            chatUserId: userId,
+            adminId: payload.userId, // Super Admin ID
+            content: notificationContent,
+            isRead: false,
+          });
+          await newMsg.save();
+
+          // Broadcast the message to active listeners
+          const populatedMessage = await Message.findById(newMsg._id)
+            .populate('senderId', 'name email role avatar')
+            .populate('recipientId', 'name email role avatar');
+
+          chatEmitter.emit('message', populatedMessage);
+          
+          // Send push notification
+          await sendPushNotification(userId, 'Control Room', populatedMessage);
+        } catch (msgError) {
+          console.error('Error auto-sending freeze notification message:', msgError);
+        }
+      }
+      userToUpdate.isFrozen = isFrozen;
+    }
+
     await userToUpdate.save();
 
     return NextResponse.json({
@@ -279,6 +319,7 @@ export async function PUT(req: NextRequest) {
         username: userToUpdate.username || '',
         phone: userToUpdate.phone || '',
         role: userToUpdate.role,
+        isFrozen: userToUpdate.isFrozen || false,
         createdAt: userToUpdate.createdAt,
       },
     });

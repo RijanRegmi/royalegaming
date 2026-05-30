@@ -36,6 +36,7 @@ interface User {
   phone?: string;
   linkedAdmins?: string[] | User[];
   avatar?: string;
+  isFrozen?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
@@ -376,8 +377,8 @@ export default function AdminSettingsPage() {
   };
 
   const handleDeletePayment = async (paymentId: string) => {
-    if (currentUser?.role !== 'admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only admins can delete payment channels' });
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only administrators can delete payment channels' });
       return;
     }
     if (!window.confirm('Are you sure you want to delete this payment channel?')) return;
@@ -402,8 +403,8 @@ export default function AdminSettingsPage() {
 
   const handleSavePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentUser?.role !== 'admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only admins can save payment channels' });
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only administrators can save payment channels' });
       return;
     }
     if (!paymentName) {
@@ -512,6 +513,42 @@ export default function AdminSettingsPage() {
       );
 
       setFeedback({ type: 'success', message: `Successfully updated user role to ${newRole}` });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // Handle toggling account freeze state (users tab)
+  const handleFreezeToggle = async (userId: string, isFrozen: boolean) => {
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can freeze or unfreeze accounts' });
+      return;
+    }
+    setUpdatingId(userId);
+    setFeedback(null);
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, isFrozen }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update account freeze status');
+      }
+
+      setProfiles((prev) =>
+        prev.map((p) => ((p._id || p.id) === userId ? { ...p, isFrozen } : p))
+      );
+
+      setFeedback({ 
+        type: 'success', 
+        message: `Successfully ${isFrozen ? 'frozen' : 'unfrozen'} account` 
+      });
     } catch (err) {
       setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
@@ -1000,7 +1037,7 @@ export default function AdminSettingsPage() {
             <Key size={16} /> Game Accounts (Secure)
           </button>
         )}
-        {currentUser.role === 'admin' && (
+        {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
           <button
             className={`tab-btn ${activeTab === 'payments' ? 'active' : ''}`}
             onClick={() => {
@@ -1239,6 +1276,11 @@ export default function AdminSettingsPage() {
                                 /{profile.username}
                               </span>
                             )}
+                            {profile.isFrozen && (
+                              <span style={{ fontSize: '11px', color: '#ef4444', marginLeft: '8px', background: 'rgba(239, 68, 68, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
+                                Frozen
+                              </span>
+                            )}
                           </span>
                           <span className="profile-cell-email">{profile.email}</span>
                         </div>
@@ -1284,6 +1326,17 @@ export default function AdminSettingsPage() {
                         >
                           <Edit2 size={16} />
                         </button>
+                        {!isSelf && (
+                          <button 
+                            className="icon-btn" 
+                            title={profile.isFrozen ? "Unfreeze Account" : "Freeze Account"}
+                            onClick={() => handleFreezeToggle(profileId, !profile.isFrozen)}
+                            style={{ color: profile.isFrozen ? '#10b981' : '#f59e0b' }}
+                            disabled={updatingId === profileId}
+                          >
+                            <Lock size={16} />
+                          </button>
+                        )}
                         {!isSelf && (
                           <button 
                             className="icon-btn" 
@@ -1688,7 +1741,7 @@ export default function AdminSettingsPage() {
             </table>
           )}
         </div>
-      ) : activeTab === 'payments' && currentUser.role === 'admin' ? (
+      ) : activeTab === 'payments' && (currentUser.role === 'admin' || currentUser.role === 'super_admin') ? (
         <div className="admin-table-container glass">
           <div
             style={{

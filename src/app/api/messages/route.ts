@@ -16,7 +16,24 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
+    
+    // Check if the current user is frozen
+    const currentUserObj = await User.findById(payload.userId);
     const { searchParams } = new URL(req.url);
+    if (currentUserObj?.isFrozen) {
+      const targetId = payload.role === 'user' 
+        ? searchParams.get('adminId') 
+        : searchParams.get('userId');
+        
+      if (!targetId) {
+        return NextResponse.json({ error: 'Target user is required' }, { status: 400 });
+      }
+      
+      const targetUserObj = await User.findById(targetId);
+      if (!targetUserObj || targetUserObj.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Your account is frozen. You can only message the Super Admin.' }, { status: 403 });
+      }
+    }
     
     let chatUserId = '';
     let adminIdStr = '';
@@ -194,6 +211,15 @@ export async function POST(req: NextRequest) {
       } else {
         // Super admin or admin-to-admin DM
         adminIdStr = bodyAdminId || payload.userId;
+      }
+    }
+
+    // Check if the current user is frozen
+    const currentUserObj = await User.findById(payload.userId);
+    if (currentUserObj?.isFrozen) {
+      const recipientUser = await User.findById(recipientId);
+      if (!recipientUser || recipientUser.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Your account is frozen. You can only message the Super Admin.' }, { status: 403 });
       }
     }
 
