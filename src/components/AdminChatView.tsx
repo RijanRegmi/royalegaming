@@ -934,6 +934,15 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           return;
         }
 
+        if (data.type === 'user_freeze') {
+          if (data.userId === currentUser.id) {
+            window.location.reload();
+          } else {
+            fetchUsers();
+          }
+          return;
+        }
+
         const currentSelected = selectedUserRef.current;
 
         if (data.isChatCleared) {

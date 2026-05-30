@@ -24,7 +24,8 @@ import {
   Copy,
   Check,
   Key,
-  CreditCard
+  CreditCard,
+  Search
 } from 'lucide-react';
 
 interface User {
@@ -84,6 +85,7 @@ export default function AdminSettingsPage() {
 
   // --- Users management states ---
   const [profiles, setProfiles] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
   const [newAdminName, setNewAdminName] = useState('');
@@ -1202,10 +1204,66 @@ export default function AdminSettingsPage() {
 
       {/* Primary Tab Contents */}
       {activeTab === 'users' && currentUser.role === 'super_admin' ? (() => {
-        const adminProfiles = profiles.filter((p) => p.role === 'admin' || p.role === 'super_admin');
-        const userProfiles = profiles.filter((p) => p.role === 'user');
+        const query = searchQuery.toLowerCase().trim();
+        const filteredProfiles = profiles.filter((p) => {
+          if (!query) return true;
+          return (
+            (p.name && p.name.toLowerCase().includes(query)) ||
+            (p.email && p.email.toLowerCase().includes(query)) ||
+            (p.phone && p.phone.toLowerCase().includes(query)) ||
+            (p.username && p.username.toLowerCase().includes(query))
+          );
+        });
+        const adminProfiles = filteredProfiles.filter((p) => p.role === 'admin' || p.role === 'super_admin');
+        const userProfiles = filteredProfiles.filter((p) => p.role === 'user');
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            {/* Search Bar */}
+            <div 
+              className="glass" 
+              style={{ 
+                padding: '12px 20px', 
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                border: '1px solid var(--border-color)',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+              }}
+            >
+              <Search size={18} style={{ color: 'var(--text-muted)' }} />
+              <input
+                type="text"
+                placeholder="Search administrative staff and standard users by name, email, phone, or username..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  flex: 1,
+                  background: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--text-muted)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '4px',
+                  }}
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
             {/* Administrators Table */}
             <div className="admin-table-container glass">
               <div

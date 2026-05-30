@@ -278,7 +278,9 @@ export async function PUT(req: NextRequest) {
     }
 
     // Update isFrozen if provided
+    let hasFrozenChanged = false;
     if (isFrozen !== undefined && isFrozen !== userToUpdate.isFrozen) {
+      hasFrozenChanged = true;
       if (isFrozen === true) {
         try {
           const notificationContent = "Your account is frozen. Please check your due payments.";
@@ -309,6 +311,13 @@ export async function PUT(req: NextRequest) {
     }
 
     await userToUpdate.save();
+
+    if (hasFrozenChanged) {
+      chatEmitter.emit('user_freeze', { 
+        userId: userToUpdate._id.toString(), 
+        isFrozen: userToUpdate.isFrozen || false 
+      });
+    }
 
     return NextResponse.json({
       success: true,

@@ -758,6 +758,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           return;
         }
 
+        if (data.type === 'user_freeze') {
+          if (data.userId === currentUser.id) {
+            window.location.reload();
+          }
+          return;
+        }
+
         if (data.isChatCleared) {
           const currentAdmin = selectedAdminRef.current;
           const currentAdminId = currentAdmin ? (currentAdmin._id || currentAdmin.id)?.toString() : '';

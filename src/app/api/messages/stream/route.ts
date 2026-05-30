@@ -19,6 +19,7 @@ export async function GET(req: NextRequest) {
   let onMessage: ((message: any) => void) | undefined;
   let onMessageUpdate: ((message: any) => void) | undefined;
   let onPresence: ((presence: any) => void) | undefined;
+  let onUserFreeze: ((data: any) => void) | undefined;
   let cleaned = false;
 
   const cleanup = () => {
@@ -31,6 +32,7 @@ export async function GET(req: NextRequest) {
     if (onMessage) chatEmitter.off('message', onMessage);
     if (onMessageUpdate) chatEmitter.off('message_update', onMessageUpdate);
     if (onPresence) chatEmitter.off('presence', onPresence);
+    if (onUserFreeze) chatEmitter.off('user_freeze', onUserFreeze);
 
     // Decrement connection count for this user
     const onlineUsers = (global as any).onlineUsers;
@@ -121,9 +123,17 @@ export async function GET(req: NextRequest) {
         } catch (e) {}
       };
 
+      // Listen for user freeze/unfreeze notifications
+      onUserFreeze = (data: any) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'user_freeze', ...data })}\n\n`));
+        } catch (e) {}
+      };
+
       chatEmitter.on('message', onMessage);
       chatEmitter.on('message_update', onMessageUpdate);
       chatEmitter.on('presence', onPresence);
+      chatEmitter.on('user_freeze', onUserFreeze);
     },
     cancel() {
       cleanup();
