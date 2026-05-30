@@ -257,6 +257,8 @@ export async function PUT(req: NextRequest) {
       userToUpdate.phone = phone.trim();
     }
 
+    let hasFrozenChanged = false;
+
     // Update role if provided
     if (role !== undefined) {
       if (!['user', 'admin', 'super_admin'].includes(role)) {
@@ -267,6 +269,10 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ error: 'Cannot modify your own role' }, { status: 400 });
       }
       userToUpdate.role = role;
+      if (role === 'super_admin' && userToUpdate.isFrozen) {
+        userToUpdate.isFrozen = false;
+        hasFrozenChanged = true;
+      }
     }
 
     // Update password if provided
@@ -278,8 +284,10 @@ export async function PUT(req: NextRequest) {
     }
 
     // Update isFrozen if provided
-    let hasFrozenChanged = false;
     if (isFrozen !== undefined && isFrozen !== userToUpdate.isFrozen) {
+      if (isFrozen === true && userToUpdate.role === 'super_admin') {
+        return NextResponse.json({ error: 'Super Admin accounts cannot be frozen' }, { status: 400 });
+      }
       hasFrozenChanged = true;
       if (isFrozen === true) {
         try {

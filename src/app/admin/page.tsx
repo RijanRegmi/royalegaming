@@ -144,6 +144,41 @@ export default function AdminSettingsPage() {
   const [paymentIsActive, setPaymentIsActive] = useState<boolean>(true);
   const [savingPayment, setSavingPayment] = useState(false);
 
+  // --- Custom Confirm Modal State ---
+  const [confirmModal, setConfirmModal] = useState<{
+    show: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    cancelText?: string;
+    isDanger?: boolean;
+  }>({
+    show: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showConfirm = (options: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    isDanger?: boolean;
+    onConfirm: () => void;
+  }) => {
+    setConfirmModal({
+      show: true,
+      title: options.title,
+      message: options.message,
+      confirmText: options.confirmText,
+      cancelText: options.cancelText,
+      isDanger: options.isDanger,
+      onConfirm: options.onConfirm,
+    });
+  };
+
   // Fetch admin dashboard details (users profiles)
   const fetchDashboardData = useCallback(async () => {
     setLoading(true);
@@ -321,24 +356,31 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: 'Forbidden: Only admins can delete secure credentials' });
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this secure game credential? This action cannot be undone!')) return;
 
-    setFeedback(null);
-    try {
-      const res = await fetch(`/api/admin/credentials?id=${credId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+    showConfirm({
+      title: 'Delete Credential',
+      message: 'Are you sure you want to delete this secure game credential? This action cannot be undone!',
+      confirmText: 'Delete',
+      isDanger: true,
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          const res = await fetch(`/api/admin/credentials?id=${credId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete credential');
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to delete credential');
+          }
+
+          setCredentials((prev) => prev.filter((c) => c._id !== credId));
+          setFeedback({ type: 'success', message: 'Successfully deleted secure game credential!' });
+        } catch (err) {
+          setFeedback({ type: 'error', message: (err as Error).message });
+        }
       }
-
-      setCredentials((prev) => prev.filter((c) => c._id !== credId));
-      setFeedback({ type: 'success', message: 'Successfully deleted secure game credential!' });
-    } catch (err) {
-      setFeedback({ type: 'error', message: (err as Error).message });
-    }
+    });
   };
 
   // Fetch payments
@@ -384,24 +426,31 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: 'Forbidden: Only administrators can delete payment channels' });
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this payment channel?')) return;
 
-    setFeedback(null);
-    try {
-      const res = await fetch(`/api/admin/payments?id=${paymentId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+    showConfirm({
+      title: 'Delete Payment Channel',
+      message: 'Are you sure you want to delete this payment channel?',
+      confirmText: 'Delete',
+      isDanger: true,
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          const res = await fetch(`/api/admin/payments?id=${paymentId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete payment channel');
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to delete payment channel');
+          }
+
+          setPayments((prev) => prev.filter((p) => p._id !== paymentId));
+          setFeedback({ type: 'success', message: 'Successfully deleted payment channel!' });
+        } catch (err) {
+          setFeedback({ type: 'error', message: (err as Error).message });
+        }
       }
-
-      setPayments((prev) => prev.filter((p) => p._id !== paymentId));
-      setFeedback({ type: 'success', message: 'Successfully deleted payment channel!' });
-    } catch (err) {
-      setFeedback({ type: 'error', message: (err as Error).message });
-    }
+    });
   };
 
   const handleSavePayment = async (e: React.FormEvent) => {
@@ -691,24 +740,31 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: 'You cannot delete your own account' });
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this user? This will also delete all their messages. This action is irreversible!')) return;
 
-    setFeedback(null);
-    try {
-      const res = await fetch(`/api/admin/users?id=${userId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+    showConfirm({
+      title: 'Delete User Account',
+      message: 'Are you sure you want to delete this user? This will also delete all their messages. This action is irreversible!',
+      confirmText: 'Delete',
+      isDanger: true,
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          const res = await fetch(`/api/admin/users?id=${userId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete account');
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to delete account');
+          }
+
+          setProfiles((prev) => prev.filter((p) => (p._id || p.id) !== userId));
+          setFeedback({ type: 'success', message: 'Successfully deleted user account!' });
+        } catch (err) {
+          setFeedback({ type: 'error', message: (err as Error).message });
+        }
       }
-
-      setProfiles((prev) => prev.filter((p) => (p._id || p.id) !== userId));
-      setFeedback({ type: 'success', message: 'Successfully deleted user account!' });
-    } catch (err) {
-      setFeedback({ type: 'error', message: (err as Error).message });
-    }
+    });
   };
 
   // --- Games operations ---
@@ -742,24 +798,31 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: 'Forbidden: Only super admins can delete game platforms' });
       return;
     }
-    if (!window.confirm('Are you sure you want to delete this game platform?')) return;
 
-    setFeedback(null);
-    try {
-      const res = await fetch(`/api/admin/games?id=${gameId}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
+    showConfirm({
+      title: 'Delete Game Platform',
+      message: 'Are you sure you want to delete this game platform?',
+      confirmText: 'Delete',
+      isDanger: true,
+      onConfirm: async () => {
+        setFeedback(null);
+        try {
+          const res = await fetch(`/api/admin/games?id=${gameId}`, {
+            method: 'DELETE',
+          });
+          const data = await res.json();
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to delete game');
+          if (!res.ok) {
+            throw new Error(data.error || 'Failed to delete game');
+          }
+
+          setGames((prev) => prev.filter((g) => g._id !== gameId));
+          setFeedback({ type: 'success', message: 'Successfully deleted game platform!' });
+        } catch (err) {
+          setFeedback({ type: 'error', message: (err as Error).message });
+        }
       }
-
-      setGames((prev) => prev.filter((g) => g._id !== gameId));
-      setFeedback({ type: 'success', message: 'Successfully deleted game platform!' });
-    } catch (err) {
-      setFeedback({ type: 'error', message: (err as Error).message });
-    }
+    });
   };
 
   const handleSaveGame = async (e: React.FormEvent) => {
@@ -1401,15 +1464,19 @@ export default function AdminSettingsPage() {
                               >
                                 <Edit2 size={16} />
                               </button>
-                              {!isSelf && (
+                              {!isSelf && profile.role !== 'super_admin' && (
                                 <button 
                                   className="icon-btn" 
                                   title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
                                   onClick={() => {
                                     const action = profile.isFrozen ? 'unlock' : 'lock';
-                                    if (window.confirm(`Do you want to ${action} this account?`)) {
-                                      handleFreezeToggle(profileId, !profile.isFrozen);
-                                    }
+                                    showConfirm({
+                                      title: `${profile.isFrozen ? 'Unlock' : 'Lock'} Account`,
+                                      message: `Do you want to ${action} this account?`,
+                                      confirmText: profile.isFrozen ? 'Unlock' : 'Lock',
+                                      isDanger: !profile.isFrozen,
+                                      onConfirm: () => handleFreezeToggle(profileId, !profile.isFrozen)
+                                    });
                                   }}
                                   style={{ color: profile.isFrozen ? '#f59e0b' : '#10b981' }}
                                   disabled={updatingId === profileId}
@@ -1534,20 +1601,26 @@ export default function AdminSettingsPage() {
                               >
                                 <Edit2 size={16} />
                               </button>
-                              <button 
-                                className="icon-btn" 
-                                title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
-                                onClick={() => {
-                                  const action = profile.isFrozen ? 'unlock' : 'lock';
-                                  if (window.confirm(`Do you want to ${action} this account?`)) {
-                                    handleFreezeToggle(profileId, !profile.isFrozen);
-                                  }
-                                }}
-                                style={{ color: profile.isFrozen ? '#f59e0b' : '#10b981' }}
-                                disabled={updatingId === profileId}
-                              >
-                                {profile.isFrozen ? <Lock size={16} /> : <Unlock size={16} />}
-                              </button>
+                              {profile.role !== 'super_admin' && (
+                                <button 
+                                  className="icon-btn" 
+                                  title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
+                                  onClick={() => {
+                                    const action = profile.isFrozen ? 'unlock' : 'lock';
+                                    showConfirm({
+                                      title: `${profile.isFrozen ? 'Unlock' : 'Lock'} Account`,
+                                      message: `Do you want to ${action} this account?`,
+                                      confirmText: profile.isFrozen ? 'Unlock' : 'Lock',
+                                      isDanger: !profile.isFrozen,
+                                      onConfirm: () => handleFreezeToggle(profileId, !profile.isFrozen)
+                                    });
+                                  }}
+                                  style={{ color: profile.isFrozen ? '#f59e0b' : '#10b981' }}
+                                  disabled={updatingId === profileId}
+                                >
+                                  {profile.isFrozen ? <Lock size={16} /> : <Unlock size={16} />}
+                                </button>
+                              )}
                               <button 
                                 className="icon-btn" 
                                 title="Delete User" 
@@ -1971,22 +2044,24 @@ export default function AdminSettingsPage() {
               </span>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button
-                className="btn-primary"
-                style={{
-                  padding: '8px 16px',
-                  fontSize: '13px',
-                  width: 'auto',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  margin: 0,
-                  boxShadow: 'none'
-                }}
-                onClick={openCreatePaymentModal}
-              >
-                <Plus size={16} /> Add Payment Method
-              </button>
+              {currentUser.role === 'super_admin' && (
+                <button
+                  className="btn-primary"
+                  style={{
+                    padding: '8px 16px',
+                    fontSize: '13px',
+                    width: 'auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    margin: 0,
+                    boxShadow: 'none'
+                  }}
+                  onClick={openCreatePaymentModal}
+                >
+                  <Plus size={16} /> Add Payment Method
+                </button>
+              )}
               <button className="icon-btn" title="Refresh data" onClick={fetchPayments}>
                 <RefreshCw size={16} />
               </button>
@@ -2008,7 +2083,7 @@ export default function AdminSettingsPage() {
                   <th>Gateway Name</th>
                   <th>Status</th>
                   <th>QR Image File / URL</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  {currentUser.role === 'super_admin' && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -2059,26 +2134,28 @@ export default function AdminSettingsPage() {
                         {payment.qrImage}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '8px' }}>
-                        <button 
-                          className="icon-btn" 
-                          title="Edit Payment Details" 
-                          onClick={() => openEditPaymentModal(payment)}
-                          style={{ color: 'var(--accent-color)' }}
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button 
-                          className="icon-btn" 
-                          title="Delete Payment Channel" 
-                          onClick={() => handleDeletePayment(payment._id)}
-                          style={{ color: 'var(--error-color)' }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
+                    {currentUser.role === 'super_admin' && (
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', gap: '8px' }}>
+                          <button 
+                            className="icon-btn" 
+                            title="Edit Payment Details" 
+                            onClick={() => openEditPaymentModal(payment)}
+                            style={{ color: 'var(--accent-color)' }}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            className="icon-btn" 
+                            title="Delete Payment Channel" 
+                            onClick={() => handleDeletePayment(payment._id)}
+                            style={{ color: 'var(--error-color)' }}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -2860,6 +2937,61 @@ export default function AdminSettingsPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {confirmModal.show && (
+        <div className="modal-overlay" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '460px', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '16px', background: '#1e293b' }}>
+            <div className="modal-header" style={{ borderBottom: confirmModal.isDanger ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(168, 85, 247, 0.2)', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'white', margin: 0 }}>{confirmModal.title}</h2>
+              <button className="icon-btn" onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '24px 0', color: 'rgba(255, 255, 255, 0.7)', fontSize: '15px', lineHeight: '1.6' }}>
+              {confirmModal.message}
+            </div>
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: 'none', paddingTop: 0 }}>
+              <button
+                type="button"
+                className="btn-secondary"
+                style={{ 
+                  padding: '8px 18px', 
+                  margin: 0,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.15)',
+                  color: 'white',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
+                onClick={() => setConfirmModal(prev => ({ ...prev, show: false }))}
+              >
+                {confirmModal.cancelText || 'Cancel'}
+              </button>
+              <button
+                type="button"
+                style={{ 
+                  width: 'auto', 
+                  padding: '8px 20px', 
+                  margin: 0,
+                  background: confirmModal.isDanger ? '#e11d48' : '#a855f7',
+                  color: 'white',
+                  borderRadius: 'var(--radius-md)',
+                  fontWeight: 600,
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: confirmModal.isDanger ? '0 4px 12px rgba(225, 29, 72, 0.2)' : '0 4px 12px rgba(168, 85, 247, 0.2)'
+                }}
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(prev => ({ ...prev, show: false }));
+                }}
+              >
+                {confirmModal.confirmText || 'Confirm'}
+              </button>
+            </div>
           </div>
         </div>
       )}
