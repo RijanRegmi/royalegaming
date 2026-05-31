@@ -75,7 +75,7 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   
   // Tab control
-  const [activeTab, setActiveTab] = useState<'users' | 'games' | 'credentials' | 'payments' | 'notices'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'credentials' | 'payments' | 'notices'>('users');
   
   // Common states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1130,33 +1130,7 @@ export default function AdminSettingsPage() {
             <Users size={16} /> User Accounts
           </button>
         )}
-        {currentUser.role === 'super_admin' && (
-          <button
-            className={`tab-btn ${activeTab === 'games' ? 'active' : ''}`}
-            onClick={() => {
-              setActiveTab('games');
-              fetchGames();
-            }}
-            style={{
-              padding: '10px 18px',
-              fontSize: '14px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              borderBottom: activeTab === 'games' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
-              color: activeTab === 'games' ? 'var(--text-primary)' : 'var(--text-secondary)',
-              background: 'none',
-              outline: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.2s',
-              flexShrink: 0,
-              whiteSpace: 'nowrap'
-            }}
-          >
-            <Gamepad2 size={16} /> Lobby Game Platforms
-          </button>
-        )}
+
         {currentUser.role === 'super_admin' && (
           <button
             className={`tab-btn ${activeTab === 'notices' ? 'active' : ''}`}
@@ -1270,38 +1244,6 @@ export default function AdminSettingsPage() {
             <div>
               <div className="stat-label">Regular Users</div>
               <div className="stat-number">{regularUsersCount}</div>
-            </div>
-          </div>
-        </div>
-      ) : activeTab === 'games' ? (
-        <div className="admin-stats-grid">
-          <div className="stat-card glass">
-            <div className="stat-icon-wrapper users" style={{ background: 'rgba(168, 85, 247, 0.1)', color: 'var(--super-admin-color)' }}>
-              <Gamepad2 size={22} />
-            </div>
-            <div>
-              <div className="stat-label">Total Games</div>
-              <div className="stat-number">{games.length}</div>
-            </div>
-          </div>
-
-          <div className="stat-card glass">
-            <div className="stat-icon-wrapper admins" style={{ background: 'rgba(0, 168, 132, 0.1)', color: 'var(--accent-color)' }}>
-              <Globe size={22} />
-            </div>
-            <div>
-              <div className="stat-label">Active Links</div>
-              <div className="stat-number">{games.filter(g => g.link).length}</div>
-            </div>
-          </div>
-
-          <div className="stat-card glass">
-            <div className="stat-icon-wrapper messages" style={{ background: 'rgba(0, 128, 255, 0.1)', color: 'var(--admin-color)' }}>
-              <Shield size={22} />
-            </div>
-            <div>
-              <div className="stat-label">Lobby Grid</div>
-              <div className="stat-number">Active</div>
             </div>
           </div>
         </div>
@@ -1951,171 +1893,6 @@ export default function AdminSettingsPage() {
                 );
               })}
             </div>
-          )}
-        </div>
-      ) : activeTab === 'games' ? (
-        /* Games Directory Grid view */
-        <div className="admin-table-container glass">
-          <div
-            style={{
-              padding: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '1px solid var(--border-color)',
-            }}
-          >
-            <span style={{ fontWeight: 600 }}>Lobby Game Platforms</span>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              {currentUser.role === 'super_admin' && (
-                <button
-                  className="btn-primary"
-                  style={{
-                    padding: '8px 16px',
-                    fontSize: '13px',
-                    width: 'auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    margin: 0,
-                    boxShadow: 'none'
-                  }}
-                  onClick={openCreateModal}
-                >
-                  <Plus size={16} /> Add Game Card
-                </button>
-              )}
-              <button className="icon-btn" title="Refresh data" onClick={fetchGames}>
-                <RefreshCw size={16} />
-              </button>
-            </div>
-          </div>
-
-          {loadingGames ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-              <div className="spinner"></div>
-            </div>
-          ) : games.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              No games found. Click &quot;Add Game Card&quot; to create one.
-            </div>
-          ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Game Name</th>
-                  <th>Image File / URL</th>
-                  <th>Game Redirect Links</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {games.map((game) => (
-                  <tr key={game._id}>
-                    <td>
-                      <div className="profile-cell">
-                        <div style={{ 
-                          width: '46px', 
-                          height: '46px', 
-                          borderRadius: '8px', 
-                          overflow: 'hidden', 
-                          border: '1px solid var(--border-color)', 
-                          background: 'rgba(0,0,0,0.3)',
-                          flexShrink: 0
-                        }}>
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img 
-                            src={game.image} 
-                            alt={game.name} 
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
-                            onError={(e) => {
-                              e.currentTarget.src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=400';
-                            }}
-                          />
-                        </div>
-                        <span style={{ fontWeight: 600, marginLeft: '12px' }}>{game.name}</span>
-                      </div>
-                    </td>
-                    <td>
-                      <span 
-                        style={{ 
-                          fontSize: '12px', 
-                          color: 'var(--text-secondary)', 
-                          wordBreak: 'break-all',
-                          fontFamily: 'monospace'
-                        }}
-                      >
-                        {game.image}
-                      </span>
-                    </td>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Player:</span>
-                          <a 
-                            href={game.link} 
-                            target="_blank" 
-                            rel="noopener noreferrer" 
-                            style={{ 
-                              color: 'var(--accent-color)', 
-                              fontSize: '12px', 
-                              textDecoration: 'underline',
-                              wordBreak: 'break-all'
-                            }}
-                          >
-                            {game.link}
-                          </a>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>Agent:</span>
-                          {game.agentLink ? (
-                            <a 
-                              href={game.agentLink} 
-                              target="_blank" 
-                              rel="noopener noreferrer" 
-                              style={{ 
-                                color: 'var(--super-admin-color)', 
-                                fontSize: '12px', 
-                                textDecoration: 'underline',
-                                wordBreak: 'break-all'
-                              }}
-                            >
-                              {game.agentLink}
-                            </a>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>None (Falls back to Player Link)</span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      {currentUser.role === 'super_admin' ? (
-                        <div style={{ display: 'inline-flex', gap: '8px' }}>
-                          <button 
-                            className="icon-btn" 
-                            title="Edit Game Details" 
-                            onClick={() => openEditModal(game)}
-                            style={{ color: 'var(--accent-color)' }}
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button 
-                            className="icon-btn" 
-                            title="Delete Platform" 
-                            onClick={() => handleDeleteGame(game._id)}
-                            style={{ color: 'var(--error-color)' }}
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      ) : (
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>View Only</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           )}
         </div>
       ) : activeTab === 'credentials' ? (

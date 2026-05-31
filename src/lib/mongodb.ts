@@ -33,9 +33,8 @@ async function dbConnect() {
     // Seed default super admin once connection is ready
     if (!(global as any).superAdminSeeded) {
       (global as any).superAdminSeeded = true;
-      import('./seed').then(({ seedSuperAdmin, seedGames }) => {
+      import('./seed').then(({ seedSuperAdmin }) => {
         seedSuperAdmin().catch((err) => console.error('Seeding error:', err));
-        seedGames().catch((err) => console.error('Seeding error:', err));
       });
     }
   } catch (e) {
