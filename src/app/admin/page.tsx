@@ -151,7 +151,7 @@ export default function AdminSettingsPage() {
   const [newNoticeTitle, setNewNoticeTitle] = useState('');
   const [newNoticeContent, setNewNoticeContent] = useState('');
   const [newNoticeType, setNewNoticeType] = useState('global');
-  const [newNoticeTargetRole, setNewNoticeTargetRole] = useState('all');
+  const [newNoticeTargetRole, setNewNoticeTargetRole] = useState('admin');
   const [newNoticeTargetUserId, setNewNoticeTargetUserId] = useState('');
   const [savingNotice, setSavingNotice] = useState(false);
 
@@ -1791,7 +1791,7 @@ export default function AdminSettingsPage() {
                 setNewNoticeTitle('');
                 setNewNoticeContent('');
                 setNewNoticeType('global');
-                setNewNoticeTargetRole('all');
+                setNewNoticeTargetRole('admin');
                 setNewNoticeTargetUserId('');
                 setShowNoticeModal(true);
                 setFeedback(null);
@@ -3107,9 +3107,9 @@ export default function AdminSettingsPage() {
                       onChange={(e) => setNewNoticeType(e.target.value)}
                       style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
                     >
-                      <option value="global">Global Announcement</option>
-                      <option value="system">System Broadcast</option>
-                      <option value="super_admin_broadcast">Direct Alert</option>
+                      <option value="global" style={{ background: '#151e24', color: '#fff' }}>Global Announcement</option>
+                      <option value="system" style={{ background: '#151e24', color: '#fff' }}>System Broadcast</option>
+                      <option value="super_admin_broadcast" style={{ background: '#151e24', color: '#fff' }}>Direct Alert</option>
                     </select>
                   </div>
                   
@@ -3117,25 +3117,44 @@ export default function AdminSettingsPage() {
                     <label style={{ fontSize: '13px', fontWeight: 600 }}>Target Group</label>
                     <select 
                       value={newNoticeTargetRole} 
-                      onChange={(e) => setNewNoticeTargetRole(e.target.value)}
+                      onChange={(e) => {
+                        setNewNoticeTargetRole(e.target.value);
+                        setNewNoticeTargetUserId(''); // Reset target individual when group changes
+                      }}
                       style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
                     >
-                      <option value="all">Everyone</option>
-                      <option value="admin">Administrators Only</option>
-                      <option value="user">Standard Players Only</option>
+                      <option value="admin" style={{ background: '#151e24', color: '#fff' }}>Administrators Only</option>
+                      <option value="all" style={{ background: '#151e24', color: '#fff' }}>Everyone</option>
+                      <option value="user" style={{ background: '#151e24', color: '#fff' }}>Standard Players Only</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 600 }}>Target Individual (Optional User ID)</label>
-                  <input 
-                    type="text" 
-                    placeholder="Target specific user Mongoose ID if needed..." 
+                  <select 
                     value={newNoticeTargetUserId}
                     onChange={(e) => setNewNoticeTargetUserId(e.target.value)}
-                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff' }}
-                  />
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
+                  >
+                    <option value="" style={{ background: '#151e24', color: '#fff' }}>-- Select Specific User (Optional) --</option>
+                    {profiles
+                      .filter(p => {
+                        if (newNoticeTargetRole === 'admin') return p.role === 'admin' || p.role === 'super_admin';
+                        if (newNoticeTargetRole === 'user') return p.role === 'user';
+                        return true;
+                      })
+                      .map(p => {
+                        const id = p._id || p.id;
+                        const label = `${p.name} (${p.username ? `@${p.username}` : p.email || 'No Username'})`;
+                        return (
+                          <option key={id} value={id} style={{ background: '#151e24', color: '#fff' }}>
+                            {label}
+                          </option>
+                        );
+                      })
+                    }
+                  </select>
                 </div>
               </div>
               

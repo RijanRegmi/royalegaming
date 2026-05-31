@@ -76,6 +76,12 @@ button, input, select, textarea {
   outline: none;
 }
 
+select option {
+  background-color: #161a1f !important;
+  color: #e9edef !important;
+}
+
+
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

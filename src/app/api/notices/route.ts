@@ -9,15 +9,18 @@ import { sendPushNotification } from '@/lib/notifications';
 export async function GET(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     await dbConnect();
 
     let query: any = { isActive: true };
 
-    if (payload.role === 'super_admin') {
+    if (!payload) {
+      // Guests/unauthenticated users see notices targeted to "all" only
+      query = {
+        isActive: true,
+        targetRole: 'all',
+        targetUserId: { $exists: false }
+      };
+    } else if (payload.role === 'super_admin') {
       // Super admins see all active notices, and can manage them
       query = {}; // Super admin sees all, even inactive for log viewing
     } else if (payload.role === 'admin') {
