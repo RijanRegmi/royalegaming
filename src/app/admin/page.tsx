@@ -75,7 +75,7 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   
   // Tab control
-  const [activeTab, setActiveTab] = useState<'users' | 'games' | 'credentials' | 'payments'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'games' | 'credentials' | 'payments' | 'notices'>('users');
   
   // Common states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -143,6 +143,86 @@ export default function AdminSettingsPage() {
   const [paymentQrPreview, setPaymentQrPreview] = useState('');
   const [paymentIsActive, setPaymentIsActive] = useState<boolean>(true);
   const [savingPayment, setSavingPayment] = useState(false);
+
+  // --- Notices & Extension states ---
+  const [notices, setNotices] = useState<any[]>([]);
+  const [loadingNotices, setLoadingNotices] = useState<boolean>(true);
+  const [showNoticeModal, setShowNoticeModal] = useState<boolean>(false);
+  const [newNoticeTitle, setNewNoticeTitle] = useState('');
+  const [newNoticeContent, setNewNoticeContent] = useState('');
+  const [newNoticeType, setNewNoticeType] = useState('global');
+  const [newNoticeTargetRole, setNewNoticeTargetRole] = useState('all');
+  const [newNoticeTargetUserId, setNewNoticeTargetUserId] = useState('');
+  const [savingNotice, setSavingNotice] = useState(false);
+
+  const [showExtendModal, setShowExtendModal] = useState<boolean>(false);
+  const [extendUserId, setExtendUserId] = useState<string>('');
+  const [extendUserName, setExtendUserName] = useState<string>('');
+  const [extendDays, setExtendDays] = useState<string>('30');
+  const [customDate, setCustomDate] = useState<string>('');
+  const [extending, setExtending] = useState<boolean>(false);
+
+  const fetchNotices = useCallback(async () => {
+    setLoadingNotices(true);
+    try {
+      const res = await fetch('/api/notices');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotices(data.notices || []);
+      }
+    } catch (err) {
+      console.error('Error fetching notices:', err);
+    } finally {
+      setLoadingNotices(false);
+    }
+  }, []);
+
+  const handleExtendSubscription = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!extendUserId) return;
+
+    setExtending(true);
+    try {
+      const res = await fetch('/api/admin/users/extend-time', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: extendUserId,
+          extendDays: customDate ? undefined : extendDays,
+          customDate: customDate || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to extend subscription');
+      }
+
+      setFeedback({ type: 'success', message: `Successfully extended subscription for ${extendUserName}!` });
+      setShowExtendModal(false);
+      setCustomDate('');
+      
+      // Update profiles locally
+      setProfiles((prev) =>
+        prev.map((p) => {
+          const pId = p._id || p.id;
+          if (pId === extendUserId) {
+            return {
+              ...p,
+              isFrozen: false,
+              billingStartDate: data.user.billingStartDate,
+              extendedUntil: data.user.extendedUntil,
+            };
+          }
+          return p;
+        })
+      );
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
+    } finally {
+      setExtending(false);
+    }
+  };
 
   // --- Custom Confirm Modal State ---
   const [confirmModal, setConfirmModal] = useState<{
@@ -525,6 +605,7 @@ export default function AdminSettingsPage() {
       fetchGames();
       fetchCredentials();
       fetchPayments();
+      fetchNotices();
     });
 
     // Allow document scrolling for admin dashboard page
@@ -537,7 +618,7 @@ export default function AdminSettingsPage() {
       document.body.style.overflow = originalBodyOverflow;
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
-  }, [fetchDashboardData, fetchGames, fetchCredentials, fetchPayments]);
+  }, [fetchDashboardData, fetchGames, fetchCredentials, fetchPayments, fetchNotices]);
 
   // Handle user roles changes (users tab)
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -1076,6 +1157,33 @@ export default function AdminSettingsPage() {
             <Gamepad2 size={16} /> Lobby Game Platforms
           </button>
         )}
+        {currentUser.role === 'super_admin' && (
+          <button
+            className={`tab-btn ${activeTab === 'notices' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('notices');
+              fetchNotices();
+            }}
+            style={{
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: activeTab === 'notices' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+              color: activeTab === 'notices' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: 'none',
+              outline: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Shield size={16} /> Notice Board
+          </button>
+        )}
         {currentUser.role === 'admin' && (
           <button
             className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`}
@@ -1263,6 +1371,38 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
+      ) : activeTab === 'notices' ? (
+        <div className="admin-stats-grid">
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper users" style={{ background: 'rgba(168, 85, 247, 0.1)', color: 'var(--super-admin-color)' }}>
+              <Users size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Total Notices</div>
+              <div className="stat-number">{notices.length}</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper admins" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+              <Shield size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Active Alerts</div>
+              <div className="stat-number">{notices.filter(n => n.isActive).length}</div>
+            </div>
+          </div>
+
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper messages" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>
+              <Lock size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Warning Notices</div>
+              <div className="stat-number">{notices.filter(n => n.type === 'admin_warning' && n.isActive).length}</div>
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {/* Primary Tab Contents */}
@@ -1380,7 +1520,7 @@ export default function AdminSettingsPage() {
                     <tr>
                       <th>Profile Name / Email</th>
                       <th>Phone Number</th>
-                      <th>Date Registered</th>
+                      <th>Billing Status / Cycle</th>
                       <th>System Role</th>
                       <th style={{ textAlign: 'right' }}>Actions</th>
                     </tr>
@@ -1430,11 +1570,48 @@ export default function AdminSettingsPage() {
                             </span>
                           </td>
                           <td>
-                            {new Date(profile.createdAt).toLocaleDateString([], {
-                              year: 'numeric',
-                              month: 'short',
-                              day: 'numeric',
-                            })}
+                            {profile.role === 'admin' ? (() => {
+                              const billingStart = (profile as any).billingStartDate ? new Date((profile as any).billingStartDate) : new Date(profile.createdAt);
+                              const deadline = new Date(billingStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+                              let effectiveDeadline = deadline;
+                              if ((profile as any).extendedUntil && new Date((profile as any).extendedUntil) > deadline) {
+                                effectiveDeadline = new Date((profile as any).extendedUntil);
+                              }
+                              const now = new Date();
+                              const isFrozen = profile.isFrozen;
+                              const isGrace = !isFrozen && now > effectiveDeadline;
+                              
+                              return (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{
+                                      fontSize: '10px',
+                                      fontWeight: 800,
+                                      padding: '2px 8px',
+                                      borderRadius: '12px',
+                                      textTransform: 'uppercase',
+                                      background: isFrozen 
+                                        ? 'rgba(239, 68, 68, 0.15)' 
+                                        : isGrace 
+                                          ? 'rgba(245, 158, 11, 0.15)' 
+                                          : 'rgba(16, 185, 129, 0.15)',
+                                      color: isFrozen 
+                                        ? '#ef4444' 
+                                        : isGrace 
+                                          ? '#f59e0b' 
+                                          : '#10b981',
+                                    }}>
+                                      {isFrozen ? 'Frozen' : isGrace ? 'Grace Period' : 'Active'}
+                                    </span>
+                                  </div>
+                                  <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                    Expires: {effectiveDeadline.toLocaleDateString()}
+                                  </span>
+                                </div>
+                              );
+                            })() : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>N/A (Super Admin)</span>
+                            )}
                           </td>
                           <td>
                             {isSelf ? (
@@ -1464,6 +1641,22 @@ export default function AdminSettingsPage() {
                               >
                                 <Edit2 size={16} />
                               </button>
+                              {profile.role === 'admin' && (
+                                <button 
+                                  className="icon-btn" 
+                                  title="Extend Billing Cycle / Time"
+                                  onClick={() => {
+                                    setExtendUserId(profileId);
+                                    setExtendUserName(profile.name);
+                                    setExtendDays('30');
+                                    setCustomDate('');
+                                    setShowExtendModal(true);
+                                  }}
+                                  style={{ color: '#10b981' }}
+                                >
+                                  <RefreshCw size={16} />
+                                </button>
+                              )}
                               {!isSelf && profile.role !== 'super_admin' && (
                                 <button 
                                   className="icon-btn" 
@@ -1640,7 +1833,127 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         );
-      })() : activeTab === 'games' ? (
+      })() : activeTab === 'notices' && currentUser.role === 'super_admin' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Header section with Create button */}
+          <div className="glass" style={{ padding: '20px', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--border-color)' }}>
+            <div>
+              <h3 style={{ margin: 0, fontWeight: 600 }}>Global Notice & Broadcast Board</h3>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Publish notices, warnings, and announcements for administrators or standard users with immediate mobile push notifications.
+              </p>
+            </div>
+            <button 
+              className="btn-primary" 
+              onClick={() => {
+                setNewNoticeTitle('');
+                setNewNoticeContent('');
+                setNewNoticeType('global');
+                setNewNoticeTargetRole('all');
+                setNewNoticeTargetUserId('');
+                setShowNoticeModal(true);
+                setFeedback(null);
+              }}
+              style={{ padding: '8px 16px', fontSize: '13px', width: 'auto', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}
+            >
+              <Plus size={16} /> Publish Notice
+            </button>
+          </div>
+
+          {/* Notices Grid/List */}
+          {loadingNotices ? (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <RefreshCw size={24} className="animate-spin" style={{ margin: '0 auto 10px auto', color: 'var(--super-admin-color)' }} />
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>Loading notices...</p>
+            </div>
+          ) : notices.length === 0 ? (
+            <div className="glass" style={{ padding: '40px 20px', textAlign: 'center', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <Shield size={32} style={{ color: 'var(--text-muted)', marginBottom: '12px', margin: '0 auto 12px auto' }} />
+              <h4 style={{ margin: 0, fontWeight: 600, color: 'var(--text-primary)' }}>No Notices Published</h4>
+              <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Use the publish button to send announcements or system alerts.
+              </p>
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+              {notices.map((notice) => {
+                const isWarning = notice.type === 'admin_warning' || notice.type === 'system';
+                return (
+                  <div 
+                    key={notice._id} 
+                    className="glass" 
+                    style={{ 
+                      padding: '20px', 
+                      borderRadius: '12px', 
+                      border: '1px solid var(--border-color)', 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      justifyContent: 'space-between',
+                      background: notice.isActive ? 'rgba(255, 255, 255, 0.02)' : 'rgba(255, 255, 255, 0.005)',
+                      opacity: notice.isActive ? 1 : 0.6
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                        <span style={{
+                          fontSize: '10px',
+                          fontWeight: 800,
+                          textTransform: 'uppercase',
+                          background: isWarning ? 'rgba(239, 68, 68, 0.15)' : 'rgba(168, 85, 247, 0.15)',
+                          color: isWarning ? '#ef4444' : '#a855f7',
+                          padding: '2px 8px',
+                          borderRadius: '8px'
+                        }}>
+                          {notice.type}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          Target: <strong style={{ color: 'var(--text-secondary)' }}>{notice.targetRole === 'all' ? 'Everyone' : notice.targetRole}</strong>
+                        </span>
+                      </div>
+                      <h4 style={{ margin: '0 0 6px 0', fontWeight: 700, fontSize: '15px', color: 'white' }}>{notice.title}</h4>
+                      <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        {notice.content}
+                      </p>
+                    </div>
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {new Date(notice.createdAt).toLocaleString()}
+                      </span>
+                      <button 
+                        className="icon-btn" 
+                        onClick={async () => {
+                          showConfirm({
+                            title: 'Delete Notice',
+                            message: 'Are you sure you want to delete this notice? It will disappear from all user feeds.',
+                            confirmText: 'Delete',
+                            isDanger: true,
+                            onConfirm: async () => {
+                              try {
+                                const res = await fetch(`/api/notices?id=${notice._id}`, { method: 'DELETE' });
+                                if (res.ok) {
+                                  setNotices(prev => prev.filter(n => n._id !== notice._id));
+                                  setFeedback({ type: 'success', message: 'Notice deleted successfully' });
+                                }
+                              } catch (err) {
+                                console.error('Delete notice error:', err);
+                              }
+                            }
+                          });
+                        }}
+                        style={{ color: 'var(--error-color)' }}
+                        title="Delete Notice"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : activeTab === 'games' ? (
         /* Games Directory Grid view */
         <div className="admin-table-container glass">
           <div
@@ -2934,6 +3247,184 @@ export default function AdminSettingsPage() {
                   disabled={updatingUser}
                 >
                   {updatingUser ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notice Creator Modal */}
+      {showNoticeModal && (
+        <div className="modal-overlay" onClick={() => setShowNoticeModal(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2>Publish Announcement / Notice</h2>
+              <button className="icon-btn" onClick={() => setShowNoticeModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newNoticeTitle || !newNoticeContent) return;
+              
+              setSavingNotice(true);
+              try {
+                const res = await fetch('/api/notices', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: newNoticeTitle,
+                    content: newNoticeContent,
+                    type: newNoticeType,
+                    targetRole: newNoticeTargetRole,
+                    targetUserId: newNoticeTargetUserId || undefined,
+                  })
+                });
+                
+                const data = await res.json();
+                if (res.ok && data.success) {
+                  setNotices(prev => [data.notice, ...prev]);
+                  setShowNoticeModal(false);
+                  setFeedback({ type: 'success', message: 'Notice published and notifications dispatched successfully!' });
+                } else {
+                  throw new Error(data.error || 'Failed to save notice');
+                }
+              } catch (err) {
+                setFeedback({ type: 'error', message: (err as Error).message });
+              } finally {
+                setSavingNotice(false);
+              }
+            }}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Notice Title</label>
+                  <input 
+                    type="text" 
+                    placeholder="e.g. Server Maintenance Notice" 
+                    value={newNoticeTitle}
+                    onChange={(e) => setNewNoticeTitle(e.target.value)}
+                    required
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff' }}
+                  />
+                </div>
+                
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Notice Content / Message</label>
+                  <textarea 
+                    placeholder="Provide details about your announcement..." 
+                    value={newNoticeContent}
+                    onChange={(e) => setNewNoticeContent(e.target.value)}
+                    required
+                    rows={4}
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', resize: 'vertical' }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600 }}>Notice Type</label>
+                    <select 
+                      value={newNoticeType} 
+                      onChange={(e) => setNewNoticeType(e.target.value)}
+                      style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
+                    >
+                      <option value="global">Global Announcement</option>
+                      <option value="system">System Broadcast</option>
+                      <option value="super_admin_broadcast">Direct Alert</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: 600 }}>Target Group</label>
+                    <select 
+                      value={newNoticeTargetRole} 
+                      onChange={(e) => setNewNoticeTargetRole(e.target.value)}
+                      style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
+                    >
+                      <option value="all">Everyone</option>
+                      <option value="admin">Administrators Only</option>
+                      <option value="user">Standard Players Only</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Target Individual (Optional User ID)</label>
+                  <input 
+                    type="text" 
+                    placeholder="Target specific user Mongoose ID if needed..." 
+                    value={newNoticeTargetUserId}
+                    onChange={(e) => setNewNoticeTargetUserId(e.target.value)}
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff' }}
+                  />
+                </div>
+              </div>
+              
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="btn-secondary" style={{ width: 'auto', margin: 0, padding: '8px 16px' }} onClick={() => setShowNoticeModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ width: 'auto', margin: 0, padding: '8px 20px' }} disabled={savingNotice}>
+                  {savingNotice ? 'Publishing...' : 'Publish Announcement'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Extend Time Modal */}
+      {showExtendModal && (
+        <div className="modal-overlay" onClick={() => setShowExtendModal(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <h2>Extend Subscription Cycle</h2>
+              <button className="icon-btn" onClick={() => setShowExtendModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleExtendSubscription}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  Extend subscription time for administrator <strong style={{ color: '#fff' }}>{extendUserName}</strong>. This action will reset their cycle start date to today and unfreeze their account.
+                </p>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Extension Duration</label>
+                  <select 
+                    value={extendDays} 
+                    onChange={(e) => {
+                      setExtendDays(e.target.value);
+                      if (e.target.value) setCustomDate('');
+                    }}
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
+                  >
+                    <option value="30">30 Fresh Days (Standard Cycle)</option>
+                    <option value="7">7 Days (Short Extension)</option>
+                    <option value="14">14 Days (Medium Extension)</option>
+                    <option value="90">90 Days (Quarterly cycle)</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Or Select Custom Expiration Date</label>
+                  <input 
+                    type="date" 
+                    value={customDate}
+                    onChange={(e) => {
+                      setCustomDate(e.target.value);
+                      if (e.target.value) setExtendDays('');
+                    }}
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff' }}
+                  />
+                </div>
+              </div>
+              
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="btn-secondary" style={{ width: 'auto', margin: 0, padding: '8px 16px' }} onClick={() => setShowExtendModal(false)}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ width: 'auto', margin: 0, padding: '8px 20px' }} disabled={extending}>
+                  {extending ? 'Extending...' : 'Apply Extension'}
                 </button>
               </div>
             </form>

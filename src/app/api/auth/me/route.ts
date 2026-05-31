@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 import { encryptSlug } from '@/lib/crypto';
+import { checkAndApplyFreeze } from '@/lib/billing';
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,13 +13,16 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    const user = await User.findById(payload.userId)
+    let user = await User.findById(payload.userId)
       .select('-password')
       .populate('linkedAdmins', 'name username avatar');
       
     if (!user) {
       return NextResponse.json({ authenticated: false }, { status: 404 });
     }
+
+    // Run dynamic billing freeze check
+    user = await checkAndApplyFreeze(user);
 
     const inviteCode = (user.role === 'admin' || user.role === 'super_admin')
       ? encryptSlug(user.username || user._id.toString())
@@ -37,6 +41,8 @@ export async function GET(req: NextRequest) {
         inviteCode,
         linkedAdmins: user.linkedAdmins || [],
         isFrozen: user.isFrozen || false,
+        billingStartDate: user.billingStartDate || null,
+        extendedUntil: user.extendedUntil || null,
       },
     });
   } catch (error) {

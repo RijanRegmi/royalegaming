@@ -36,6 +36,8 @@ export default function Home() {
   const [authenticated, setAuthenticated] = useState<boolean>(false);
   const [loadingPosts, setLoadingPosts] = useState<boolean>(true);
   const [verifyingAuth, setVerifyingAuth] = useState<boolean>(true);
+  const [notices, setNotices] = useState<any[]>([]);
+  const [loadingNotices, setLoadingNotices] = useState<boolean>(true);
 
   // Post Creator State
   const [content, setContent] = useState<string>('');
@@ -135,6 +137,20 @@ export default function Home() {
       }
     };
 
+    const fetchNotices = async () => {
+      try {
+        const res = await fetch('/api/notices');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setNotices(data.notices || []);
+        }
+      } catch (err) {
+        console.error('Error fetching notices:', err);
+      } finally {
+        setLoadingNotices(false);
+      }
+    };
+
     const checkAuth = async () => {
       try {
         const res = await fetch('/api/auth/me');
@@ -151,6 +167,7 @@ export default function Home() {
     };
 
     fetchPosts();
+    fetchNotices();
     checkAuth();
 
     // Check if query param viewAdmin is set to open profile modal automatically
@@ -493,6 +510,56 @@ export default function Home() {
       {/* Main Container */}
       <div className="lobby-container">
         
+        {/* Notices Section */}
+        {notices.length > 0 && (
+          <div className="notices-ribbon-container" style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {notices.filter(n => n.isActive).map((notice) => {
+              const isWarning = notice.type === 'admin_warning' || notice.type === 'system';
+              const bgGradient = isWarning 
+                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.12) 100%)' 
+                : 'linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(59, 130, 246, 0.12) 100%)';
+              const borderColor = isWarning ? 'rgba(245, 158, 11, 0.25)' : 'rgba(168, 85, 247, 0.25)';
+              const iconColor = isWarning ? '#ef4444' : '#a855f7';
+              
+              return (
+                <div 
+                  key={notice._id} 
+                  className="notice-ribbon-card"
+                  style={{
+                    background: bgGradient,
+                    border: `1px solid ${borderColor}`,
+                    borderRadius: '12px',
+                    padding: '14px 18px',
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '14px',
+                    backdropFilter: 'blur(10px)',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                  }}
+                >
+                  <div style={{ color: iconColor, marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Shield size={18} fill={isWarning ? 'rgba(239, 68, 68, 0.05)' : 'rgba(168, 85, 247, 0.05)'} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 3px 0', fontSize: '14px', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {notice.title}
+                      {notice.type === 'system' && (
+                        <span style={{ fontSize: '9px', textTransform: 'uppercase', background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>System</span>
+                      )}
+                      {notice.type === 'admin_warning' && (
+                        <span style={{ fontSize: '9px', textTransform: 'uppercase', background: 'rgba(245,158,11,0.2)', color: '#f59e0b', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>Warning</span>
+                      )}
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '12px', color: '#cbd5e1', lineHeight: '1.5' }}>
+                      {notice.content}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {/* Hero Section */}
         <section className="lobby-hero" style={{ marginBottom: '32px' }}>
           <h2>Royale <span style={{ color: '#a855f7', textShadow: '0 0 15px rgba(168, 85, 247, 0.3)' }}>Community Portal</span></h2>
@@ -525,73 +592,134 @@ export default function Home() {
           <div className="feed-container">
           {/* Post Creator (Admins only) */}
           {authenticated && isAdmin && (
-            <form onSubmit={handleCreatePost} className="post-creator-card">
-              <div className="post-creator-header">
-                {user.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.name} 
-                    className="post-avatar"
-                  />
-                ) : (
-                  <div className="post-avatar" style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
-                    color: 'white', 
-                    fontWeight: 600, 
-                    fontSize: '14px' 
-                  }}>
-                    {getInitials(user.name)}
-                  </div>
-                )}
-                <span className="post-creator-title">Create Official Announcement</span>
-              </div>
-              
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="What announcements do you want to share with the community today?"
-                className="post-textarea"
-              />
-
-              {imagePreview && (
-                <div className="post-creator-preview">
-                  <img src={imagePreview} alt="Attached Preview" />
-                  <button 
-                    type="button" 
-                    onClick={handleRemoveAttachedImage}
-                    className="post-creator-preview-remove"
-                    title="Remove Image"
-                  >
-                    ×
-                  </button>
+            user?.isFrozen ? (
+              <div className="post-creator-card" style={{
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(0, 0, 0, 0.2) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '30px 24px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '16px',
+                borderRadius: '16px',
+                marginBottom: '24px',
+              }}>
+                <div style={{ 
+                  width: '56px', 
+                  height: '56px', 
+                  borderRadius: '50%', 
+                  background: 'rgba(239, 68, 68, 0.15)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: '#ef4444',
+                  boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)'
+                }}>
+                  <Shield size={28} />
                 </div>
-              )}
-
-              <div className="post-creator-actions">
-                <label className="post-attach-btn">
-                  <ImageIcon size={18} />
-                  <span>Attach Photo</span>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-
+                <div>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>
+                    Administrative Actions Suspended
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', maxWidth: '440px', lineHeight: '1.6' }}>
+                    Your administrator account has been automatically frozen due to outstanding payments. Announcement creation and other system operations are temporarily locked.
+                  </p>
+                </div>
                 <button 
-                  type="submit" 
-                  disabled={submitting || (!content.trim() && !file)}
-                  className="post-create-btn"
+                  onClick={handleChatAccess}
+                  className="lobby-btn-chat" 
+                  style={{ 
+                    backgroundColor: '#ef4444', 
+                    color: '#ffffff', 
+                    border: 'none', 
+                    padding: '10px 20px', 
+                    fontSize: '13px', 
+                    fontWeight: 700,
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                    width: 'auto',
+                    margin: '0 auto'
+                  }}
                 >
-                  {submitting ? 'Posting...' : 'Post'}
+                  <MessageSquare size={16} fill="white" />
+                  Chat with Super Admin
                 </button>
               </div>
-            </form>
+            ) : (
+              <form onSubmit={handleCreatePost} className="post-creator-card">
+                <div className="post-creator-header">
+                  {user.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name} 
+                      className="post-avatar"
+                    />
+                  ) : (
+                    <div className="post-avatar" style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
+                      color: 'white', 
+                      fontWeight: 600, 
+                      fontSize: '14px' 
+                    }}>
+                      {getInitials(user.name)}
+                    </div>
+                  )}
+                  <span className="post-creator-title">Create Official Announcement</span>
+                </div>
+                
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="What announcements do you want to share with the community today?"
+                  className="post-textarea"
+                />
+
+                {imagePreview && (
+                  <div className="post-creator-preview">
+                    <img src={imagePreview} alt="Attached Preview" />
+                    <button 
+                      type="button" 
+                      onClick={handleRemoveAttachedImage}
+                      className="post-creator-preview-remove"
+                      title="Remove Image"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                <div className="post-creator-actions">
+                  <label className="post-attach-btn">
+                    <ImageIcon size={18} />
+                    <span>Attach Photo</span>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/*"
+                      onChange={handleFileChange}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+
+                  <button 
+                    type="submit" 
+                    disabled={submitting || (!content.trim() && !file)}
+                    className="post-create-btn"
+                  >
+                    {submitting ? 'Posting...' : 'Post'}
+                  </button>
+                </div>
+              </form>
+            )
           )}
 
           {/* Posts Feed */}
