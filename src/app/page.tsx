@@ -469,14 +469,6 @@ export default function Home() {
             <div className="w-6 h-6 rounded-full border-2 border-purple-500/30 border-t-purple-500 animate-spin" />
           ) : authenticated ? (
             <>
-              {/* User badge */}
-              <div className="lobby-user-badge" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '4px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{user.name}</span>
-                <span style={{ fontSize: '10px', color: '#a855f7', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
-                  {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Member'}
-                </span>
-              </div>
-              
               {isAdmin && (
                 <button onClick={() => router.push('/admin')} className="lobby-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="Control Room">
                   <Shield size={15} />
@@ -512,9 +504,47 @@ export default function Home() {
                 )}
               </button>
 
-              <button onClick={() => router.push('/profile')} className="lobby-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="My Profile">
-                <UserIcon size={15} />
-                <span className="lobby-btn-label">Profile</span>
+              <button 
+                onClick={() => router.push('/profile')} 
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  border: '2px solid rgba(168, 85, 247, 0.3)',
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  padding: 0,
+                  transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 0 12px rgba(168, 85, 247, 0.15)',
+                  marginLeft: '8px',
+                }}
+                title="My Profile"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.8)';
+                  e.currentTarget.style.boxShadow = '0 0 18px rgba(168, 85, 247, 0.35)';
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'rgba(168, 85, 247, 0.3)';
+                  e.currentTarget.style.boxShadow = '0 0 12px rgba(168, 85, 247, 0.15)';
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
+                {user.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: '#ffffff', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                    {getInitials(user.name)}
+                  </span>
+                )}
               </button>
 
               <button onClick={handleChatAccess} className="lobby-btn-chat">
@@ -538,55 +568,7 @@ export default function Home() {
       {/* Main Container */}
       <div className="lobby-container">
         
-        {/* Notices Section */}
-        {notices.length > 0 && (
-          <div className="notices-ribbon-container" style={{ marginBottom: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {notices.filter(n => n.isActive).map((notice) => {
-              const isWarning = notice.type === 'admin_warning' || notice.type === 'system';
-              const bgGradient = isWarning 
-                ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.12) 100%)' 
-                : 'linear-gradient(135deg, rgba(168, 85, 247, 0.12) 0%, rgba(59, 130, 246, 0.12) 100%)';
-              const borderColor = isWarning ? 'rgba(245, 158, 11, 0.25)' : 'rgba(168, 85, 247, 0.25)';
-              const iconColor = isWarning ? '#ef4444' : '#a855f7';
-              
-              return (
-                <div 
-                  key={notice._id} 
-                  className="notice-ribbon-card"
-                  style={{
-                    background: bgGradient,
-                    border: `1px solid ${borderColor}`,
-                    borderRadius: '12px',
-                    padding: '14px 18px',
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: '14px',
-                    backdropFilter: 'blur(10px)',
-                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-                  }}
-                >
-                  <div style={{ color: iconColor, marginTop: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Shield size={18} fill={isWarning ? 'rgba(239, 68, 68, 0.05)' : 'rgba(168, 85, 247, 0.05)'} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <h4 style={{ margin: '0 0 3px 0', fontSize: '14px', fontWeight: 700, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {notice.title}
-                      {notice.type === 'system' && (
-                        <span style={{ fontSize: '9px', textTransform: 'uppercase', background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>System</span>
-                      )}
-                      {notice.type === 'admin_warning' && (
-                        <span style={{ fontSize: '9px', textTransform: 'uppercase', background: 'rgba(245,158,11,0.2)', color: '#f59e0b', padding: '1px 6px', borderRadius: '4px', fontWeight: 800 }}>Warning</span>
-                      )}
-                    </h4>
-                    <p style={{ margin: 0, fontSize: '12px', color: '#cbd5e1', lineHeight: '1.5' }}>
-                      {notice.content}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+
 
         {/* Hero Section */}
         <section className="lobby-hero" style={{ marginBottom: '32px' }}>
