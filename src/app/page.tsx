@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, LogOut, LogIn, Shield, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X } from 'lucide-react';
+import { MessageSquare, LogOut, LogIn, Shield, Bell, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 
 interface PostItem {
@@ -483,6 +483,34 @@ export default function Home() {
                   <span className="lobby-btn-label">Control Room</span>
                 </button>
               )}
+
+              <button 
+                onClick={() => router.push('/notices')} 
+                className="lobby-btn-secondary" 
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }} 
+                title="Notices Board"
+              >
+                <Bell size={15} />
+                <span className="lobby-btn-label">Notices</span>
+                {notices.filter(n => !n.isRead).length > 0 && (
+                  <span 
+                    style={{ 
+                      position: 'absolute', 
+                      top: '-6px', 
+                      right: '-4px', 
+                      background: '#ef4444', 
+                      color: 'white', 
+                      fontSize: '9px', 
+                      fontWeight: 800, 
+                      borderRadius: '10px', 
+                      padding: '1px 5px',
+                      boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)',
+                    }}
+                  >
+                    {notices.filter(n => !n.isRead).length}
+                  </span>
+                )}
+              </button>
 
               <button onClick={() => router.push('/profile')} className="lobby-btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '6px' }} title="My Profile">
                 <UserIcon size={15} />

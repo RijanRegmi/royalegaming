@@ -16,7 +16,9 @@ const UserSchema = new Schema({
   isFrozen: { type: Boolean, default: false },
   billingStartDate: { type: Date, default: Date.now },
   extendedUntil: { type: Date, default: null },
+  readNotices: [{ type: Schema.Types.ObjectId, ref: 'Notice', default: [] }],
 }, { timestamps: true });
 
 const User = models.User || model('User', UserSchema);
 export default User;
+

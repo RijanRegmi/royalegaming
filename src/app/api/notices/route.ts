@@ -49,7 +49,23 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .populate('createdBy', 'name avatar role');
 
-    return NextResponse.json({ success: true, notices });
+    let readNotices: string[] = [];
+    if (payload) {
+      const user = await User.findById(payload.userId).select('readNotices');
+      if (user && user.readNotices) {
+        readNotices = user.readNotices.map((id: any) => id.toString());
+      }
+    }
+
+    const noticesWithReadStatus = notices.map((notice) => {
+      const noticeObj = notice.toObject();
+      return {
+        ...noticeObj,
+        isRead: readNotices.includes(noticeObj._id.toString())
+      };
+    });
+
+    return NextResponse.json({ success: true, notices: noticesWithReadStatus });
   } catch (error) {
     console.error('Fetch notices error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -152,3 +168,36 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
+
+// PUT: Mark a notice as read/unread for the logged-in user
+export async function PUT(req: NextRequest) {
+  try {
+    const payload = getUserFromRequest(req);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await dbConnect();
+    const { noticeId, action } = await req.json();
+
+    if (!noticeId) {
+      return NextResponse.json({ error: 'Notice ID is required' }, { status: 400 });
+    }
+
+    if (action === 'unread') {
+      await User.findByIdAndUpdate(payload.userId, {
+        $pull: { readNotices: noticeId }
+      });
+      return NextResponse.json({ success: true, message: 'Notice marked as unread' });
+    } else {
+      await User.findByIdAndUpdate(payload.userId, {
+        $addToSet: { readNotices: noticeId }
+      });
+      return NextResponse.json({ success: true, message: 'Notice marked as read' });
+    }
+  } catch (error) {
+    console.error('Mark notice read error:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
