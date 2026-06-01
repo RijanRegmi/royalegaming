@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import Message from '@/models/Message';
+import Notice from '@/models/Notice';
 import { getUserFromRequest } from '@/lib/auth';
 import { chatEmitter } from '@/lib/events';
 import { sendPushNotification } from '@/lib/notifications';
@@ -291,6 +292,7 @@ export async function PUT(req: NextRequest) {
       hasFrozenChanged = true;
       if (isFrozen === true) {
         try {
+          // 1. Send support chat message
           const notificationContent = "Your account is frozen. Please check your due payments.";
           const newMsg = new Message({
             senderId: payload.userId, // Super Admin
@@ -311,8 +313,71 @@ export async function PUT(req: NextRequest) {
           
           // Send push notification
           await sendPushNotification(userId, 'Control Room', populatedMessage);
+
+          // 2. Create persistent targeted Notice for account freeze
+          await Notice.findOneAndUpdate(
+            { targetUserId: userId, type: 'admin_warning', title: 'Account Frozen' },
+            {
+              title: 'Account Frozen',
+              content: 'Your account has been frozen by the Super Admin due to outstanding payments. Please contact support.',
+              type: 'admin_warning',
+              targetUserId: userId,
+              targetRole: userToUpdate.role === 'admin' ? 'admin' : 'user',
+              isActive: true,
+            },
+            { upsert: true, new: true }
+          );
+
+          // Deactivate any active unfreeze notices to avoid clutter
+          await Notice.updateMany(
+            { targetUserId: userId, title: 'Account Unfrozen' },
+            { $set: { isActive: false } }
+          );
         } catch (msgError) {
           console.error('Error auto-sending freeze notification message:', msgError);
+        }
+      } else {
+        try {
+          // 1. Send support chat message
+          const notificationContent = "Your account has been successfully unfrozen. Welcome back!";
+          const newMsg = new Message({
+            senderId: payload.userId, // Super Admin
+            recipientId: userId, // Unfrozen Admin
+            chatUserId: userId,
+            adminId: payload.userId, // Super Admin ID
+            content: notificationContent,
+            isRead: false,
+          });
+          await newMsg.save();
+
+          // Broadcast the message to active listeners
+          const populatedMessage = await Message.findById(newMsg._id)
+            .populate('senderId', 'name email role avatar')
+            .populate('recipientId', 'name email role avatar');
+
+          chatEmitter.emit('message', populatedMessage);
+          
+          // Send push notification
+          await sendPushNotification(userId, 'Control Room', populatedMessage);
+
+          // 2. Deactivate outstanding billing freeze or warning notices
+          await Notice.updateMany(
+            { targetUserId: userId, type: 'admin_warning', title: 'Account Frozen' },
+            { $set: { isActive: false } }
+          );
+
+          // 3. Create a system notification confirming the unfreeze
+          const unfreezeNotice = new Notice({
+            title: 'Account Unfrozen',
+            content: 'Your account has been successfully unfrozen by the Super Admin. Welcome back!',
+            type: 'system',
+            targetUserId: userId,
+            targetRole: userToUpdate.role === 'admin' ? 'admin' : 'user',
+            isActive: true,
+          });
+          await unfreezeNotice.save();
+        } catch (msgError) {
+          console.error('Error auto-sending unfreeze notification message:', msgError);
         }
       }
       userToUpdate.isFrozen = isFrozen;

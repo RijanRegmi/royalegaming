@@ -504,6 +504,11 @@ export default function Home() {
                 )}
               </button>
 
+              <button onClick={handleChatAccess} className="lobby-btn-chat">
+                <MessageSquare size={15} fill="white" />
+                <span className="lobby-btn-label">Support Chat</span>
+              </button>
+
               <button 
                 onClick={() => router.push('/profile')} 
                 style={{
@@ -545,11 +550,6 @@ export default function Home() {
                     {getInitials(user.name)}
                   </span>
                 )}
-              </button>
-
-              <button onClick={handleChatAccess} className="lobby-btn-chat">
-                <MessageSquare size={15} fill="white" />
-                <span className="lobby-btn-label">Support Chat</span>
               </button>
             </>
           ) : (
