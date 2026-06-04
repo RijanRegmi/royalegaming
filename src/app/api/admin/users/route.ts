@@ -200,7 +200,7 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { userId, name, email, phone, role, password, username, isFrozen } = await req.json();
+    const { userId, name, email, phone, role, password, username, isFrozen, linkedAdmins } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -383,6 +383,13 @@ export async function PUT(req: NextRequest) {
       userToUpdate.isFrozen = isFrozen;
     }
 
+    // Update linkedAdmins if provided
+    if (linkedAdmins !== undefined) {
+      if (Array.isArray(linkedAdmins)) {
+        userToUpdate.linkedAdmins = linkedAdmins;
+      }
+    }
+
     await userToUpdate.save();
 
     if (hasFrozenChanged) {
@@ -403,6 +410,7 @@ export async function PUT(req: NextRequest) {
         role: userToUpdate.role,
         isFrozen: userToUpdate.isFrozen || false,
         createdAt: userToUpdate.createdAt,
+        linkedAdmins: userToUpdate.linkedAdmins || [],
       },
     });
   } catch (error) {

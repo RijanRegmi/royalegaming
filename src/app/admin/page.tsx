@@ -106,6 +106,7 @@ export default function AdminSettingsPage() {
   const [editUserRole, setEditUserRole] = useState('user');
   const [editUserPassword, setEditUserPassword] = useState('');
   const [updatingUser, setUpdatingUser] = useState(false);
+  const [editUserLinkedAdmins, setEditUserLinkedAdmins] = useState<string[]>([]);
 
   // --- Games management states ---
   const [games, setGames] = useState<Game[]>([]);
@@ -753,6 +754,10 @@ export default function AdminSettingsPage() {
     setEditUserPhone(profile.phone || '');
     setEditUserRole(profile.role);
     setEditUserPassword('');
+    const adminsList = (profile.linkedAdmins || []).map((admin: any) => 
+      typeof admin === 'string' ? admin : (admin._id || admin.id)
+    ).filter(Boolean) as string[];
+    setEditUserLinkedAdmins(adminsList);
     setShowEditUserModal(true);
     setFeedback(null);
   };
@@ -787,6 +792,7 @@ export default function AdminSettingsPage() {
           phone: editUserPhone,
           role: editUserRole,
           password: editUserPassword || undefined,
+          linkedAdmins: editUserRole === 'user' ? editUserLinkedAdmins : undefined,
         }),
       });
 
@@ -3006,6 +3012,52 @@ export default function AdminSettingsPage() {
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>You cannot change your own role.</span>
                   )}
                 </div>
+
+                {editUserRole === 'user' && (
+                  <div className="form-group">
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 600 }}>Linked Support Admins</label>
+                    <div style={{ 
+                      maxHeight: '150px', 
+                      overflowY: 'auto', 
+                      border: '1px solid var(--border-color)', 
+                      borderRadius: 'var(--radius-md)', 
+                      padding: '10px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      background: 'rgba(0,0,0,0.2)'
+                    }}>
+                      {profiles
+                        .filter(p => p.role === 'admin' || p.role === 'super_admin')
+                        .map((admin) => {
+                          const adminId = admin._id || admin.id;
+                          const isChecked = editUserLinkedAdmins.includes(adminId);
+                          return (
+                            <label key={adminId} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', margin: 0 }}>
+                              <input 
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setEditUserLinkedAdmins(prev => [...prev, adminId]);
+                                  } else {
+                                    setEditUserLinkedAdmins(prev => prev.filter(id => id !== adminId));
+                                  }
+                                }}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                              />
+                              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>
+                                {admin.name} ({admin.role === 'super_admin' ? 'Super Admin' : `/${admin.username || 'admin'}`})
+                              </span>
+                            </label>
+                          );
+                        })}
+                      {profiles.filter(p => p.role === 'admin' || p.role === 'super_admin').length === 0 && (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>No administrative accounts available.</span>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 <button
