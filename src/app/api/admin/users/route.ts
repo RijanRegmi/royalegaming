@@ -384,13 +384,51 @@ export async function PUT(req: NextRequest) {
     }
 
     // Update linkedAdmins if provided
+    let newlyLinkedAdmins: string[] = [];
     if (linkedAdmins !== undefined) {
       if (Array.isArray(linkedAdmins)) {
+        const previousAdmins = (userToUpdate.linkedAdmins || []).map((id: any) => id.toString());
+        const targetAdmins = linkedAdmins.map((id: any) => id.toString());
         userToUpdate.linkedAdmins = linkedAdmins;
+        newlyLinkedAdmins = targetAdmins.filter((id: string) => !previousAdmins.includes(id));
       }
     }
 
     await userToUpdate.save();
+
+    // Create system join messages for newly linked admins so they see the user immediately in their inbox
+    if (newlyLinkedAdmins.length > 0) {
+      const userName = userToUpdate.name || 'A user';
+      for (const adminId of newlyLinkedAdmins) {
+        try {
+          const systemMessage = new Message({
+            senderId: userToUpdate._id,
+            recipientId: new mongoose.Types.ObjectId(adminId),
+            chatUserId: userToUpdate._id,
+            adminId: new mongoose.Types.ObjectId(adminId),
+            content: `${userName} joined support chat`,
+            isRead: false,
+            isSystem: true,
+          });
+          await systemMessage.save();
+
+          const populatedMessage = await Message.findById(systemMessage._id)
+            .populate('senderId', 'name email role avatar')
+            .populate('recipientId', 'name email role avatar');
+
+          chatEmitter.emit('message', populatedMessage);
+
+          // Send push notification to the linked admin (Web & Mobile Push)
+          try {
+            await sendPushNotification(adminId, 'New User Joined', populatedMessage);
+          } catch (pushErr) {
+            console.error('Error sending super admin link push notification to admin:', pushErr);
+          }
+        } catch (msgErr) {
+          console.error(`Failed to create system join message for admin ${adminId} in admin/users PUT:`, msgErr);
+        }
+      }
+    }
 
     if (hasFrozenChanged) {
       chatEmitter.emit('user_freeze', { 

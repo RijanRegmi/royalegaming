@@ -20,10 +20,12 @@ export default function LoginPage() {
   const [regEmail, setRegEmail] = useState('');
   const [regPhone, setRegPhone] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regConfirmPassword, setRegConfirmPassword] = useState('');
 
   // Password toggles
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirmPassword, setShowRegConfirmPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -101,8 +103,12 @@ export default function LoginPage() {
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !regEmail || !regPassword) {
-      setError('Name, email, and password are required');
+    if (!name || !regEmail || !regPassword || !regConfirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+    if (regPassword !== regConfirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -274,6 +280,7 @@ export default function LoginPage() {
       setForgotCodeDigits(['', '', '', '', '', '']);
       setNewPassword('');
       setConfirmPassword('');
+      setRegConfirmPassword('');
       setActiveTab('signin');
       setEmailOrPhone(forgotEmail);
     } catch (err: any) {
@@ -345,6 +352,9 @@ export default function LoginPage() {
                       value={emailOrPhone}
                       onChange={(e) => setEmailOrPhone(e.target.value)}
                       disabled={loading}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      maxLength={100}
                     />
                   </div>
                 </div>
@@ -360,6 +370,7 @@ export default function LoginPage() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       disabled={loading}
+                      maxLength={50}
                     />
                     <button
                       type="button"
@@ -402,6 +413,7 @@ export default function LoginPage() {
                       onChange={(e) => setName(e.target.value)}
                       disabled={loading}
                       required
+                      maxLength={50}
                     />
                   </div>
                 </div>
@@ -418,6 +430,9 @@ export default function LoginPage() {
                       onChange={(e) => setRegEmail(e.target.value)}
                       disabled={loading}
                       required
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      maxLength={100}
                     />
                   </div>
                 </div>
@@ -431,8 +446,9 @@ export default function LoginPage() {
                       placeholder="+1234567890"
                       className="form-input"
                       value={regPhone}
-                      onChange={(e) => setRegPhone(e.target.value)}
+                      onChange={(e) => setRegPhone(e.target.value.replace(/[^0-9+]/g, ''))}
                       disabled={loading}
+                      maxLength={15}
                     />
                   </div>
                 </div>
@@ -450,6 +466,7 @@ export default function LoginPage() {
                       disabled={loading}
                       required
                       minLength={6}
+                      maxLength={50}
                     />
                     <button
                       type="button"
@@ -457,6 +474,30 @@ export default function LoginPage() {
                       className="password-toggle-btn"
                     >
                       {showRegPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Confirm Password *</label>
+                  <div className="input-wrapper">
+                    <Lock size={16} className="input-icon" />
+                    <input
+                      type={showRegConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirm your password"
+                      className="form-input has-toggle"
+                      value={regConfirmPassword}
+                      onChange={(e) => setRegConfirmPassword(e.target.value)}
+                      disabled={loading}
+                      required
+                      maxLength={50}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowRegConfirmPassword(!showRegConfirmPassword)}
+                      className="password-toggle-btn"
+                    >
+                      {showRegConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
                 </div>
@@ -514,6 +555,9 @@ export default function LoginPage() {
                       onChange={(e) => setForgotEmail(e.target.value)}
                       disabled={loading}
                       required
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      maxLength={100}
                     />
                   </div>
                 </div>
@@ -614,6 +658,7 @@ export default function LoginPage() {
                       disabled={loading}
                       required
                       minLength={6}
+                      maxLength={50}
                     />
                     <button
                       type="button"
@@ -637,6 +682,7 @@ export default function LoginPage() {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={loading}
                       required
+                      maxLength={50}
                     />
                     <button
                       type="button"
