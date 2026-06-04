@@ -52,14 +52,8 @@ export async function POST(req: NextRequest) {
       primaryAdmin = await User.findOne(adminQuery);
     }
 
-    if (!primaryAdmin) {
-      // Fallback: oldest active admin
-      primaryAdmin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
-    }
-    if (!primaryAdmin) {
-      // Fallback fallback: super admin
-      primaryAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
-    }
+
+
 
     if (primaryAdmin) {
       linkedAdmins.push(primaryAdmin._id);

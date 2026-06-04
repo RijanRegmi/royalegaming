@@ -72,15 +72,16 @@ export default function InvitePage() {
         body: JSON.stringify({ adminSlug, referredBy }),
       });
 
+      const data = await res.json();
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error || 'Failed to accept invitation');
       }
 
+      const adminId = data.admin?.id || data.admin?._id;
       if (authenticated) {
-        router.push('/chat');
+        router.push(`/chat?adminId=${adminId}`);
       } else {
-        router.push('/login?redirect=/chat');
+        router.push(`/login?redirect=${encodeURIComponent(`/chat?adminId=${adminId}`)}`);
       }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'An error occurred. Please try again.';

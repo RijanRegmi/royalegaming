@@ -32,13 +32,6 @@ export async function POST(req: NextRequest) {
       primaryAdmin = await User.findOne(adminQuery);
     }
 
-    if (!primaryAdmin) {
-      primaryAdmin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
-    }
-    if (!primaryAdmin) {
-      primaryAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
-    }
-
     if (primaryAdmin) {
       linkedAdmins.push(primaryAdmin._id);
     }
@@ -54,6 +47,36 @@ export async function POST(req: NextRequest) {
     });
 
     await guestUser.save();
+
+    // Create system join message if primaryAdmin is linked
+    if (primaryAdmin) {
+      try {
+        const Message = (await import('@/models/Message')).default;
+        const systemMessage = new Message({
+          senderId: guestUser._id,
+          recipientId: primaryAdmin._id,
+          chatUserId: guestUser._id,
+          adminId: primaryAdmin._id,
+          content: `${guestUser.name} joined support chat`,
+          isRead: false,
+          isSystem: true,
+        });
+        await systemMessage.save();
+
+        const { chatEmitter } = await import('@/lib/events');
+        chatEmitter.emit('message', systemMessage);
+
+        // Send push notification to the linked admin (Web & Mobile Push)
+        try {
+          const { sendPushNotification } = await import('@/lib/notifications');
+          await sendPushNotification(primaryAdmin._id.toString(), 'New User Joined', systemMessage);
+        } catch (pushErr) {
+          console.error('Error sending guest registration push notification to admin:', pushErr);
+        }
+      } catch (err) {
+        console.error('Error creating system join message on guest registration:', err);
+      }
+    }
 
     // Sign the token
     const token = signToken({ userId: guestUser._id.toString(), role: guestUser.role });

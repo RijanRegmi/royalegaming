@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft, UserPlus } from 'lucide-react';
 
 interface UserChatViewProps {
@@ -174,19 +174,52 @@ function CustomAudioPlayer({ src, duration, senderName, senderAvatar }: CustomAu
 
 export default function UserChatView({ currentUser }: UserChatViewProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const targetAdminId = searchParams ? searchParams.get('adminId') : null;
   const linkedAdmins = currentUser.linkedAdmins || [];
-  const [selectedAdmin, setSelectedAdmin] = useState<any>(linkedAdmins[0] || null);
+  const [selectedAdmin, setSelectedAdmin] = useState<any>(() => {
+    if (targetAdminId && linkedAdmins.length > 0) {
+      const matched = linkedAdmins.find((admin: any) => (admin._id || admin.id) === targetAdminId);
+      if (matched) return matched;
+    }
+    return linkedAdmins[0] || null;
+  });
   const selectedAdminRef = useRef(selectedAdmin);
 
   useEffect(() => {
     selectedAdminRef.current = selectedAdmin;
   }, [selectedAdmin]);
 
+  // Keep URL in sync with selectedAdmin
   useEffect(() => {
-    if (!selectedAdmin && linkedAdmins.length > 0) {
-      setSelectedAdmin(linkedAdmins[0]);
+    if (selectedAdmin) {
+      const adminId = selectedAdmin._id || selectedAdmin.id;
+      const currentUrl = new URL(window.location.href);
+      if (currentUrl.searchParams.get('adminId') !== adminId) {
+        currentUrl.searchParams.set('adminId', adminId);
+        window.history.replaceState(null, '', currentUrl.pathname + currentUrl.search);
+      }
     }
-  }, [linkedAdmins, selectedAdmin]);
+  }, [selectedAdmin]);
+
+  // Keep selectedAdmin in sync with targetAdminId from URL (on load or back/forward navigation)
+  useEffect(() => {
+    if (linkedAdmins.length > 0) {
+      if (targetAdminId) {
+        const matched = linkedAdmins.find((admin: any) => (admin._id || admin.id) === targetAdminId);
+        if (matched) {
+          const currentSelectedId = selectedAdmin ? (selectedAdmin._id || selectedAdmin.id) : null;
+          if (currentSelectedId !== targetAdminId) {
+            setSelectedAdmin(matched);
+          }
+          return;
+        }
+      }
+      if (!selectedAdmin) {
+        setSelectedAdmin(linkedAdmins[0]);
+      }
+    }
+  }, [linkedAdmins, targetAdminId]);
 
   const getInitials = (nameStr?: string) => {
     if (!nameStr) return 'U';

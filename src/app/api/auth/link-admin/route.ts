@@ -153,15 +153,32 @@ export async function POST(req: NextRequest) {
           // Retrieve user details for notification (name)
           const userName = userRecord.name || 'A user';
 
-          // Send notification to the admin that a user has accepted the invitation
+          // Create a system join message so admins see them in their inbox list immediately
           try {
-            const { sendPushNotification } = await import('@/lib/notifications');
-            await sendPushNotification(admin._id.toString(), userName, {
-              content: `${userName} accepted your invitation`,
-              isSystem: false,
+            const Message = (await import('@/models/Message')).default;
+            const systemMessage = new Message({
+              senderId: payload.userId,
+              recipientId: admin._id,
+              chatUserId: payload.userId,
+              adminId: admin._id,
+              content: `${userName} joined support chat`,
+              isRead: false,
+              isSystem: true,
             });
-          } catch (notifyErr) {
-            console.error('Failed to send admin acceptance notification:', notifyErr);
+            await systemMessage.save();
+
+            const { chatEmitter } = await import('@/lib/events');
+            chatEmitter.emit('message', systemMessage);
+
+            // Send push notification to the linked admin (Web & Mobile Push)
+            try {
+              const { sendPushNotification } = await import('@/lib/notifications');
+              await sendPushNotification(admin._id.toString(), 'New User Joined', systemMessage);
+            } catch (pushErr) {
+              console.error('Error sending link-admin push notification to admin:', pushErr);
+            }
+          } catch (msgErr) {
+            console.error('Failed to create system join message in link-admin:', msgErr);
           }
 
           // Handle referral system message immediately since user is logged in

@@ -1397,8 +1397,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       u.email.toLowerCase().includes(searchQuery.toLowerCase());
       
     if (searchQuery.trim() === '') {
-      // Show only users with a valid non-system last message when search is empty
-      return u.lastMessage && !u.lastMessage.isSystem;
+      // Show only users with a valid last message when search is empty
+      return !!u.lastMessage;
     }
     
     return matchesSearch;

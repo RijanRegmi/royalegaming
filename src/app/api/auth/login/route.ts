@@ -61,22 +61,37 @@ export async function POST(req: NextRequest) {
         if (admin && !user.linkedAdmins.map((id: any) => id.toString()).includes(admin._id.toString())) {
           user.linkedAdmins.push(admin._id);
           didUpdate = true;
+
+          // Create a system join message so admins see them in their inbox list immediately
+          try {
+            const Message = (await import('@/models/Message')).default;
+            const systemMessage = new Message({
+              senderId: user._id,
+              recipientId: admin._id,
+              chatUserId: user._id,
+              adminId: admin._id,
+              content: `${user.name} joined support chat`,
+              isRead: false,
+              isSystem: true,
+            });
+            await systemMessage.save();
+
+            const { chatEmitter } = await import('@/lib/events');
+            chatEmitter.emit('message', systemMessage);
+
+            // Send push notification to the linked admin (Web & Mobile Push)
+            try {
+              const { sendPushNotification } = await import('@/lib/notifications');
+              await sendPushNotification(admin._id.toString(), 'New User Joined', systemMessage);
+            } catch (pushErr) {
+              console.error('Error sending login push notification to admin:', pushErr);
+            }
+          } catch (err) {
+            console.error('Error creating system join message on login:', err);
+          }
+
           if (pendingReferrer) {
             triggerReferralAdminId = admin._id.toString();
-          }
-        }
-      }
-
-      if (user.linkedAdmins.length === 0) {
-        const defaultAdmin = await User.findOne({ role: 'admin' }).sort({ createdAt: 1 });
-        if (defaultAdmin) {
-          user.linkedAdmins.push(defaultAdmin._id);
-          didUpdate = true;
-        } else {
-          const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
-          if (superAdmin) {
-            user.linkedAdmins.push(superAdmin._id);
-            didUpdate = true;
           }
         }
       }
