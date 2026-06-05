@@ -68,7 +68,7 @@ export default function Home() {
         rotationY.current += autoSpinSpeed + velocity.current;
         
         if (ringRef.current) {
-          ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
+          ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
           ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
         }
         if (stageRef.current) {
@@ -118,7 +118,7 @@ export default function Home() {
     lastTime.current = now;
 
     if (ringRef.current) {
-      ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
+      ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
       ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
     }
     if (stageRef.current) {
@@ -599,8 +599,7 @@ export default function Home() {
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
           
           .carousel-3d-stage {
-            --stage-perspective: calc(1000px - var(--ring-velocity-abs, 0) * 22px);
-            perspective: var(--stage-perspective);
+            perspective: 1000px;
             width: 100%;
             height: 340px;
             display: flex;
@@ -611,7 +610,6 @@ export default function Home() {
             z-index: 2;
             cursor: grab;
             user-select: none;
-            transition: perspective 0.15s ease-out;
           }
 
           .carousel-3d-stage:active {
@@ -646,16 +644,14 @@ export default function Home() {
             padding: 8px;
             transition: transform 0.15s ease-out, border-color 0.4s, box-shadow 0.4s;
             cursor: pointer;
-            backface-visibility: hidden;
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
-            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
-            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) skewX(var(--skew-angle));
+            backface-visibility: visible;
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.25deg);
+            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) rotateY(calc(var(--card-angle) * -0.5)) skewX(var(--skew-angle));
           }
 
           .carousel-3d-card:hover {
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
-            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
-            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.25deg);
+            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) rotateY(calc(var(--card-angle) * -0.5)) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
             border-color: #a855f7;
             box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
             z-index: 100 !important;
@@ -821,7 +817,7 @@ export default function Home() {
             .carousel-3d-stage {
               margin: 10px 0 !important;
               height: 280px !important;
-              transform: none !important;
+              transform: scale(0.8) !important;
             }
             .landing-footer {
               margin-top: 16px !important;
@@ -854,8 +850,8 @@ export default function Home() {
             }
             .carousel-3d-stage {
               margin: 4px 0 !important;
-              height: 240px !important;
-              transform: none !important;
+              height: 200px !important;
+              transform: scale(0.65) !important;
             }
             .landing-actions {
               gap: 8px !important;
