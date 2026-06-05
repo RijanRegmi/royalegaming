@@ -65,7 +65,7 @@ export default function Home() {
         // Add base speed + current user swipe velocity
         rotationY.current += autoSpinSpeed + velocity.current;
         if (ringRef.current) {
-          ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
+          ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
           ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
         }
         if (stageRef.current) {
@@ -114,7 +114,7 @@ export default function Home() {
     lastTime.current = now;
 
     if (ringRef.current) {
-      ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
+      ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
       ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
     }
     if (stageRef.current) {
@@ -596,10 +596,10 @@ export default function Home() {
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
           
           .carousel-3d-stage {
-            --stage-perspective: calc(1000px - var(--ring-velocity-abs, 0) * 22px);
+            --stage-perspective: calc(1200px - var(--ring-velocity-abs, 0) * 15px);
             perspective: var(--stage-perspective);
             width: 100%;
-            height: 340px;
+            height: 380px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -617,8 +617,8 @@ export default function Home() {
 
           .carousel-3d-ring {
             transform-style: preserve-3d;
-            width: 160px;
-            height: 220px;
+            width: 190px;
+            height: 260px;
             position: relative;
             user-select: none;
             -webkit-user-drag: none;
@@ -630,37 +630,32 @@ export default function Home() {
             height: 100%;
             left: 0;
             top: 0;
-            border-radius: 16px;
+            border-radius: 18px;
             overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            background: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: space-between;
-            padding: 8px;
-            transition: transform 0.15s ease-out, border-color 0.4s, box-shadow 0.4s;
+            padding: 10px;
+            transition: border-color 0.4s, box-shadow 0.4s;
             cursor: pointer;
-            backface-visibility: hidden;
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
-            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
-            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) skewX(var(--skew-angle));
+            backface-visibility: visible;
+            transform: rotateY(var(--card-angle)) translateZ(var(--card-z));
           }
 
           .carousel-3d-card:hover {
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
-            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
-            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
             border-color: #a855f7;
-            box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+            box-shadow: 0 0 30px rgba(168, 85, 247, 0.5);
             z-index: 100 !important;
           }
 
           .carousel-3d-card img {
             width: 100%;
-            height: 80%;
+            height: 82%;
             object-fit: cover;
             border-radius: 12px;
             pointer-events: none;
@@ -673,7 +668,12 @@ export default function Home() {
             color: #ffffff;
             margin: 4px 0;
             text-align: center;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.7);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            padding: 0 4px;
           }
 
           @keyframes rotateRing {
@@ -908,7 +908,9 @@ export default function Home() {
             ]).map((game, idx, arr) => {
               const count = arr.length;
               const angle = (360 / count) * idx;
-              const translateZ = Math.max(240, Math.round(85 / Math.sin(Math.PI / count)));
+              // Correct radius so cards space evenly around the circle
+              const cardWidth = 190;
+              const translateZ = Math.round((cardWidth / 2) / Math.tan(Math.PI / count)) + 60;
               return (
                 <div
                   key={game._id || idx}
