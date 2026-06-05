@@ -68,7 +68,7 @@ export default function Home() {
         rotationY.current += autoSpinSpeed + velocity.current;
         
         if (ringRef.current) {
-          ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
+          ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
           ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
         }
         if (stageRef.current) {
@@ -118,7 +118,7 @@ export default function Home() {
     lastTime.current = now;
 
     if (ringRef.current) {
-      ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
+      ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
       ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
     }
     if (stageRef.current) {
@@ -646,16 +646,16 @@ export default function Home() {
             padding: 8px;
             transition: transform 0.15s ease-out, border-color 0.4s, box-shadow 0.4s;
             cursor: pointer;
-            backface-visibility: visible;
+            backface-visibility: hidden;
             --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
             --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
-            transform: rotateY(var(--card-angle)) translateZ(var(--card-z-dynamic)) skewX(var(--skew-angle));
+            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) skewX(var(--skew-angle));
           }
 
           .carousel-3d-card:hover {
             --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
             --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
-            transform: rotateY(var(--card-angle)) translateZ(var(--card-z-dynamic)) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
+            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
             border-color: #a855f7;
             box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
             z-index: 100 !important;
