@@ -53,39 +53,7 @@ export default function Home() {
   const lastTime = useRef<number>(0);
   const requestRef = useRef<number | null>(null);
 
-  useEffect(() => {
-    let autoSpinSpeed = 0.15; // Baseline speed in degrees per frame
-    let friction = 0.95; // Velocity decay factor
-    
-    const updateRotation = () => {
-      if (!isDragging.current) {
-        // Apply friction to the swipe velocity
-        velocity.current *= friction;
-        if (Math.abs(velocity.current) < 0.01) {
-          velocity.current = 0;
-        }
-        // Add base speed + current user swipe velocity
-        rotationY.current += autoSpinSpeed + velocity.current;
-        
-        if (ringRef.current) {
-          ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
-          ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
-        }
-        if (stageRef.current) {
-          const absVelocity = Math.abs(velocity.current);
-          stageRef.current.style.setProperty('--ring-velocity-abs', `${absVelocity}`);
-        }
-      }
-      requestRef.current = requestAnimationFrame(updateRotation);
-    };
-    
-    requestRef.current = requestAnimationFrame(updateRotation);
-    return () => {
-      if (requestRef.current) {
-        cancelAnimationFrame(requestRef.current);
-      }
-    };
-  }, []);
+, []);
 
   const handleDragStart = (clientX: number) => {
     isDragging.current = true;
@@ -118,7 +86,7 @@ export default function Home() {
     lastTime.current = now;
 
     if (ringRef.current) {
-      ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
+      ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
       ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
     }
     if (stageRef.current) {
@@ -175,7 +143,7 @@ export default function Home() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const showConfirm = (title: string, message: string, onConfirm: () => void, confirmText = 'Confirm', cancelText = 'Cancel') => {
@@ -595,11 +563,13 @@ export default function Home() {
         }} />
 
         {/* Custom Styles for 3D Rotating Loop Circle */}
-        <style dangerouslySetInnerHTML={{ __html: `
+        <style dangerouslySetInnerHTML={{
+          __html: `
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
           
           .carousel-3d-stage {
-            perspective: 1000px;
+            --stage-perspective: calc(1000px - var(--ring-velocity-abs, 0) * 22px);
+            perspective: var(--stage-perspective);
             width: 100%;
             height: 340px;
             display: flex;
@@ -610,6 +580,7 @@ export default function Home() {
             z-index: 2;
             cursor: grab;
             user-select: none;
+            transition: perspective 0.15s ease-out;
           }
 
           .carousel-3d-stage:active {
@@ -644,14 +615,16 @@ export default function Home() {
             padding: 8px;
             transition: transform 0.15s ease-out, border-color 0.4s, box-shadow 0.4s;
             cursor: pointer;
-            backface-visibility: visible;
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.25deg);
-            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) rotateY(calc(var(--card-angle) * -0.5)) skewX(var(--skew-angle));
+            backface-visibility: hidden;
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
+            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
+            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) skewX(var(--skew-angle));
           }
 
           .carousel-3d-card:hover {
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.25deg);
-            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) rotateY(calc(var(--card-angle) * -0.5)) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
+            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
+            transform: rotateY(var(--card-angle)) translateZ(calc(-1 * var(--card-z-dynamic))) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
             border-color: #a855f7;
             box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
             z-index: 100 !important;
@@ -817,7 +790,7 @@ export default function Home() {
             .carousel-3d-stage {
               margin: 10px 0 !important;
               height: 280px !important;
-              transform: scale(0.8) !important;
+              transform: none !important;
             }
             .landing-footer {
               margin-top: 16px !important;
@@ -850,8 +823,8 @@ export default function Home() {
             }
             .carousel-3d-stage {
               margin: 4px 0 !important;
-              height: 200px !important;
-              transform: scale(0.65) !important;
+              height: 240px !important;
+              transform: none !important;
             }
             .landing-actions {
               gap: 8px !important;
@@ -885,7 +858,7 @@ export default function Home() {
         </p>
 
         {/* 3D Circular Loop Circle of Games */}
-        <div 
+        <div
           ref={stageRef}
           className="carousel-3d-stage"
           onMouseDown={(e) => handleDragStart(e.clientX)}
@@ -918,9 +891,9 @@ export default function Home() {
                   } as React.CSSProperties}
                   onClick={() => handleChatAccess()}
                 >
-                  <img 
-                    src={game.image} 
-                    alt={game.name} 
+                  <img
+                    src={game.image}
+                    alt={game.name}
                     onError={(e) => {
                       e.currentTarget.src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=400';
                     }}
@@ -941,7 +914,7 @@ export default function Home() {
           >
             <Gamepad2 size={18} /> Sign In to Play
           </button>
-          
+
           <button
             type="button"
             className="landing-btn-signup"
@@ -964,9 +937,9 @@ export default function Home() {
       {/* Header Navbar */}
       <header className="lobby-navbar">
         <div className="lobby-logo" onClick={() => router.push('/')}>
-          <img 
-            src="/royale_logo.jpg" 
-            alt="Royale Logo" 
+          <img
+            src="/royale_logo.jpg"
+            alt="Royale Logo"
             style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', marginRight: '10px' }}
           />
           <div>
@@ -987,25 +960,25 @@ export default function Home() {
                 </button>
               )}
 
-              <button 
-                onClick={() => router.push('/notices')} 
-                className="lobby-btn-secondary" 
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }} 
+              <button
+                onClick={() => router.push('/notices')}
+                className="lobby-btn-secondary"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }}
                 title="Notices Board"
               >
                 <Bell size={15} />
                 <span className="lobby-btn-label">Notices</span>
                 {notices.filter(n => !n.isRead).length > 0 && (
-                  <span 
-                    style={{ 
-                      position: 'absolute', 
-                      top: '-6px', 
-                      right: '-4px', 
-                      background: '#ef4444', 
-                      color: 'white', 
-                      fontSize: '9px', 
-                      fontWeight: 800, 
-                      borderRadius: '10px', 
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '-6px',
+                      right: '-4px',
+                      background: '#ef4444',
+                      color: 'white',
+                      fontSize: '9px',
+                      fontWeight: 800,
+                      borderRadius: '10px',
                       padding: '1px 5px',
                       boxShadow: '0 0 10px rgba(239, 68, 68, 0.5)',
                     }}
@@ -1020,8 +993,8 @@ export default function Home() {
                 <span className="lobby-btn-label">Support Chat</span>
               </button>
 
-              <button 
-                onClick={() => router.push('/profile')} 
+              <button
+                onClick={() => router.push('/profile')}
                 style={{
                   width: '38px',
                   height: '38px',
@@ -1051,9 +1024,9 @@ export default function Home() {
                 }}
               >
                 {user.avatar ? (
-                  <img 
-                    src={user.avatar} 
-                    alt={user.name} 
+                  <img
+                    src={user.avatar}
+                    alt={user.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
@@ -1078,7 +1051,7 @@ export default function Home() {
 
       {/* Main Container */}
       <div className="lobby-container">
-        
+
 
 
         {/* Hero Section */}
@@ -1097,382 +1070,382 @@ export default function Home() {
         <div className="lobby-content-layout">
           {/* Left Vertical Ad Sidebar */}
           {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
-            <div 
+            <div
               className={`desktop-ad-sidebar left ${leftAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
             >
               <div className="desktop-ad-sidebar-title">Partner Ad</div>
-              <AdSenseBanner 
-                adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
-                adFormat="vertical" 
-                style={{ display: 'block', width: '136px', height: '600px' }} 
+              <AdSenseBanner
+                adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID}
+                adFormat="vertical"
+                style={{ display: 'block', width: '136px', height: '600px' }}
                 onStatusChange={(status) => setLeftAdStatus(status)}
               />
             </div>
           )}
 
           <div className="feed-container">
-          {/* Post Creator (Admins only) */}
-          {authenticated && isAdmin && (
-            user?.isFrozen ? (
-              <div className="post-creator-card" style={{
-                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(0, 0, 0, 0.2) 100%)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-                padding: '30px 24px',
-                textAlign: 'center',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '16px',
-                borderRadius: '16px',
-                marginBottom: '24px',
-              }}>
-                <div style={{ 
-                  width: '56px', 
-                  height: '56px', 
-                  borderRadius: '50%', 
-                  background: 'rgba(239, 68, 68, 0.15)', 
-                  display: 'flex', 
-                  alignItems: 'center', 
+            {/* Post Creator (Admins only) */}
+            {authenticated && isAdmin && (
+              user?.isFrozen ? (
+                <div className="post-creator-card" style={{
+                  background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(0, 0, 0, 0.2) 100%)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  padding: '30px 24px',
+                  textAlign: 'center',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#ef4444',
-                  boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)'
+                  gap: '16px',
+                  borderRadius: '16px',
+                  marginBottom: '24px',
                 }}>
-                  <Shield size={28} />
-                </div>
-                <div>
-                  <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>
-                    Administrative Actions Suspended
-                  </h3>
-                  <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', maxWidth: '440px', lineHeight: '1.6' }}>
-                    Your administrator account has been automatically frozen due to outstanding payments. Announcement creation and other system operations are temporarily locked.
-                  </p>
-                </div>
-                <button 
-                  onClick={handleChatAccess}
-                  className="lobby-btn-chat" 
-                  style={{ 
-                    backgroundColor: '#ef4444', 
-                    color: '#ffffff', 
-                    border: 'none', 
-                    padding: '10px 20px', 
-                    fontSize: '13px', 
-                    fontWeight: 700,
-                    borderRadius: '8px',
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '50%',
+                    background: 'rgba(239, 68, 68, 0.15)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
-                    cursor: 'pointer',
-                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
-                    width: 'auto',
-                    margin: '0 auto'
-                  }}
-                >
-                  <MessageSquare size={16} fill="white" />
-                  Chat with Super Admin
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={handleCreatePost} className="post-creator-card">
-                <div className="post-creator-header">
-                  {user.avatar ? (
-                    <img 
-                      src={user.avatar} 
-                      alt={user.name} 
-                      className="post-avatar"
-                    />
-                  ) : (
-                    <div className="post-avatar" style={{ 
-                      display: 'flex', 
-                      alignItems: 'center', 
-                      justifyContent: 'center', 
-                      background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
-                      color: 'white', 
-                      fontWeight: 600, 
-                      fontSize: '14px' 
-                    }}>
-                      {getInitials(user.name)}
-                    </div>
-                  )}
-                  <span className="post-creator-title">Create Official Announcement</span>
-                </div>
-                
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="What announcements do you want to share with the community today?"
-                  className="post-textarea"
-                />
-
-                {imagePreview && (
-                  <div className="post-creator-preview">
-                    <img src={imagePreview} alt="Attached Preview" />
-                    <button 
-                      type="button" 
-                      onClick={handleRemoveAttachedImage}
-                      className="post-creator-preview-remove"
-                      title="Remove Image"
-                    >
-                      ×
-                    </button>
+                    justifyContent: 'center',
+                    color: '#ef4444',
+                    boxShadow: '0 0 20px rgba(239, 68, 68, 0.2)'
+                  }}>
+                    <Shield size={28} />
                   </div>
-                )}
-
-                <div className="post-creator-actions">
-                  <label className="post-attach-btn">
-                    <ImageIcon size={18} />
-                    <span>Attach Photo</span>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      accept="image/*"
-                      onChange={handleFileChange}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-
-                  <button 
-                    type="submit" 
-                    disabled={submitting || (!content.trim() && !file)}
-                    className="post-create-btn"
+                  <div>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700, color: '#ffffff' }}>
+                      Administrative Actions Suspended
+                    </h3>
+                    <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', maxWidth: '440px', lineHeight: '1.6' }}>
+                      Your administrator account has been automatically frozen due to outstanding payments. Announcement creation and other system operations are temporarily locked.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleChatAccess}
+                    className="lobby-btn-chat"
+                    style={{
+                      backgroundColor: '#ef4444',
+                      color: '#ffffff',
+                      border: 'none',
+                      padding: '10px 20px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                      width: 'auto',
+                      margin: '0 auto'
+                    }}
                   >
-                    {submitting ? 'Posting...' : 'Post'}
+                    <MessageSquare size={16} fill="white" />
+                    Chat with Super Admin
                   </button>
                 </div>
-              </form>
-            )
-          )}
-
-          {/* Posts Feed */}
-          {loadingPosts ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: '16px' }}>
-              <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={40} />
-              <p style={{ fontSize: '13px', color: '#8fa0b5' }}>Loading official feed...</p>
-            </div>
-          ) : posts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'rgba(18, 31, 69, 0.4)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '480px', margin: '0 auto' }}>
-              <ImageIcon size={48} style={{ color: '#8fa0b5', marginBottom: '16px', opacity: 0.5, margin: '0 auto 16px auto' }} />
-              <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>No Announcements</h3>
-              <p style={{ fontSize: '13px', color: '#8fa0b5' }}>
-                {authenticated 
-                  ? 'There are no active posts from your linked administrators at this time.' 
-                  : 'Please sign in to link with an administrator and view the feed.'}
-              </p>
-            </div>
-          ) : (
-            posts.map((post, index) => {
-              const hasLiked = user && post.likes.includes(user.id || user._id);
-              const isMyPost = user && (post.adminId?._id === (user.id || user._id));
-
-              const isEditing = editingPostId === post._id;
-
-              return (
-                <Fragment key={post._id}>
-                  <div className="post-card">
-                  {isEditing ? (
-                    <>
-                      {/* Post Header (Editing) */}
-                      <div className="post-header">
-                        <div className="post-author-info">
-                          {post.adminId.avatar ? (
-                            <img 
-                              src={post.adminId.avatar} 
-                              alt={post.adminId.name} 
-                              className="post-avatar"
-                            />
-                          ) : (
-                            <div className="post-avatar" style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
-                              color: 'white', 
-                              fontWeight: 600, 
-                              fontSize: '14px' 
-                            }}>
-                              {getInitials(post.adminId.name)}
-                            </div>
-                          )}
-                          <div className="post-author-details">
-                            <span className="post-author-name">{post.adminId.name}</span>
-                            <span className="post-time">{formatPostTime(post.createdAt)} (Editing)</span>
-                          </div>
-                        </div>
+              ) : (
+                <form onSubmit={handleCreatePost} className="post-creator-card">
+                  <div className="post-creator-header">
+                    {user.avatar ? (
+                      <img
+                        src={user.avatar}
+                        alt={user.name}
+                        className="post-avatar"
+                      />
+                    ) : (
+                      <div className="post-avatar" style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                        color: 'white',
+                        fontWeight: 600,
+                        fontSize: '14px'
+                      }}>
+                        {getInitials(user.name)}
                       </div>
+                    )}
+                    <span className="post-creator-title">Create Official Announcement</span>
+                  </div>
 
-                      {/* Edit Form */}
-                      <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: '12px 0 0 0' }}>
-                        <textarea
-                          value={editContent}
-                          onChange={(e) => setEditContent(e.target.value)}
-                          placeholder="Update announcement..."
-                          className="post-textarea"
-                          style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
-                          required
-                        />
+                  <textarea
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                    placeholder="What announcements do you want to share with the community today?"
+                    className="post-textarea"
+                  />
 
-                        {editImagePreview && (
-                          <div className="post-creator-preview" style={{ marginTop: '10px' }}>
-                            <img src={editImagePreview} alt="Edit Attachment" />
-                            <button 
-                              type="button" 
-                              onClick={handleRemoveEditImage}
-                              className="post-creator-preview-remove"
-                              title="Remove Image"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        )}
-
-                        <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                              <ImageIcon size={16} />
-                              <span>Change Photo</span>
-                              <input
-                                type="file"
-                                ref={editFileInputRef}
-                                accept="image/*"
-                                onChange={handleEditFileChange}
-                                style={{ display: 'none' }}
-                              />
-                            </label>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button 
-                              type="button" 
-                              onClick={() => setEditingPostId(null)}
-                              className="lobby-btn-secondary"
-                              style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
-                            >
-                              Cancel
-                            </button>
-                            <button 
-                              type="submit" 
-                              disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
-                              className="post-create-btn"
-                              style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
-                            >
-                              {editSubmitting ? 'Saving...' : 'Save'}
-                            </button>
-                          </div>
-                        </div>
-                      </form>
-                    </>
-                  ) : (
-                    <>
-                      {/* Post Header */}
-                      <div className="post-header">
-                        <div className="post-author-info" onClick={() => handleViewAdminProfile(post.adminId?._id, post.adminId)} style={{ cursor: 'pointer' }} title="View Profile">
-                          {post.adminId.avatar ? (
-                            <img 
-                              src={post.adminId.avatar} 
-                              alt={post.adminId.name} 
-                              className="post-avatar"
-                            />
-                          ) : (
-                            <div className="post-avatar" style={{ 
-                              display: 'flex', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
-                              color: 'white', 
-                              fontWeight: 600, 
-                              fontSize: '14px' 
-                            }}>
-                              {getInitials(post.adminId.name)}
-                            </div>
-                          )}
-                          <div className="post-author-details">
-                            <span className="post-author-name">{post.adminId.name}</span>
-                            <span className="post-time">{formatPostTime(post.createdAt)}</span>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          {(isMyPost || (user && user.role === 'super_admin')) && (
-                            <>
-                              <button 
-                                onClick={() => startEditPost(post)}
-                                className="post-edit-btn"
-                                style={{ background: 'none', border: 'none', color: '#8fa0b5', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                                title="Edit Announcement"
-                              >
-                                <Pencil size={16} />
-                              </button>
-                              <button 
-                                onClick={() => handleDeletePost(post._id)}
-                                className="post-delete-btn"
-                                title="Delete Announcement"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Post Content */}
-                      {post.content && (
-                        <div className="post-content">{post.content}</div>
-                      )}
-
-                      {/* Post Image */}
-                      {post.image && (
-                        <div className="post-image-container">
-                          <img 
-                            src={post.image} 
-                            alt="Announcement Media" 
-                            className="post-image" 
-                            onClick={() => setLightboxImage(post.image!)} 
-                            style={{ cursor: 'pointer' }} 
-                            title="Click to view full screen"
-                          />
-                        </div>
-                      )}
-
-                      {/* Post Actions (Likes) */}
-                      <div className="post-actions">
-                        <button 
-                          onClick={() => handleLikePost(post._id)}
-                          className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
-                        >
-                          <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
-                          <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
-                        </button>
-                      </div>
-                    </>
+                  {imagePreview && (
+                    <div className="post-creator-preview">
+                      <img src={imagePreview} alt="Attached Preview" />
+                      <button
+                        type="button"
+                        onClick={handleRemoveAttachedImage}
+                        className="post-creator-preview-remove"
+                        title="Remove Image"
+                      >
+                        ×
+                      </button>
+                    </div>
                   )}
-                </div>
 
-                {/* Inline sponsored ad block */}
-                {(index + 1) % 3 === 0 && (
-                  <SponsoredPostCard />
-                )}
-              </Fragment>
-            );
-          })
-        )}
-      </div>
+                  <div className="post-creator-actions">
+                    <label className="post-attach-btn">
+                      <ImageIcon size={18} />
+                      <span>Attach Photo</span>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
 
-      {/* Right Vertical Ad Sidebar */}
-      {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
-        <div 
-          className={`desktop-ad-sidebar right ${rightAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
-        >
-          <div className="desktop-ad-sidebar-title">Partner Ad</div>
-          <AdSenseBanner 
-            adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
-            adFormat="vertical" 
-            style={{ display: 'block', width: '136px', height: '600px' }} 
-            onStatusChange={(status) => setRightAdStatus(status)}
-          />
+                    <button
+                      type="submit"
+                      disabled={submitting || (!content.trim() && !file)}
+                      className="post-create-btn"
+                    >
+                      {submitting ? 'Posting...' : 'Post'}
+                    </button>
+                  </div>
+                </form>
+              )
+            )}
+
+            {/* Posts Feed */}
+            {loadingPosts ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', gap: '16px' }}>
+                <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={40} />
+                <p style={{ fontSize: '13px', color: '#8fa0b5' }}>Loading official feed...</p>
+              </div>
+            ) : posts.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 20px', backgroundColor: 'rgba(18, 31, 69, 0.4)', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '480px', margin: '0 auto' }}>
+                <ImageIcon size={48} style={{ color: '#8fa0b5', marginBottom: '16px', opacity: 0.5, margin: '0 auto 16px auto' }} />
+                <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#ffffff', marginBottom: '8px' }}>No Announcements</h3>
+                <p style={{ fontSize: '13px', color: '#8fa0b5' }}>
+                  {authenticated
+                    ? 'There are no active posts from your linked administrators at this time.'
+                    : 'Please sign in to link with an administrator and view the feed.'}
+                </p>
+              </div>
+            ) : (
+              posts.map((post, index) => {
+                const hasLiked = user && post.likes.includes(user.id || user._id);
+                const isMyPost = user && (post.adminId?._id === (user.id || user._id));
+
+                const isEditing = editingPostId === post._id;
+
+                return (
+                  <Fragment key={post._id}>
+                    <div className="post-card">
+                      {isEditing ? (
+                        <>
+                          {/* Post Header (Editing) */}
+                          <div className="post-header">
+                            <div className="post-author-info">
+                              {post.adminId.avatar ? (
+                                <img
+                                  src={post.adminId.avatar}
+                                  alt={post.adminId.name}
+                                  className="post-avatar"
+                                />
+                              ) : (
+                                <div className="post-avatar" style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  fontSize: '14px'
+                                }}>
+                                  {getInitials(post.adminId.name)}
+                                </div>
+                              )}
+                              <div className="post-author-details">
+                                <span className="post-author-name">{post.adminId.name}</span>
+                                <span className="post-time">{formatPostTime(post.createdAt)} (Editing)</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Edit Form */}
+                          <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: '12px 0 0 0' }}>
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              placeholder="Update announcement..."
+                              className="post-textarea"
+                              style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
+                              required
+                            />
+
+                            {editImagePreview && (
+                              <div className="post-creator-preview" style={{ marginTop: '10px' }}>
+                                <img src={editImagePreview} alt="Edit Attachment" />
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveEditImage}
+                                  className="post-creator-preview-remove"
+                                  title="Remove Image"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            )}
+
+                            <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                                  <ImageIcon size={16} />
+                                  <span>Change Photo</span>
+                                  <input
+                                    type="file"
+                                    ref={editFileInputRef}
+                                    accept="image/*"
+                                    onChange={handleEditFileChange}
+                                    style={{ display: 'none' }}
+                                  />
+                                </label>
+                              </div>
+
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingPostId(null)}
+                                  className="lobby-btn-secondary"
+                                  style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
+                                  className="post-create-btn"
+                                  style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
+                                >
+                                  {editSubmitting ? 'Saving...' : 'Save'}
+                                </button>
+                              </div>
+                            </div>
+                          </form>
+                        </>
+                      ) : (
+                        <>
+                          {/* Post Header */}
+                          <div className="post-header">
+                            <div className="post-author-info" onClick={() => handleViewAdminProfile(post.adminId?._id, post.adminId)} style={{ cursor: 'pointer' }} title="View Profile">
+                              {post.adminId.avatar ? (
+                                <img
+                                  src={post.adminId.avatar}
+                                  alt={post.adminId.name}
+                                  className="post-avatar"
+                                />
+                              ) : (
+                                <div className="post-avatar" style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  fontSize: '14px'
+                                }}>
+                                  {getInitials(post.adminId.name)}
+                                </div>
+                              )}
+                              <div className="post-author-details">
+                                <span className="post-author-name">{post.adminId.name}</span>
+                                <span className="post-time">{formatPostTime(post.createdAt)}</span>
+                              </div>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              {(isMyPost || (user && user.role === 'super_admin')) && (
+                                <>
+                                  <button
+                                    onClick={() => startEditPost(post)}
+                                    className="post-edit-btn"
+                                    style={{ background: 'none', border: 'none', color: '#8fa0b5', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
+                                    title="Edit Announcement"
+                                  >
+                                    <Pencil size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeletePost(post._id)}
+                                    className="post-delete-btn"
+                                    title="Delete Announcement"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Post Content */}
+                          {post.content && (
+                            <div className="post-content">{post.content}</div>
+                          )}
+
+                          {/* Post Image */}
+                          {post.image && (
+                            <div className="post-image-container">
+                              <img
+                                src={post.image}
+                                alt="Announcement Media"
+                                className="post-image"
+                                onClick={() => setLightboxImage(post.image!)}
+                                style={{ cursor: 'pointer' }}
+                                title="Click to view full screen"
+                              />
+                            </div>
+                          )}
+
+                          {/* Post Actions (Likes) */}
+                          <div className="post-actions">
+                            <button
+                              onClick={() => handleLikePost(post._id)}
+                              className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
+                            >
+                              <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
+                              <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Inline sponsored ad block */}
+                    {(index + 1) % 3 === 0 && (
+                      <SponsoredPostCard />
+                    )}
+                  </Fragment>
+                );
+              })
+            )}
+          </div>
+
+          {/* Right Vertical Ad Sidebar */}
+          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+            <div
+              className={`desktop-ad-sidebar right ${rightAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
+            >
+              <div className="desktop-ad-sidebar-title">Partner Ad</div>
+              <AdSenseBanner
+                adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID}
+                adFormat="vertical"
+                style={{ display: 'block', width: '136px', height: '600px' }}
+                onStatusChange={(status) => setRightAdStatus(status)}
+              />
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  </div>
+      </div>
 
       {/* Floating Chat Support FAB */}
       <div className="lobby-chat-widget">
@@ -1523,8 +1496,8 @@ export default function Home() {
             gap: '24px'
           }} onClick={(e) => e.stopPropagation()}>
             {/* Close Button */}
-            <button 
-              onClick={() => setViewingAdmin(null)} 
+            <button
+              onClick={() => setViewingAdmin(null)}
               style={{
                 position: 'absolute',
                 top: '-10px',
@@ -1565,9 +1538,9 @@ export default function Home() {
                 fontWeight: 700
               }}>
                 {viewingAdmin.avatar ? (
-                  <img 
-                    src={viewingAdmin.avatar} 
-                    alt={viewingAdmin.name} 
+                  <img
+                    src={viewingAdmin.avatar}
+                    alt={viewingAdmin.name}
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : (
@@ -1619,8 +1592,8 @@ export default function Home() {
                           {editImagePreview && (
                             <div className="post-creator-preview" style={{ marginTop: '10px' }}>
                               <img src={editImagePreview} alt="Edit Attachment" />
-                              <button 
-                                type="button" 
+                              <button
+                                type="button"
                                 onClick={handleRemoveEditImage}
                                 className="post-creator-preview-remove"
                                 title="Remove Image"
@@ -1646,16 +1619,16 @@ export default function Home() {
                             </div>
 
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              <button 
-                                type="button" 
+                              <button
+                                type="button"
                                 onClick={() => setEditingPostId(null)}
                                 className="lobby-btn-secondary"
                                 style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
                               >
                                 Cancel
                               </button>
-                              <button 
-                                type="submit" 
+                              <button
+                                type="submit"
                                 disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
                                 className="post-create-btn"
                                 style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
@@ -1670,20 +1643,20 @@ export default function Home() {
                           <div className="post-header">
                             <div className="post-author-info">
                               {viewingAdmin.avatar ? (
-                                <img 
-                                  src={viewingAdmin.avatar} 
-                                  alt={viewingAdmin.name} 
+                                <img
+                                  src={viewingAdmin.avatar}
+                                  alt={viewingAdmin.name}
                                   className="post-avatar"
                                 />
                               ) : (
-                                <div className="post-avatar" style={{ 
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
-                                  color: 'white', 
-                                  fontWeight: 600, 
-                                  fontSize: '14px' 
+                                <div className="post-avatar" style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                                  color: 'white',
+                                  fontWeight: 600,
+                                  fontSize: '14px'
                                 }}>
                                   {getInitials(viewingAdmin.name)}
                                 </div>
@@ -1697,7 +1670,7 @@ export default function Home() {
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                               {(isMyPost || (user && user.role === 'super_admin')) && (
                                 <>
-                                  <button 
+                                  <button
                                     onClick={() => startEditPost(post)}
                                     className="post-edit-btn"
                                     style={{ background: 'none', border: 'none', color: '#8fa0b5', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
@@ -1705,7 +1678,7 @@ export default function Home() {
                                   >
                                     <Pencil size={16} />
                                   </button>
-                                  <button 
+                                  <button
                                     onClick={() => handleDeletePost(post._id)}
                                     className="post-delete-btn"
                                     title="Delete Announcement"
@@ -1723,19 +1696,19 @@ export default function Home() {
 
                           {post.image && (
                             <div className="post-image-container">
-                              <img 
-                                src={post.image} 
-                                alt="Announcement Media" 
-                                className="post-image" 
-                                onClick={() => setLightboxImage(post.image!)} 
-                                style={{ cursor: 'pointer' }} 
+                              <img
+                                src={post.image}
+                                alt="Announcement Media"
+                                className="post-image"
+                                onClick={() => setLightboxImage(post.image!)}
+                                style={{ cursor: 'pointer' }}
                                 title="Click to view full screen"
                               />
                             </div>
                           )}
 
                           <div className="post-actions">
-                            <button 
+                            <button
                               onClick={() => handleLikePost(post._id)}
                               className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
                             >
@@ -1760,9 +1733,9 @@ export default function Home() {
           <div className="lightbox-header" onClick={(e) => e.stopPropagation()}>
             <span className="lightbox-title">Image View</span>
             <div className="lightbox-actions">
-              <button 
-                type="button" 
-                className="lightbox-action-btn" 
+              <button
+                type="button"
+                className="lightbox-action-btn"
                 onClick={() => setLightboxImage(null)}
                 title="Close"
               >
@@ -1771,10 +1744,10 @@ export default function Home() {
             </div>
           </div>
           <div className="lightbox-body">
-            <img 
-              src={lightboxImage} 
-              alt="Fullscreen Preview" 
-              className="lightbox-image" 
+            <img
+              src={lightboxImage}
+              alt="Fullscreen Preview"
+              className="lightbox-image"
               onClick={(e) => e.stopPropagation()}
             />
           </div>
