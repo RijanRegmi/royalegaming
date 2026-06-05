@@ -52,23 +52,19 @@ export default function Home() {
   const velocity = useRef<number>(0);
   const lastTime = useRef<number>(0);
   const requestRef = useRef<number | null>(null);
+  const autoSpinSpeedRef = useRef<number>(0.15);
   useEffect(() => {
-    let autoSpinSpeed = 0.15; // Baseline speed in degrees per frame
-    let friction = 0.95; // Velocity decay factor
+    const friction = 0.95;
     const updateRotation = () => {
       if (!isDragging.current) {
-        // Apply friction to the swipe velocity
         velocity.current *= friction;
         if (Math.abs(velocity.current) < 0.01) {
           velocity.current = 0;
         }
-        // Add base speed + current user swipe velocity
-        rotationY.current += autoSpinSpeed + velocity.current;
+        rotationY.current += autoSpinSpeedRef.current + velocity.current;
         if (ringRef.current) {
-          // Ball/globe effect: tilt the ring on X axis based on velocity
-          // giving a sphere illusion instead of zooming out
-          const tiltX = Math.min(Math.abs(velocity.current) * 2.2, 38);
-          ringRef.current.style.transform = `rotateX(${tiltX}deg) rotateY(${rotationY.current}deg)`;
+          const speedScale = 1 + Math.min(Math.abs(velocity.current) * 0.006, 0.14);
+          ringRef.current.style.transform = `scale3d(${speedScale},${speedScale},1) rotateY(${rotationY.current}deg)`;
         }
       }
       requestRef.current = requestAnimationFrame(updateRotation);
@@ -108,16 +104,20 @@ export default function Home() {
     lastTime.current = now;
 
     if (ringRef.current) {
-      const tiltX = Math.min(Math.abs(velocity.current) * 2.2, 38);
-      ringRef.current.style.transform = `rotateX(${tiltX}deg) rotateY(${rotationY.current}deg)`;
+      // Simple flat rotation - no tilt
+      const speedScale = 1 + Math.min(Math.abs(velocity.current) * 0.006, 0.14);
+      ringRef.current.style.transform = `scale3d(${speedScale},${speedScale},1) rotateY(${rotationY.current}deg)`;
     }
   };
 
   const handleDragEnd = () => {
     isDragging.current = false;
     const maxVelocity = 18;
-    if (velocity.current > maxVelocity) velocity.current = maxVelocity;
-    if (velocity.current < -maxVelocity) velocity.current = -maxVelocity;
+    velocity.current = Math.max(-maxVelocity, Math.min(maxVelocity, velocity.current));
+    // Persist spin direction: if flicked hard, auto-spin continues that way
+    if (Math.abs(velocity.current) > 1.0) {
+      autoSpinSpeedRef.current = velocity.current > 0 ? 0.15 : -0.15;
+    }
   };
 
   // Post Creator State
@@ -965,16 +965,16 @@ export default function Home() {
             <button
               type="button"
               className="landing-btn-playing"
-              onClick={() => router.push('/login')}
+              onClick={() => router.push('/login?tab=register')}
             >
-              <Gamepad2 size={18} /> Sign In to Play
+              <Gamepad2 size={18} /> Sign Up to Play
             </button>
             <button
               type="button"
               className="landing-btn-signup"
-              onClick={() => router.push('/login?tab=register')}
+              onClick={() => router.push('/login')}
             >
-              Sign Up Now
+              Login
             </button>
           </div>
           <span className="landing-footer">
