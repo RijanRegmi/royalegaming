@@ -675,50 +675,74 @@ export default function Home() {
 
           /* Responsive Mobile Queries */
           @media (max-width: 768px) {
+            .landing-container {
+              padding: 24px 16px !important;
+              justify-content: space-evenly !important;
+              height: 100vh !important;
+              min-height: 100vh !important;
+              box-sizing: border-box !important;
+              overflow: hidden !important;
+            }
+            .premium-badge {
+              margin-bottom: 8px !important;
+            }
             .landing-title {
-              font-size: 32px !important;
+              font-size: 30px !important;
               letter-spacing: -0.5px;
               line-height: 1.25;
               padding: 0 12px;
-              margin-bottom: 12px;
+              margin-bottom: 8px !important;
             }
             .landing-title br {
               display: none;
             }
             .landing-subtitle {
-              font-size: 14px !important;
+              font-size: 13.5px !important;
               padding: 0 16px;
-              margin-bottom: 24px;
-              line-height: 1.5;
+              margin-bottom: 16px !important;
+              line-height: 1.45;
             }
             .carousel-3d-stage {
-              transform: scale(0.8);
-              margin: 20px 0;
-              height: 280px;
+              margin: 10px 0 !important;
+              height: 320px !important;
+              transform: none !important;
             }
           }
 
           @media (max-width: 480px) {
+            .landing-container {
+              padding: 16px 12px !important;
+              justify-content: space-evenly !important;
+              height: 100vh !important;
+              min-height: 100vh !important;
+              box-sizing: border-box !important;
+              overflow: hidden !important;
+            }
+            .premium-badge {
+              margin-bottom: 6px !important;
+              padding: 5px 12px !important;
+              font-size: 10px !important;
+            }
             .landing-title {
-              font-size: 26px !important;
-              padding: 0 8px;
+              font-size: 24px !important;
+              margin-bottom: 6px !important;
             }
             .landing-subtitle {
-              font-size: 13px !important;
-              padding: 0 12px;
-              margin-bottom: 16px;
+              font-size: 12px !important;
+              margin-bottom: 12px !important;
+              padding: 0 8px;
+              line-height: 1.4;
             }
             .carousel-3d-stage {
-              transform: scale(0.65);
-              margin: 10px 0;
-              height: 230px;
+              margin: 5px 0 !important;
+              height: 300px !important;
+              transform: none !important;
             }
             .landing-btn-playing, .landing-btn-signup {
-              padding: 12px 24px !important;
-              font-size: 14px !important;
-              width: 100%;
-              max-width: 280px;
-              justify-content: center;
+              padding: 12px 20px !important;
+              font-size: 13.5px !important;
+              width: auto !important;
+              max-width: none !important;
             }
           }
         ` }} />
