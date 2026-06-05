@@ -41,6 +41,89 @@ export default function Home() {
   const [loadingNotices, setLoadingNotices] = useState<boolean>(true);
   const [gamesList, setGamesList] = useState<any[]>([]);
 
+  // 3D Carousel Drag & Spin State Refs
+  const ringRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef<boolean>(false);
+  const startX = useRef<number>(0);
+  const lastX = useRef<number>(0);
+  const rotationY = useRef<number>(0);
+  const startRotation = useRef<number>(0);
+  const velocity = useRef<number>(0);
+  const lastTime = useRef<number>(0);
+  const requestRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let autoSpinSpeed = 0.15; // Baseline speed in degrees per frame
+    let friction = 0.95; // Velocity decay factor
+    
+    const updateRotation = () => {
+      if (!isDragging.current) {
+        // Apply friction to the swipe velocity
+        velocity.current *= friction;
+        if (Math.abs(velocity.current) < 0.01) {
+          velocity.current = 0;
+        }
+        // Add base speed + current user swipe velocity
+        rotationY.current += autoSpinSpeed + velocity.current;
+        
+        if (ringRef.current) {
+          ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
+        }
+      }
+      requestRef.current = requestAnimationFrame(updateRotation);
+    };
+    
+    requestRef.current = requestAnimationFrame(updateRotation);
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
+  }, []);
+
+  const handleDragStart = (clientX: number) => {
+    isDragging.current = true;
+    startX.current = clientX;
+    lastX.current = clientX;
+    startRotation.current = rotationY.current;
+    velocity.current = 0;
+    lastTime.current = performance.now();
+  };
+
+  const handleDragMove = (clientX: number) => {
+    if (!isDragging.current) return;
+    const deltaX = clientX - startX.current;
+    // dragFactor: 0.35 degrees per pixel drag
+    const deltaAngle = deltaX * 0.35;
+    rotationY.current = startRotation.current - deltaAngle; // drag left rotates right
+
+    // Calculate velocity on move
+    const now = performance.now();
+    const dt = now - lastTime.current;
+    const dx = clientX - lastX.current;
+    if (dt > 0) {
+      // Convert horizontal pixel drag to rotation velocity
+      const instantVelocity = -(dx * 0.35) / (dt / 16.66); // scale relative to 60fps frame time
+      // Smooth/dampen the velocity using moving average
+      velocity.current = velocity.current * 0.4 + instantVelocity * 0.6;
+    }
+
+    lastX.current = clientX;
+    lastTime.current = now;
+
+    if (ringRef.current) {
+      ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
+    }
+  };
+
+  const handleDragEnd = () => {
+    isDragging.current = false;
+    // Cap the maximum velocity to avoid dizzying speed
+    const maxVelocity = 18;
+    if (velocity.current > maxVelocity) velocity.current = maxVelocity;
+    if (velocity.current < -maxVelocity) velocity.current = -maxVelocity;
+  };
+
   // Post Creator State
   const [content, setContent] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
@@ -514,6 +597,12 @@ export default function Home() {
             position: relative;
             margin: 40px 0;
             z-index: 2;
+            cursor: grab;
+            user-select: none;
+          }
+
+          .carousel-3d-stage:active {
+            cursor: grabbing;
           }
 
           .carousel-3d-ring {
@@ -521,12 +610,8 @@ export default function Home() {
             width: 160px;
             height: 220px;
             position: relative;
-            animation: rotateRing 25s infinite linear;
-            transition: animation-play-state 0.3s;
-          }
-
-          .carousel-3d-stage:hover .carousel-3d-ring {
-            animation-play-state: paused;
+            user-select: none;
+            -webkit-user-drag: none;
           }
 
           .carousel-3d-card {
@@ -563,6 +648,8 @@ export default function Home() {
             height: 80%;
             object-fit: cover;
             border-radius: 12px;
+            pointer-events: none;
+            -webkit-user-drag: none;
           }
 
           .carousel-3d-card-title {
@@ -673,10 +760,21 @@ export default function Home() {
             transform: translateY(-2px);
           }
 
+          .landing-actions {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+          }
+
+          .landing-footer {
+            margin-top: 48px;
+          }
+
           /* Responsive Mobile Queries */
           @media (max-width: 768px) {
             .landing-container {
-              padding: 24px 16px !important;
+              padding: 20px 16px !important;
               justify-content: space-evenly !important;
               height: 100vh !important;
               min-height: 100vh !important;
@@ -687,31 +785,34 @@ export default function Home() {
               margin-bottom: 8px !important;
             }
             .landing-title {
-              font-size: 30px !important;
+              font-size: 28px !important;
               letter-spacing: -0.5px;
-              line-height: 1.25;
+              line-height: 1.2;
               padding: 0 12px;
-              margin-bottom: 8px !important;
+              margin-bottom: 6px !important;
             }
             .landing-title br {
               display: none;
             }
             .landing-subtitle {
-              font-size: 13.5px !important;
+              font-size: 13px !important;
               padding: 0 16px;
-              margin-bottom: 16px !important;
-              line-height: 1.45;
+              margin-bottom: 12px !important;
+              line-height: 1.4;
             }
             .carousel-3d-stage {
               margin: 10px 0 !important;
-              height: 320px !important;
+              height: 280px !important;
               transform: none !important;
+            }
+            .landing-footer {
+              margin-top: 16px !important;
             }
           }
 
           @media (max-width: 480px) {
             .landing-container {
-              padding: 16px 12px !important;
+              padding: 10px 12px !important;
               justify-content: space-evenly !important;
               height: 100vh !important;
               min-height: 100vh !important;
@@ -719,30 +820,36 @@ export default function Home() {
               overflow: hidden !important;
             }
             .premium-badge {
-              margin-bottom: 6px !important;
-              padding: 5px 12px !important;
-              font-size: 10px !important;
+              margin-bottom: 4px !important;
+              padding: 4px 10px !important;
+              font-size: 9.5px !important;
             }
             .landing-title {
-              font-size: 24px !important;
-              margin-bottom: 6px !important;
+              font-size: 21px !important;
+              margin-bottom: 4px !important;
             }
             .landing-subtitle {
-              font-size: 12px !important;
-              margin-bottom: 12px !important;
+              font-size: 11.5px !important;
+              margin-bottom: 8px !important;
               padding: 0 8px;
-              line-height: 1.4;
+              line-height: 1.35;
             }
             .carousel-3d-stage {
-              margin: 5px 0 !important;
-              height: 300px !important;
+              margin: 4px 0 !important;
+              height: 240px !important;
               transform: none !important;
             }
+            .landing-actions {
+              gap: 8px !important;
+            }
             .landing-btn-playing, .landing-btn-signup {
-              padding: 12px 20px !important;
-              font-size: 13.5px !important;
+              padding: 10px 16px !important;
+              font-size: 13px !important;
               width: auto !important;
               max-width: none !important;
+            }
+            .landing-footer {
+              margin-top: 8px !important;
             }
           }
         ` }} />
@@ -764,8 +871,17 @@ export default function Home() {
         </p>
 
         {/* 3D Circular Loop Circle of Games */}
-        <div className="carousel-3d-stage">
-          <div className="carousel-3d-ring">
+        <div 
+          className="carousel-3d-stage"
+          onMouseDown={(e) => handleDragStart(e.clientX)}
+          onMouseMove={(e) => handleDragMove(e.clientX)}
+          onMouseUp={handleDragEnd}
+          onMouseLeave={handleDragEnd}
+          onTouchStart={(e) => handleDragStart(e.touches[0].clientX)}
+          onTouchMove={(e) => handleDragMove(e.touches[0].clientX)}
+          onTouchEnd={handleDragEnd}
+        >
+          <div ref={ringRef} className="carousel-3d-ring">
             {(gamesList && gamesList.length > 0 ? gamesList : [
               { name: 'Fire Kirin', image: '/games/fire_kirin.png' },
               { name: 'Orion Stars', image: '/games/orion_stars.png' },
@@ -801,7 +917,7 @@ export default function Home() {
         </div>
 
         {/* Buttons / CTA */}
-        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', zIndex: 10 }}>
+        <div className="landing-actions" style={{ display: 'flex', zIndex: 10 }}>
           <button
             type="button"
             className="landing-btn-playing"
@@ -820,7 +936,7 @@ export default function Home() {
         </div>
 
         {/* Small footer text */}
-        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '48px', zIndex: 2 }}>
+        <span className="landing-footer" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', zIndex: 2 }}>
           © 2026 Royale Gaming. All rights reserved.
         </span>
       </div>
