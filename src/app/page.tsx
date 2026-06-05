@@ -65,12 +65,10 @@ export default function Home() {
         // Add base speed + current user swipe velocity
         rotationY.current += autoSpinSpeed + velocity.current;
         if (ringRef.current) {
-          ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
-          ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
-        }
-        if (stageRef.current) {
-          const absVelocity = Math.abs(velocity.current);
-          stageRef.current.style.setProperty('--ring-velocity-abs', `${absVelocity}`);
+          // Ball/globe effect: tilt the ring on X axis based on velocity
+          // giving a sphere illusion instead of zooming out
+          const tiltX = Math.min(Math.abs(velocity.current) * 2.2, 38);
+          ringRef.current.style.transform = `rotateX(${tiltX}deg) rotateY(${rotationY.current}deg)`;
         }
       }
       requestRef.current = requestAnimationFrame(updateRotation);
@@ -95,18 +93,14 @@ export default function Home() {
   const handleDragMove = (clientX: number) => {
     if (!isDragging.current) return;
     const deltaX = clientX - startX.current;
-    // dragFactor: 0.35 degrees per pixel drag
     const deltaAngle = deltaX * 0.35;
-    rotationY.current = startRotation.current + deltaAngle; // drag right rotates right
+    rotationY.current = startRotation.current + deltaAngle;
 
-    // Calculate velocity on move
     const now = performance.now();
     const dt = now - lastTime.current;
     const dx = clientX - lastX.current;
     if (dt > 0) {
-      // Convert horizontal pixel drag to rotation velocity
-      const instantVelocity = (dx * 0.35) / (dt / 16.66); // scale relative to 60fps frame time
-      // Smooth/dampen the velocity using moving average
+      const instantVelocity = (dx * 0.35) / (dt / 16.66);
       velocity.current = velocity.current * 0.4 + instantVelocity * 0.6;
     }
 
@@ -114,18 +108,13 @@ export default function Home() {
     lastTime.current = now;
 
     if (ringRef.current) {
-      ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
-      ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
-    }
-    if (stageRef.current) {
-      const absVelocity = Math.abs(velocity.current);
-      stageRef.current.style.setProperty('--ring-velocity-abs', `${absVelocity}`);
+      const tiltX = Math.min(Math.abs(velocity.current) * 2.2, 38);
+      ringRef.current.style.transform = `rotateX(${tiltX}deg) rotateY(${rotationY.current}deg)`;
     }
   };
 
   const handleDragEnd = () => {
     isDragging.current = false;
-    // Cap the maximum velocity to avoid dizzying speed
     const maxVelocity = 18;
     if (velocity.current > maxVelocity) velocity.current = maxVelocity;
     if (velocity.current < -maxVelocity) velocity.current = -maxVelocity;
@@ -596,19 +585,17 @@ export default function Home() {
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
           
           .carousel-3d-stage {
-            --stage-perspective: calc(1200px - var(--ring-velocity-abs, 0) * 15px);
-            perspective: var(--stage-perspective);
+            perspective: 1200px;
             width: 100%;
             height: 380px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            margin: 40px 0;
+            margin: 30px 0;
             z-index: 2;
             cursor: grab;
             user-select: none;
-            transition: perspective 0.15s ease-out;
           }
 
           .carousel-3d-stage:active {
@@ -622,6 +609,7 @@ export default function Home() {
             position: relative;
             user-select: none;
             -webkit-user-drag: none;
+            transition: transform 0.05s linear;
           }
 
           .carousel-3d-card {
@@ -689,7 +677,7 @@ export default function Home() {
             font-weight: 800;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
             box-shadow: 0 4px 15px rgba(168, 85, 247, 0.35);
             animation: pulseGlow 2s infinite ease-in-out;
             display: inline-flex;
@@ -704,10 +692,10 @@ export default function Home() {
           }
 
           .landing-title {
-            font-size: 48px;
+            font-size: 44px;
             font-weight: 900;
-            line-height: 1.15;
-            margin-bottom: 16px;
+            line-height: 1.1;
+            margin-bottom: 10px;
             text-align: center;
             background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
             -webkit-background-clip: text;
@@ -720,16 +708,15 @@ export default function Home() {
             background: linear-gradient(90deg, #a855f7 0%, #00a884 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 40px rgba(168, 85, 247, 0.2);
           }
 
           .landing-subtitle {
-            font-size: 16px;
+            font-size: 15px;
             color: #94a3b8;
-            max-width: 580px;
+            max-width: 560px;
             text-align: center;
-            line-height: 1.6;
-            margin-bottom: 40px;
+            line-height: 1.55;
+            margin-bottom: 0;
             z-index: 2;
           }
 
@@ -737,7 +724,7 @@ export default function Home() {
             background: linear-gradient(135deg, #00a884 0%, #008f6d 100%);
             color: white;
             font-weight: 700;
-            padding: 16px 36px;
+            padding: 14px 32px;
             border-radius: 12px;
             font-size: 15px;
             display: flex;
@@ -758,7 +745,7 @@ export default function Home() {
             background: rgba(255, 255, 255, 0.05);
             color: white;
             font-weight: 600;
-            padding: 16px 36px;
+            padding: 14px 32px;
             border-radius: 12px;
             font-size: 15px;
             display: flex;
@@ -777,94 +764,113 @@ export default function Home() {
 
           .landing-actions {
             display: flex;
-            gap: 16px;
+            gap: 14px;
             flex-wrap: wrap;
             justify-content: center;
+            margin-top: 4px;
           }
 
           .landing-footer {
-            margin-top: 48px;
+            margin-top: 12px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.28);
           }
 
-          /* Responsive Mobile Queries */
+          /* ---- Responsive: Tablet ---- */
           @media (max-width: 768px) {
             .landing-container {
-              padding: 20px 16px !important;
-              justify-content: space-evenly !important;
-              height: 100vh !important;
-              min-height: 100vh !important;
+              padding: 20px 16px 12px !important;
+              justify-content: flex-start !important;
+              align-items: center !important;
+              height: 100dvh !important;
+              min-height: 100dvh !important;
               box-sizing: border-box !important;
               overflow: hidden !important;
+              gap: 0 !important;
             }
             .premium-badge {
-              margin-bottom: 8px !important;
+              margin-top: 10px !important;
+              margin-bottom: 6px !important;
+              font-size: 10px !important;
+              padding: 5px 12px !important;
             }
             .landing-title {
-              font-size: 28px !important;
-              letter-spacing: -0.5px;
-              line-height: 1.2;
-              padding: 0 12px;
+              font-size: 26px !important;
+              letter-spacing: -0.5px !important;
+              line-height: 1.18 !important;
+              padding: 0 12px !important;
               margin-bottom: 6px !important;
             }
-            .landing-title br {
-              display: none;
-            }
+            .landing-title br { display: none; }
             .landing-subtitle {
-              font-size: 13px !important;
-              padding: 0 16px;
-              margin-bottom: 12px !important;
-              line-height: 1.4;
+              font-size: 12.5px !important;
+              padding: 0 20px !important;
+              margin-bottom: 0 !important;
+              line-height: 1.45 !important;
             }
             .carousel-3d-stage {
-              margin: 10px 0 !important;
-              height: 280px !important;
-              transform: none !important;
+              margin: 6px 0 !important;
+              height: 260px !important;
+            }
+            .landing-actions {
+              margin-top: 2px !important;
+              gap: 10px !important;
+            }
+            .landing-btn-playing, .landing-btn-signup {
+              padding: 11px 22px !important;
+              font-size: 13.5px !important;
             }
             .landing-footer {
-              margin-top: 16px !important;
+              margin-top: 8px !important;
             }
           }
 
+          /* ---- Responsive: Small Mobile ---- */
           @media (max-width: 480px) {
             .landing-container {
-              padding: 10px 12px !important;
-              justify-content: space-evenly !important;
-              height: 100vh !important;
-              min-height: 100vh !important;
+              padding: 8px 12px 8px !important;
+              justify-content: flex-start !important;
+              align-items: center !important;
+              height: 100dvh !important;
+              min-height: 100dvh !important;
               box-sizing: border-box !important;
               overflow: hidden !important;
+              gap: 0 !important;
             }
             .premium-badge {
+              margin-top: 6px !important;
               margin-bottom: 4px !important;
               padding: 4px 10px !important;
-              font-size: 9.5px !important;
+              font-size: 9px !important;
+              letter-spacing: 1.5px !important;
             }
             .landing-title {
               font-size: 21px !important;
               margin-bottom: 4px !important;
+              padding: 0 8px !important;
+              line-height: 1.15 !important;
             }
             .landing-subtitle {
-              font-size: 11.5px !important;
-              margin-bottom: 8px !important;
-              padding: 0 8px;
-              line-height: 1.35;
+              font-size: 11px !important;
+              margin-bottom: 0 !important;
+              padding: 0 12px !important;
+              line-height: 1.38 !important;
             }
             .carousel-3d-stage {
               margin: 4px 0 !important;
-              height: 240px !important;
-              transform: none !important;
+              height: 230px !important;
             }
             .landing-actions {
+              margin-top: 4px !important;
               gap: 8px !important;
             }
             .landing-btn-playing, .landing-btn-signup {
-              padding: 10px 16px !important;
-              font-size: 13px !important;
-              width: auto !important;
-              max-width: none !important;
+              padding: 10px 18px !important;
+              font-size: 12.5px !important;
             }
             .landing-footer {
-              margin-top: 8px !important;
+              margin-top: 6px !important;
+              font-size: 10px !important;
             }
           }
         ` }} />
