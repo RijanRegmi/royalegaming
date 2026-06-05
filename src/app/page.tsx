@@ -672,6 +672,55 @@ export default function Home() {
             border-color: rgba(255, 255, 255, 0.25);
             transform: translateY(-2px);
           }
+
+          /* Responsive Mobile Queries */
+          @media (max-width: 768px) {
+            .landing-title {
+              font-size: 32px !important;
+              letter-spacing: -0.5px;
+              line-height: 1.25;
+              padding: 0 12px;
+              margin-bottom: 12px;
+            }
+            .landing-title br {
+              display: none;
+            }
+            .landing-subtitle {
+              font-size: 14px !important;
+              padding: 0 16px;
+              margin-bottom: 24px;
+              line-height: 1.5;
+            }
+            .carousel-3d-stage {
+              transform: scale(0.8);
+              margin: 20px 0;
+              height: 280px;
+            }
+          }
+
+          @media (max-width: 480px) {
+            .landing-title {
+              font-size: 26px !important;
+              padding: 0 8px;
+            }
+            .landing-subtitle {
+              font-size: 13px !important;
+              padding: 0 12px;
+              margin-bottom: 16px;
+            }
+            .carousel-3d-stage {
+              transform: scale(0.65);
+              margin: 10px 0;
+              height: 230px;
+            }
+            .landing-btn-playing, .landing-btn-signup {
+              padding: 12px 24px !important;
+              font-size: 14px !important;
+              width: 100%;
+              max-width: 280px;
+              justify-content: center;
+            }
+          }
         ` }} />
 
         {/* Premium welcome badge */}
@@ -732,24 +781,9 @@ export default function Home() {
           <button
             type="button"
             className="landing-btn-playing"
-            onClick={async () => {
-              try {
-                const res = await fetch('/api/auth/guest', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                });
-                if (res.ok) {
-                  window.location.reload();
-                } else {
-                  router.push('/login');
-                }
-              } catch (err) {
-                console.error('Guest login failed:', err);
-                router.push('/login');
-              }
-            }}
+            onClick={() => router.push('/login')}
           >
-            <Gamepad2 size={18} /> Start Playing Here
+            <Gamepad2 size={18} /> Sign In to Play
           </button>
           
           <button
