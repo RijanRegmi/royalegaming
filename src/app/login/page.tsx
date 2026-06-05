@@ -48,6 +48,10 @@ export default function LoginPage() {
       if (redir) {
         setRedirectUrl(redir);
       }
+      const tabParam = params.get('tab');
+      if (tabParam === 'register' || tabParam === 'signup') {
+        setActiveTab('register');
+      }
     }
   }, []);
 

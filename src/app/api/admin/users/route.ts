@@ -21,8 +21,13 @@ export async function GET(req: NextRequest) {
 
     let queryUsers: any = {};
     if (payload.role === 'super_admin') {
-      // Super admin sees all admins
-      queryUsers = { role: 'admin' };
+      // Super admin sees all admins, plus players with no linked admins
+      queryUsers = {
+        $or: [
+          { role: 'admin' },
+          { role: 'user', $or: [ { linkedAdmins: { $size: 0 } }, { linkedAdmins: { $exists: false } } ] }
+        ]
+      };
     } else {
       const currentAdmin = await User.findById(payload.userId);
       if (currentAdmin?.isFrozen) {

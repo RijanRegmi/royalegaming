@@ -75,7 +75,7 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   
   // Tab control
-  const [activeTab, setActiveTab] = useState<'users' | 'credentials' | 'payments' | 'notices'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'credentials' | 'payments' | 'notices' | 'games'>('users');
   
   // Common states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1139,6 +1139,34 @@ export default function AdminSettingsPage() {
 
         {currentUser.role === 'super_admin' && (
           <button
+            className={`tab-btn ${activeTab === 'games' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('games');
+              fetchGames();
+            }}
+            style={{
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: activeTab === 'games' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+              color: activeTab === 'games' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: 'none',
+              outline: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Gamepad2 size={16} /> Manage Games
+          </button>
+        )}
+
+        {currentUser.role === 'super_admin' && (
+          <button
             className={`tab-btn ${activeTab === 'notices' ? 'active' : ''}`}
             onClick={() => {
               setActiveTab('notices');
@@ -1348,6 +1376,36 @@ export default function AdminSettingsPage() {
             <div>
               <div className="stat-label">Warning Notices</div>
               <div className="stat-number">{notices.filter(n => n.type === 'admin_warning' && n.isActive).length}</div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'games' ? (
+        <div className="admin-stats-grid">
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper users" style={{ background: 'rgba(168, 85, 247, 0.1)', color: '#a855f7' }}>
+              <Gamepad2 size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Total Game Platforms</div>
+              <div className="stat-number">{games.length}</div>
+            </div>
+          </div>
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper admins" style={{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }}>
+              <Globe size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Access Level</div>
+              <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>Super Admin</div>
+            </div>
+          </div>
+          <div className="stat-card glass">
+            <div className="stat-icon-wrapper messages" style={{ background: 'rgba(234, 179, 8, 0.1)', color: '#eab308' }}>
+              <Shield size={22} />
+            </div>
+            <div>
+              <div className="stat-label">Lobby Configuration</div>
+              <div className="stat-number" style={{ fontSize: '16px', fontWeight: 'bold' }}>Live Sync</div>
             </div>
           </div>
         </div>
@@ -2252,6 +2310,160 @@ export default function AdminSettingsPage() {
                         </div>
                       </td>
                     )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : activeTab === 'games' && currentUser.role === 'super_admin' ? (
+        <div className="admin-table-container glass">
+          <div
+            style={{
+              padding: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid var(--border-color)',
+            }}
+          >
+            <div>
+              <span style={{ fontWeight: 600, display: 'block' }}>Game Platforms Configuration</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Add, edit, or delete game lobby platforms and modify their display promotional images
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <button
+                className="btn-primary"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  width: 'auto',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  margin: 0,
+                  boxShadow: 'none'
+                }}
+                onClick={openCreateModal}
+              >
+                <Plus size={16} /> Add Game
+              </button>
+              <button className="icon-btn" title="Refresh data" onClick={fetchGames}>
+                <RefreshCw size={16} />
+              </button>
+            </div>
+          </div>
+
+          {loadingGames ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <div className="spinner"></div>
+            </div>
+          ) : games.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+              No games found. Click &quot;Add Game&quot; to register your first platform.
+            </div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Game Platform Name</th>
+                  <th>Image File / URL</th>
+                  <th>Lobby Link</th>
+                  <th>Agent / Admin Link</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {games.map((game) => (
+                  <tr key={game._id}>
+                    <td>
+                      <div className="profile-cell">
+                        <div style={{ 
+                          width: '46px', 
+                          height: '46px', 
+                          borderRadius: '8px', 
+                          overflow: 'hidden', 
+                          border: '1px solid var(--border-color)', 
+                          background: 'rgba(0,0,0,0.2)',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '2px'
+                        }}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img 
+                            src={game.image} 
+                            alt={game.name} 
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                            onError={(e) => {
+                              e.currentTarget.src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=400';
+                            }}
+                          />
+                        </div>
+                        <span style={{ fontWeight: 600, marginLeft: '12px' }}>{game.name}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span 
+                        style={{ 
+                          fontSize: '12px', 
+                          color: 'var(--text-secondary)', 
+                          wordBreak: 'break-all',
+                          fontFamily: 'monospace'
+                        }}
+                      >
+                        {game.image}
+                      </span>
+                    </td>
+                    <td>
+                      <a 
+                        href={game.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ fontSize: '12px', color: 'var(--accent-color)', textDecoration: 'underline' }}
+                      >
+                        {game.link}
+                      </a>
+                    </td>
+                    <td>
+                      {game.agentLink ? (
+                        <a 
+                          href={game.agentLink} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{ fontSize: '12px', color: 'var(--accent-color)', textDecoration: 'underline' }}
+                        >
+                          {game.agentLink}
+                        </a>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', gap: '8px' }}>
+                        <button 
+                          type="button"
+                          className="icon-btn" 
+                          title="Edit Game" 
+                          onClick={() => openEditModal(game)}
+                          style={{ color: 'var(--accent-color)' }}
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button 
+                          type="button"
+                          className="icon-btn" 
+                          title="Delete Game Platform" 
+                          onClick={() => handleDeleteGame(game._id)}
+                          style={{ color: 'var(--error-color)' }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

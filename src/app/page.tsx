@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, LogOut, LogIn, Shield, Bell, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X } from 'lucide-react';
+import { MessageSquare, LogOut, LogIn, Shield, Bell, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X, Gamepad2, Sparkles } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 
@@ -39,6 +39,7 @@ export default function Home() {
   const [verifyingAuth, setVerifyingAuth] = useState<boolean>(true);
   const [notices, setNotices] = useState<any[]>([]);
   const [loadingNotices, setLoadingNotices] = useState<boolean>(true);
+  const [gamesList, setGamesList] = useState<any[]>([]);
 
   // Post Creator State
   const [content, setContent] = useState<string>('');
@@ -167,9 +168,22 @@ export default function Home() {
       }
     };
 
+    const fetchGamesList = async () => {
+      try {
+        const res = await fetch('/api/games');
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setGamesList(data.games || []);
+        }
+      } catch (err) {
+        console.error('Error fetching games list:', err);
+      }
+    };
+
     fetchPosts();
     fetchNotices();
     checkAuth();
+    fetchGamesList();
 
     // Check if query param viewAdmin is set to open profile modal automatically
     if (typeof window !== 'undefined') {
@@ -448,6 +462,312 @@ export default function Home() {
   };
 
   const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
+
+  if (!verifyingAuth && !authenticated) {
+    return (
+      <div className="landing-container" style={{
+        minHeight: '100vh',
+        background: 'radial-gradient(circle at center, #0f172a 0%, #020617 100%)',
+        color: '#ffffff',
+        fontFamily: "'Outfit', 'Inter', sans-serif",
+        overflowX: 'hidden',
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '60px 20px',
+      }}>
+        {/* Floating background glowing orbs */}
+        <div style={{
+          position: 'absolute',
+          width: '400px',
+          height: '400px',
+          background: 'radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(0,0,0,0) 70%)',
+          top: '10%',
+          left: '5%',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute',
+          width: '500px',
+          height: '500px',
+          background: 'radial-gradient(circle, rgba(0, 168, 132, 0.12) 0%, rgba(0,0,0,0) 70%)',
+          bottom: '10%',
+          right: '5%',
+          zIndex: 0,
+          pointerEvents: 'none',
+        }} />
+
+        {/* Custom Styles for 3D Rotating Loop Circle */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
+          
+          .carousel-3d-stage {
+            perspective: 1000px;
+            width: 100%;
+            height: 340px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 40px 0;
+            z-index: 2;
+          }
+
+          .carousel-3d-ring {
+            transform-style: preserve-3d;
+            width: 160px;
+            height: 220px;
+            position: relative;
+            animation: rotateRing 25s infinite linear;
+            transition: animation-play-state 0.3s;
+          }
+
+          .carousel-3d-stage:hover .carousel-3d-ring {
+            animation-play-state: paused;
+          }
+
+          .carousel-3d-card {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0;
+            top: 0;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            backface-visibility: visible;
+          }
+
+          .carousel-3d-card:hover {
+            transform: scale(1.15) translateY(-10px) !important;
+            border-color: #a855f7;
+            box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
+            z-index: 100 !important;
+          }
+
+          .carousel-3d-card img {
+            width: 100%;
+            height: 80%;
+            object-fit: cover;
+            border-radius: 12px;
+          }
+
+          .carousel-3d-card-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            margin: 4px 0;
+            text-align: center;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+          }
+
+          @keyframes rotateRing {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(-360deg); }
+          }
+
+          .premium-badge {
+            background: linear-gradient(90deg, #a855f7 0%, #6366f1 100%);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(168, 85, 247, 0.35);
+            animation: pulseGlow 2s infinite ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 2;
+          }
+
+          @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 4px 15px rgba(168, 85, 247, 0.35); }
+            50% { box-shadow: 0 4px 25px rgba(168, 85, 247, 0.6); }
+          }
+
+          .landing-title {
+            font-size: 48px;
+            font-weight: 900;
+            line-height: 1.15;
+            margin-bottom: 16px;
+            text-align: center;
+            background: linear-gradient(135deg, #ffffff 30%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -1px;
+            z-index: 2;
+          }
+
+          .landing-highlight {
+            background: linear-gradient(90deg, #a855f7 0%, #00a884 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 40px rgba(168, 85, 247, 0.2);
+          }
+
+          .landing-subtitle {
+            font-size: 16px;
+            color: #94a3b8;
+            max-width: 580px;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 40px;
+            z-index: 2;
+          }
+
+          .landing-btn-playing {
+            background: linear-gradient(135deg, #00a884 0%, #008f6d 100%);
+            color: white;
+            font-weight: 700;
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(0, 168, 132, 0.3);
+          }
+
+          .landing-btn-playing:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(0, 168, 132, 0.45);
+          }
+
+          .landing-btn-signup {
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-weight: 600;
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s;
+          }
+
+          .landing-btn-signup:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+          }
+        ` }} />
+
+        {/* Premium welcome badge */}
+        <div className="premium-badge">
+          <Sparkles size={13} fill="currentColor" /> Welcome to Royale Gaming
+        </div>
+
+        {/* Headline */}
+        <h1 className="landing-title">
+          The Ultimate Realm of <br />
+          <span className="landing-highlight">Premium Gaming</span>
+        </h1>
+
+        {/* Subtitle */}
+        <p className="landing-subtitle">
+          Jump into the most thrilling community platform. Play your favorite games, unlock official rewards, and connect with live support managers 24/7.
+        </p>
+
+        {/* 3D Circular Loop Circle of Games */}
+        <div className="carousel-3d-stage">
+          <div className="carousel-3d-ring">
+            {(gamesList && gamesList.length > 0 ? gamesList : [
+              { name: 'Fire Kirin', image: '/games/fire_kirin.png' },
+              { name: 'Orion Stars', image: '/games/orion_stars.png' },
+              { name: 'Ultra Panda', image: '/games/ultra_panda.png' },
+              { name: 'eSports Arena', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop' },
+              { name: 'Cyber Realm', image: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=600&auto=format&fit=crop' },
+              { name: 'Neon Arcade', image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=600&auto=format&fit=crop' },
+            ]).map((game, idx, arr) => {
+              const count = arr.length;
+              const angle = (360 / count) * idx;
+              const translateZ = Math.max(240, Math.round(85 / Math.sin(Math.PI / count)));
+              return (
+                <div
+                  key={game._id || idx}
+                  className="carousel-3d-card"
+                  style={{
+                    transform: `rotateY(${angle}deg) translateZ(${translateZ}px)`,
+                  }}
+                  onClick={() => handleChatAccess()}
+                >
+                  <img 
+                    src={game.image} 
+                    alt={game.name} 
+                    onError={(e) => {
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&q=80&w=400';
+                    }}
+                  />
+                  <span className="carousel-3d-card-title">{game.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Buttons / CTA */}
+        <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', zIndex: 10 }}>
+          <button
+            type="button"
+            className="landing-btn-playing"
+            onClick={async () => {
+              try {
+                const res = await fetch('/api/auth/guest', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                });
+                if (res.ok) {
+                  window.location.reload();
+                } else {
+                  router.push('/login');
+                }
+              } catch (err) {
+                console.error('Guest login failed:', err);
+                router.push('/login');
+              }
+            }}
+          >
+            <Gamepad2 size={18} /> Start Playing Here
+          </button>
+          
+          <button
+            type="button"
+            className="landing-btn-signup"
+            onClick={() => router.push('/login?tab=register')}
+          >
+            Sign Up Now
+          </button>
+        </div>
+
+        {/* Small footer text */}
+        <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', marginTop: '48px', zIndex: 2 }}>
+          © 2026 Royale Gaming. All rights reserved.
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div className="lobby-page">

@@ -28,6 +28,14 @@ export async function GET(req: NextRequest) {
       ? encryptSlug(user.username || user._id.toString())
       : '';
 
+    let adminsList = user.linkedAdmins || [];
+    if (user.role === 'user' && adminsList.length === 0) {
+      const superAdmin = await User.findOne({ role: 'super_admin' }).select('name username avatar');
+      if (superAdmin) {
+        adminsList = [superAdmin];
+      }
+    }
+
     return NextResponse.json({
       authenticated: true,
       user: {
@@ -39,7 +47,7 @@ export async function GET(req: NextRequest) {
         avatar: user.avatar || '',
         username: user.username || '',
         inviteCode,
-        linkedAdmins: user.linkedAdmins || [],
+        linkedAdmins: adminsList,
         isFrozen: user.isFrozen || false,
         billingStartDate: user.billingStartDate || null,
         extendedUntil: user.extendedUntil || null,

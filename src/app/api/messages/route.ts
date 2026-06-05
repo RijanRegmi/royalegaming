@@ -48,15 +48,23 @@ export async function GET(req: NextRequest) {
         // Fallback: use first linked admin
         if (userObj && userObj.linkedAdmins && userObj.linkedAdmins.length > 0) {
           reqAdminId = userObj.linkedAdmins[0].toString();
+        } else {
+          const superAdmin = await User.findOne({ role: 'super_admin' });
+          if (superAdmin) {
+            reqAdminId = superAdmin._id.toString();
+          }
         }
       }
       if (!reqAdminId) {
         return NextResponse.json({ error: 'No associated administrator found. Please link with an admin.' }, { status: 400 });
       }
 
-      // Verify player is linked to this admin
+      // Verify player is linked to this admin (allow if target is super_admin)
       if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
-        return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+        const targetAdmin = await User.findById(reqAdminId);
+        if (!targetAdmin || targetAdmin.role !== 'super_admin') {
+          return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+        }
       }
       adminIdStr = reqAdminId;
     } else {
@@ -186,15 +194,23 @@ export async function POST(req: NextRequest) {
         // Fallback: use first linked admin
         if (userObj && userObj.linkedAdmins && userObj.linkedAdmins.length > 0) {
           reqAdminId = userObj.linkedAdmins[0].toString();
+        } else {
+          const superAdmin = await User.findOne({ role: 'super_admin' });
+          if (superAdmin) {
+            reqAdminId = superAdmin._id.toString();
+          }
         }
       }
       if (!reqAdminId) {
         return NextResponse.json({ error: 'No associated administrator found. Please link with an admin.' }, { status: 400 });
       }
 
-      // Verify link
+      // Verify link (allow if target is super_admin)
       if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
-        return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+        const targetAdmin = await User.findById(reqAdminId);
+        if (!targetAdmin || targetAdmin.role !== 'super_admin') {
+          return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+        }
       }
 
       recipientId = reqAdminId;

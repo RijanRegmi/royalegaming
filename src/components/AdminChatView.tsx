@@ -311,6 +311,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [loadingSuperAdminPayments, setLoadingSuperAdminPayments] = useState(false);
 
   const [chatLoading, setChatLoading] = useState(false);
+  const [chosenAdminId, setChosenAdminId] = useState<string>('');
+  const [linkingAdmin, setLinkingAdmin] = useState<boolean>(false);
 
   const [contextMenu, setContextMenu] = useState<{
     x: number;
@@ -746,6 +748,35 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       setLoading(false);
     }
   }, []);
+
+  const handleLinkAdmin = async () => {
+    if (!chosenAdminId || !selectedUser) return;
+    setLinkingAdmin(true);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          linkedAdmins: [chosenAdminId],
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showAlert('Success', `${selectedUser.name} has been successfully linked to the admin.`);
+        setSelectedUser(null);
+        setChosenAdminId('');
+        fetchUsers();
+      } else {
+        showAlert('Error', data.error || 'Failed to link admin');
+      }
+    } catch (err) {
+      console.error('Error linking admin:', err);
+      showAlert('Error', 'An error occurred while linking admin.');
+    } finally {
+      setLinkingAdmin(false);
+    }
+  };
 
   useEffect(() => {
     fetchUsers();
@@ -2244,6 +2275,69 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               </span>
             </div>
           </div>
+
+          {/* Link Admin Section for Super Admins */}
+          {currentUser.role === 'super_admin' && selectedUser.role === 'user' && (
+            <div className="details-info-section" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '20px', marginTop: '20px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <UserPlus size={16} /> Link Player to Admin
+              </h3>
+              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.4' }}>
+                This user registered without an invitation. Link them to a specific administrator so they can receive dedicated support.
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <select
+                  value={chosenAdminId}
+                  onChange={(e) => setChosenAdminId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(0, 0, 0, 0.2)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm)',
+                    padding: '8px 12px',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                    outline: 'none',
+                  }}
+                >
+                  <option value="" style={{ background: '#1e293b' }}>Select an Administrator</option>
+                  {users
+                    .filter((u: any) => u.role === 'admin')
+                    .map((admin: any) => (
+                      <option key={admin.id} value={admin.id} style={{ background: '#1e293b' }}>
+                        {admin.name} (@{admin.username || 'admin'})
+                      </option>
+                    ))}
+                </select>
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={handleLinkAdmin}
+                  disabled={!chosenAdminId || linkingAdmin}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  {linkingAdmin ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" /> Linking...
+                    </>
+                  ) : (
+                    'Link to Admin'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
         </aside>
       )}
 
