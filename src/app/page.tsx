@@ -542,10 +542,35 @@ export default function Home() {
 
   const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
 
+  if (verifyingAuth) {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        background: 'radial-gradient(circle at center, #0f172a 0%, #020617 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px',
+        fontFamily: "'Outfit', 'Inter', sans-serif",
+      }}>
+        <div style={{
+          width: '56px', height: '56px', borderRadius: '50%',
+          border: '3px solid rgba(168,85,247,0.15)',
+          borderTop: '3px solid #a855f7',
+          animation: 'spin 0.8s linear infinite',
+        }} />
+        <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
+        <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Royale Gaming...</p>
+      </div>
+    );
+  }
+
   if (!verifyingAuth && !authenticated) {
     return (
       <div className="landing-container" style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
+        height: '100dvh',
         background: 'radial-gradient(circle at center, #0f172a 0%, #020617 100%)',
         color: '#ffffff',
         fontFamily: "'Outfit', 'Inter', sans-serif",
@@ -554,8 +579,9 @@ export default function Home() {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: '60px 20px',
+        justifyContent: 'space-between',
+        padding: '40px 20px 28px',
+        boxSizing: 'border-box',
       }}>
         {/* Floating background glowing orbs */}
         <div style={{
@@ -767,77 +793,77 @@ export default function Home() {
             gap: 14px;
             flex-wrap: wrap;
             justify-content: center;
-            margin-top: 4px;
           }
 
           .landing-footer {
-            margin-top: 12px;
             font-size: 12px;
             color: rgba(255,255,255,0.28);
+            text-align: center;
+          }
+
+          /* Landing top section */
+          .landing-top {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            z-index: 2;
+            width: 100%;
+          }
+
+          /* Landing bottom section */
+          .landing-bottom {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            z-index: 2;
+            width: 100%;
           }
 
           /* ---- Responsive: Tablet ---- */
           @media (max-width: 768px) {
             .landing-container {
-              padding: 24px 20px 16px !important;
-              justify-content: flex-start !important;
-              align-items: center !important;
-              height: 100dvh !important;
-              min-height: 100dvh !important;
-              box-sizing: border-box !important;
-              overflow: hidden !important;
-              gap: 14px !important;
+              padding: 28px 20px 20px !important;
+              justify-content: space-between !important;
             }
             .premium-badge {
-              margin-bottom: 0 !important;
               font-size: 10px !important;
               padding: 5px 12px !important;
             }
             .landing-title {
               font-size: 28px !important;
-              letter-spacing: -0.5px !important;
               line-height: 1.2 !important;
               padding: 0 12px !important;
-              margin-bottom: 0 !important;
             }
             .landing-title br { display: none; }
             .landing-subtitle {
               font-size: 13px !important;
-              padding: 0 24px !important;
-              margin-bottom: 0 !important;
+              padding: 0 20px !important;
               line-height: 1.5 !important;
             }
+            .landing-top { gap: 10px !important; }
+            .landing-bottom { gap: 12px !important; }
             .carousel-3d-stage {
               margin: 0 !important;
-              height: 320px !important;
-            }
-            .landing-actions {
-              margin-top: 0 !important;
-              gap: 10px !important;
+              height: 300px !important;
             }
             .landing-btn-playing, .landing-btn-signup {
               padding: 12px 24px !important;
               font-size: 14px !important;
             }
             .landing-footer {
-              margin-top: 0 !important;
+              font-size: 11px !important;
             }
           }
 
           /* ---- Responsive: Small Mobile ---- */
           @media (max-width: 480px) {
             .landing-container {
-              padding: 20px 16px 14px !important;
-              justify-content: flex-start !important;
-              align-items: center !important;
-              height: 100dvh !important;
-              min-height: 100dvh !important;
-              box-sizing: border-box !important;
-              overflow: hidden !important;
-              gap: 10px !important;
+              padding: 22px 16px 16px !important;
+              justify-content: space-between !important;
             }
             .premium-badge {
-              margin-bottom: 0 !important;
               padding: 5px 12px !important;
               font-size: 9.5px !important;
               letter-spacing: 1.5px !important;
@@ -845,55 +871,49 @@ export default function Home() {
             .landing-title {
               font-size: 26px !important;
               font-weight: 900 !important;
-              margin-bottom: 0 !important;
-              padding: 0 10px !important;
+              padding: 0 8px !important;
               line-height: 1.2 !important;
             }
             .landing-subtitle {
               font-size: 12px !important;
-              margin-bottom: 0 !important;
-              padding: 0 20px !important;
+              padding: 0 16px !important;
               line-height: 1.5 !important;
             }
+            .landing-top { gap: 8px !important; }
+            .landing-bottom { gap: 10px !important; }
             .carousel-3d-stage {
               margin: 0 !important;
-              height: 300px !important;
-            }
-            .landing-actions {
-              margin-top: 0 !important;
-              gap: 8px !important;
+              height: 280px !important;
             }
             .landing-btn-playing, .landing-btn-signup {
               padding: 11px 20px !important;
               font-size: 13px !important;
             }
             .landing-footer {
-              margin-top: 0 !important;
               font-size: 10px !important;
             }
           }
         ` }} />
 
-        {/* Premium welcome badge */}
-        <div className="premium-badge">
-          <Sparkles size={13} fill="currentColor" /> Welcome to Royale Gaming
+        {/* ── TOP SECTION: Badge + Title + Subtitle ── */}
+        <div className="landing-top">
+          <div className="premium-badge">
+            <Sparkles size={13} fill="currentColor" /> Welcome to Royale Gaming
+          </div>
+          <h1 className="landing-title">
+            The Ultimate Realm of{' '}
+            <span className="landing-highlight">Premium Gaming</span>
+          </h1>
+          <p className="landing-subtitle">
+            Jump into the most thrilling community platform. Play your favorite games, unlock official rewards, and connect with live support managers 24/7.
+          </p>
         </div>
 
-        {/* Headline */}
-        <h1 className="landing-title">
-          The Ultimate Realm of <br />
-          <span className="landing-highlight">Premium Gaming</span>
-        </h1>
-
-        {/* Subtitle */}
-        <p className="landing-subtitle">
-          Jump into the most thrilling community platform. Play your favorite games, unlock official rewards, and connect with live support managers 24/7.
-        </p>
-
-        {/* 3D Circular Loop Circle of Games */}
+        {/* ── MIDDLE SECTION: 3D Carousel (flex:1 centers it) ── */}
         <div
           ref={stageRef}
           className="carousel-3d-stage"
+          style={{ flex: '1', maxHeight: '400px' }}
           onMouseDown={(e) => handleDragStart(e.clientX)}
           onMouseMove={(e) => handleDragMove(e.clientX)}
           onMouseUp={handleDragEnd}
@@ -913,7 +933,6 @@ export default function Home() {
             ]).map((game, idx, arr) => {
               const count = arr.length;
               const angle = (360 / count) * idx;
-              // Correct radius so cards space evenly around the circle
               const cardWidth = 190;
               const translateZ = Math.round((cardWidth / 2) / Math.tan(Math.PI / count)) + 60;
               return (
@@ -940,29 +959,28 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Buttons / CTA */}
-        <div className="landing-actions" style={{ display: 'flex', zIndex: 10 }}>
-          <button
-            type="button"
-            className="landing-btn-playing"
-            onClick={() => router.push('/login')}
-          >
-            <Gamepad2 size={18} /> Sign In to Play
-          </button>
-
-          <button
-            type="button"
-            className="landing-btn-signup"
-            onClick={() => router.push('/login?tab=register')}
-          >
-            Sign Up Now
-          </button>
+        {/* ── BOTTOM SECTION: Buttons + Copyright ── */}
+        <div className="landing-bottom">
+          <div className="landing-actions" style={{ zIndex: 10 }}>
+            <button
+              type="button"
+              className="landing-btn-playing"
+              onClick={() => router.push('/login')}
+            >
+              <Gamepad2 size={18} /> Sign In to Play
+            </button>
+            <button
+              type="button"
+              className="landing-btn-signup"
+              onClick={() => router.push('/login?tab=register')}
+            >
+              Sign Up Now
+            </button>
+          </div>
+          <span className="landing-footer">
+            © 2026 Royale Gaming. All rights reserved.
+          </span>
         </div>
-
-        {/* Small footer text */}
-        <span className="landing-footer" style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', zIndex: 2 }}>
-          © 2026 Royale Gaming. All rights reserved.
-        </span>
       </div>
     );
   }
