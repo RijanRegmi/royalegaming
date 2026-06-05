@@ -52,8 +52,36 @@ export default function Home() {
   const velocity = useRef<number>(0);
   const lastTime = useRef<number>(0);
   const requestRef = useRef<number | null>(null);
-
-, []);
+  useEffect(() => {
+    let autoSpinSpeed = 0.15; // Baseline speed in degrees per frame
+    let friction = 0.95; // Velocity decay factor
+    const updateRotation = () => {
+      if (!isDragging.current) {
+        // Apply friction to the swipe velocity
+        velocity.current *= friction;
+        if (Math.abs(velocity.current) < 0.01) {
+          velocity.current = 0;
+        }
+        // Add base speed + current user swipe velocity
+        rotationY.current += autoSpinSpeed + velocity.current;
+        if (ringRef.current) {
+          ringRef.current.style.transform = `rotateY(${rotationY.current}deg) translateZ(120px)`;
+          ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
+        }
+        if (stageRef.current) {
+          const absVelocity = Math.abs(velocity.current);
+          stageRef.current.style.setProperty('--ring-velocity-abs', `${absVelocity}`);
+        }
+      }
+      requestRef.current = requestAnimationFrame(updateRotation);
+    };
+    requestRef.current = requestAnimationFrame(updateRotation);
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
+  }, []);
 
   const handleDragStart = (clientX: number) => {
     isDragging.current = true;
