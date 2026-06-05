@@ -68,6 +68,7 @@ export default function Home() {
         
         if (ringRef.current) {
           ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
+          ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
         }
       }
       requestRef.current = requestAnimationFrame(updateRotation);
@@ -95,7 +96,7 @@ export default function Home() {
     const deltaX = clientX - startX.current;
     // dragFactor: 0.35 degrees per pixel drag
     const deltaAngle = deltaX * 0.35;
-    rotationY.current = startRotation.current - deltaAngle; // drag left rotates right
+    rotationY.current = startRotation.current + deltaAngle; // drag right rotates right
 
     // Calculate velocity on move
     const now = performance.now();
@@ -103,7 +104,7 @@ export default function Home() {
     const dx = clientX - lastX.current;
     if (dt > 0) {
       // Convert horizontal pixel drag to rotation velocity
-      const instantVelocity = -(dx * 0.35) / (dt / 16.66); // scale relative to 60fps frame time
+      const instantVelocity = (dx * 0.35) / (dt / 16.66); // scale relative to 60fps frame time
       // Smooth/dampen the velocity using moving average
       velocity.current = velocity.current * 0.4 + instantVelocity * 0.6;
     }
@@ -113,6 +114,7 @@ export default function Home() {
 
     if (ringRef.current) {
       ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
+      ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
     }
   };
 
@@ -631,13 +633,16 @@ export default function Home() {
             align-items: center;
             justify-content: space-between;
             padding: 8px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.15s ease-out, border-color 0.4s, box-shadow 0.4s;
             cursor: pointer;
             backface-visibility: visible;
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.6deg);
+            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) skewX(var(--skew-angle));
           }
 
           .carousel-3d-card:hover {
-            transform: scale(1.15) translateY(-10px) !important;
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.6deg);
+            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
             border-color: #a855f7;
             box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
             z-index: 100 !important;
@@ -898,8 +903,9 @@ export default function Home() {
                   key={game._id || idx}
                   className="carousel-3d-card"
                   style={{
-                    transform: `rotateY(${angle}deg) translateZ(${translateZ}px)`,
-                  }}
+                    '--card-angle': `${angle}deg`,
+                    '--card-z': `${translateZ}px`,
+                  } as React.CSSProperties}
                   onClick={() => handleChatAccess()}
                 >
                   <img 
