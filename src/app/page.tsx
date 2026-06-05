@@ -585,7 +585,7 @@ export default function Home() {
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
           
           .carousel-3d-stage {
-            perspective: 1200px;
+            perspective: 3000px;
             width: 100%;
             height: 380px;
             display: flex;
@@ -779,13 +779,14 @@ export default function Home() {
           /* ---- Responsive: Tablet ---- */
           @media (max-width: 768px) {
             .landing-container {
-              padding: 16px 16px 10px !important;
-              justify-content: space-between !important;
+              padding: 24px 20px 16px !important;
+              justify-content: flex-start !important;
               align-items: center !important;
               height: 100dvh !important;
               min-height: 100dvh !important;
               box-sizing: border-box !important;
               overflow: hidden !important;
+              gap: 14px !important;
             }
             .premium-badge {
               margin-bottom: 0 !important;
@@ -793,32 +794,30 @@ export default function Home() {
               padding: 5px 12px !important;
             }
             .landing-title {
-              font-size: 26px !important;
+              font-size: 28px !important;
               letter-spacing: -0.5px !important;
-              line-height: 1.18 !important;
+              line-height: 1.2 !important;
               padding: 0 12px !important;
               margin-bottom: 0 !important;
             }
             .landing-title br { display: none; }
             .landing-subtitle {
-              font-size: 12.5px !important;
-              padding: 0 20px !important;
+              font-size: 13px !important;
+              padding: 0 24px !important;
               margin-bottom: 0 !important;
-              line-height: 1.45 !important;
+              line-height: 1.5 !important;
             }
             .carousel-3d-stage {
               margin: 0 !important;
-              height: 210px !important;
-              transform: scale(0.72) !important;
-              transform-origin: center center !important;
+              height: 320px !important;
             }
             .landing-actions {
               margin-top: 0 !important;
               gap: 10px !important;
             }
             .landing-btn-playing, .landing-btn-signup {
-              padding: 11px 22px !important;
-              font-size: 13.5px !important;
+              padding: 12px 24px !important;
+              font-size: 14px !important;
             }
             .landing-footer {
               margin-top: 0 !important;
@@ -828,45 +827,45 @@ export default function Home() {
           /* ---- Responsive: Small Mobile ---- */
           @media (max-width: 480px) {
             .landing-container {
-              padding: 10px 12px 10px !important;
-              justify-content: space-between !important;
+              padding: 20px 16px 14px !important;
+              justify-content: flex-start !important;
               align-items: center !important;
               height: 100dvh !important;
               min-height: 100dvh !important;
               box-sizing: border-box !important;
               overflow: hidden !important;
+              gap: 10px !important;
             }
             .premium-badge {
               margin-bottom: 0 !important;
-              padding: 4px 10px !important;
-              font-size: 9px !important;
+              padding: 5px 12px !important;
+              font-size: 9.5px !important;
               letter-spacing: 1.5px !important;
             }
             .landing-title {
-              font-size: 20px !important;
+              font-size: 26px !important;
+              font-weight: 900 !important;
               margin-bottom: 0 !important;
-              padding: 0 8px !important;
+              padding: 0 10px !important;
               line-height: 1.2 !important;
             }
             .landing-subtitle {
-              font-size: 11px !important;
+              font-size: 12px !important;
               margin-bottom: 0 !important;
-              padding: 0 16px !important;
-              line-height: 1.4 !important;
+              padding: 0 20px !important;
+              line-height: 1.5 !important;
             }
             .carousel-3d-stage {
               margin: 0 !important;
-              height: 190px !important;
-              transform: scale(0.62) !important;
-              transform-origin: center center !important;
+              height: 300px !important;
             }
             .landing-actions {
               margin-top: 0 !important;
               gap: 8px !important;
             }
             .landing-btn-playing, .landing-btn-signup {
-              padding: 10px 18px !important;
-              font-size: 12.5px !important;
+              padding: 11px 20px !important;
+              font-size: 13px !important;
             }
             .landing-footer {
               margin-top: 0 !important;
