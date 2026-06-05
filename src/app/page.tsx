@@ -43,6 +43,7 @@ export default function Home() {
 
   // 3D Carousel Drag & Spin State Refs
   const ringRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef<boolean>(false);
   const startX = useRef<number>(0);
   const lastX = useRef<number>(0);
@@ -69,6 +70,10 @@ export default function Home() {
         if (ringRef.current) {
           ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
           ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
+        }
+        if (stageRef.current) {
+          const absVelocity = Math.abs(velocity.current);
+          stageRef.current.style.setProperty('--ring-velocity-abs', `${absVelocity}`);
         }
       }
       requestRef.current = requestAnimationFrame(updateRotation);
@@ -115,6 +120,10 @@ export default function Home() {
     if (ringRef.current) {
       ringRef.current.style.transform = `rotateY(${rotationY.current}deg)`;
       ringRef.current.style.setProperty('--ring-velocity', `${velocity.current}`);
+    }
+    if (stageRef.current) {
+      const absVelocity = Math.abs(velocity.current);
+      stageRef.current.style.setProperty('--ring-velocity-abs', `${absVelocity}`);
     }
   };
 
@@ -590,7 +599,8 @@ export default function Home() {
           @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap');
           
           .carousel-3d-stage {
-            perspective: 1000px;
+            --stage-perspective: calc(1000px - var(--ring-velocity-abs, 0) * 22px);
+            perspective: var(--stage-perspective);
             width: 100%;
             height: 340px;
             display: flex;
@@ -601,6 +611,7 @@ export default function Home() {
             z-index: 2;
             cursor: grab;
             user-select: none;
+            transition: perspective 0.15s ease-out;
           }
 
           .carousel-3d-stage:active {
@@ -636,13 +647,15 @@ export default function Home() {
             transition: transform 0.15s ease-out, border-color 0.4s, box-shadow 0.4s;
             cursor: pointer;
             backface-visibility: visible;
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.6deg);
-            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) skewX(var(--skew-angle));
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
+            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
+            transform: rotateY(var(--card-angle)) translateZ(var(--card-z-dynamic)) skewX(var(--skew-angle));
           }
 
           .carousel-3d-card:hover {
-            --skew-angle: calc(var(--ring-velocity, 0) * -0.6deg);
-            transform: rotateY(var(--card-angle)) translateZ(var(--card-z)) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
+            --skew-angle: calc(var(--ring-velocity, 0) * -0.5deg);
+            --card-z-dynamic: calc(var(--card-z) + var(--ring-velocity-abs, 0) * 2.5px);
+            transform: rotateY(var(--card-angle)) translateZ(var(--card-z-dynamic)) scale(1.15) translateY(-10px) skewX(var(--skew-angle)) !important;
             border-color: #a855f7;
             box-shadow: 0 0 25px rgba(168, 85, 247, 0.4);
             z-index: 100 !important;
@@ -877,6 +890,7 @@ export default function Home() {
 
         {/* 3D Circular Loop Circle of Games */}
         <div 
+          ref={stageRef}
           className="carousel-3d-stage"
           onMouseDown={(e) => handleDragStart(e.clientX)}
           onMouseMove={(e) => handleDragMove(e.clientX)}
