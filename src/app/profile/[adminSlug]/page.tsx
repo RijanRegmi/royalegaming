@@ -232,8 +232,8 @@ export default function AdminProfilePublicPage() {
   return (
     <div className="auth-page" style={{ overflowY: 'auto' }}>
       <div className="lobby-content-layout" style={{ maxWidth: '1400px', margin: '40px auto', width: '100%' }}>
-        {/* Left Vertical Ad Sidebar */}
-        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+        {/* Left Vertical Ad Sidebar — only shown when content is loaded */}
+        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
           <div 
             className={`desktop-ad-sidebar left ${leftAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
             style={{ marginTop: '0' }}
@@ -400,8 +400,8 @@ export default function AdminProfilePublicPage() {
       )}
     </div>
 
-    {/* Right Vertical Ad Sidebar */}
-    {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+    {/* Right Vertical Ad Sidebar — only shown when content is loaded */}
+    {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
       <div 
         className={`desktop-ad-sidebar right ${rightAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
         style={{ marginTop: '0' }}

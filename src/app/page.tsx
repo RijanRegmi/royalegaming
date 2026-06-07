@@ -1115,14 +1115,14 @@ export default function Home() {
           </p>
         </section>
 
-        {/* Google AdSense Banner */}
-        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+        {/* Google AdSense Banner — only shown when content is loaded */}
+        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
           <AdSenseBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} />
         )}
 
         <div className="lobby-content-layout">
-          {/* Left Vertical Ad Sidebar */}
-          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+          {/* Left Vertical Ad Sidebar — only shown when content is loaded */}
+          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
             <div
               className={`desktop-ad-sidebar left ${leftAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
             >
@@ -1483,8 +1483,8 @@ export default function Home() {
             )}
           </div>
 
-          {/* Right Vertical Ad Sidebar */}
-          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && (
+          {/* Right Vertical Ad Sidebar — only shown when content is loaded */}
+          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
             <div
               className={`desktop-ad-sidebar right ${rightAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
             >
