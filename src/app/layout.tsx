@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   title: "Rilogram Support Chat",
   description: "Connect with Rilogram Support and Administration team in real-time.",
   icons: {
-    icon: "/royale_logo.jpg",
-    shortcut: "/royale_logo.jpg",
-    apple: "/royale_logo.jpg",
+    icon: "/rilogram_logo.png",
+    shortcut: "/rilogram_logo.png",
+    apple: "/rilogram_logo.png",
   },
   other: {
     "google-adsense-account": "ca-pub-6821892124319111",

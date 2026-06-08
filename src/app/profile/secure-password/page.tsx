@@ -275,7 +275,7 @@ export default function SecurePasswordPage() {
         {/* Title */}
         <div className="auth-logo" style={{ marginBottom: '28px' }}>
           <img
-            src="/royale_logo.jpg"
+            src="/rilogram_logo.png"
             alt="Rilogram Logo"
             style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
           />

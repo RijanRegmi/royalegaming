@@ -991,13 +991,13 @@ export default function Home() {
       <header className="lobby-navbar">
         <div className="lobby-logo" onClick={() => router.push('/')}>
           <img
-            src="/royale_logo.jpg"
-            alt="Royale Logo"
+            src="/rilogram_logo.png"
+            alt="Rilogram Logo"
             style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', marginRight: '10px' }}
           />
           <div>
-            <span className="lobby-logo-text">Royale Hub</span>
-            <div className="lobby-logo-sub">Community Feed</div>
+            <span className="lobby-logo-text">Rilogram</span>
+            <div className="lobby-logo-sub">Community Hub</div>
           </div>
         </div>
 
@@ -1109,7 +1109,7 @@ export default function Home() {
 
         {/* Hero Section */}
         <section className="lobby-hero" style={{ marginBottom: '32px' }}>
-          <h2>Royale <span style={{ color: '#a855f7', textShadow: '0 0 15px rgba(168, 85, 247, 0.3)' }}>Community Portal</span></h2>
+          <h2>Rilogram <span style={{ color: '#a855f7', textShadow: '0 0 15px rgba(168, 85, 247, 0.3)' }}>Community Portal</span></h2>
           <p>
             Connect directly with our community managers, view official announcements, and request real-time support whenever needed.
           </p>

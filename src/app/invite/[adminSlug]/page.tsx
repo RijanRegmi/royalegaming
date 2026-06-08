@@ -115,7 +115,7 @@ export default function InvitePage() {
         
         <div className={styles.authLogo}>
           <Image
-            src="/royale_logo.jpg"
+            src="/rilogram_logo.png"
             alt="Rilogram Logo"
             width={70}
             height={70}

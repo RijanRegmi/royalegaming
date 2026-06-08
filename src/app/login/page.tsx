@@ -307,7 +307,7 @@ export default function LoginPage() {
       <div className="auth-card glass">
         <div className="auth-logo">
           <img 
-            src="/royale_logo.jpg" 
+            src="/rilogram_logo.png" 
             alt="Rilogram Logo" 
             style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
           />

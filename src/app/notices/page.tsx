@@ -169,12 +169,12 @@ export default function NoticesPage() {
       <header className="lobby-navbar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="lobby-logo" style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>
           <img 
-            src="/royale_logo.jpg" 
-            alt="Royale Logo" 
+            src="/rilogram_logo.png" 
+            alt="Rilogram Logo" 
             style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', marginRight: '10px' }}
           />
           <div>
-            <span className="lobby-logo-text">Royale Hub</span>
+            <span className="lobby-logo-text">Rilogram</span>
             <div className="lobby-logo-sub">Notices Board</div>
           </div>
         </div>
