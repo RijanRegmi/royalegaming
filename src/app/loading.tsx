@@ -54,6 +54,32 @@ export default function Loading() {
         <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
         <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Rilogram...</p>
       </div>
+
+      {/* Developed by RJN */}
+      <div style={{
+        position: 'absolute',
+        bottom: '28px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '8px',
+        zIndex: 1,
+      }}>
+        <img 
+          src="/assets/logo/RJN.png" 
+          alt="RJN Logo" 
+          style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'contain' }}
+        />
+        <span style={{
+          fontSize: '11px',
+          color: 'rgba(255, 255, 255, 0.35)',
+          fontWeight: 600,
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+        }}>
+          Developed by RJN
+        </span>
+      </div>
     </div>
   );
 }

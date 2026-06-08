@@ -553,6 +553,8 @@ export default function Home() {
         justifyContent: 'center',
         gap: '16px',
         fontFamily: "'Outfit', 'Inter', sans-serif",
+        position: 'relative',
+        overflow: 'hidden',
       }}>
         <div style={{
           width: '56px', height: '56px', borderRadius: '50%',
@@ -562,6 +564,32 @@ export default function Home() {
         }} />
         <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
         <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Rilogram...</p>
+
+        {/* Developed by RJN */}
+        <div style={{
+          position: 'absolute',
+          bottom: '28px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 1,
+        }}>
+          <img 
+            src="/assets/logo/RJN.png" 
+            alt="RJN Logo" 
+            style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'contain' }}
+          />
+          <span style={{
+            fontSize: '11px',
+            color: 'rgba(255, 255, 255, 0.35)',
+            fontWeight: 600,
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+          }}>
+            Developed by RJN
+          </span>
+        </div>
       </div>
     );
   }
@@ -977,9 +1005,28 @@ export default function Home() {
               Login
             </button>
           </div>
-          <span className="landing-footer">
-            © 2026 Rilogram. All rights reserved.
-          </span>
+          <div className="landing-footer" style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '8px',
+            marginTop: '8px',
+            zIndex: 10,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <img 
+                src="/assets/logo/RJN.png" 
+                alt="RJN Logo" 
+                style={{ width: '20px', height: '20px', borderRadius: '4px', objectFit: 'contain' }}
+              />
+              <span style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.45)', fontWeight: 500 }}>
+                Created by RJN
+              </span>
+            </div>
+            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.2)' }}>
+              © 2026 Rilogram. All rights reserved.
+            </span>
+          </div>
         </div>
       </div>
     );
@@ -993,7 +1040,7 @@ export default function Home() {
           <img
             src="/rilogram_logo.png"
             alt="Rilogram Logo"
-            style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'cover', marginRight: '10px' }}
+            style={{ width: '54px', height: '36px', borderRadius: '6px', objectFit: 'contain', marginRight: '10px' }}
           />
           <div>
             <span className="lobby-logo-text">Rilogram</span>

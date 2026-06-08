@@ -117,7 +117,7 @@ export default function InvitePage() {
           <Image
             src="/rilogram_logo.png"
             alt="Rilogram Logo"
-            width={70}
+            width={105}
             height={70}
             className={styles.logoImage}
           />
