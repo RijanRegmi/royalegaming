@@ -117,11 +117,11 @@ export default function InvitePage() {
           <Image
             src="/rilogram_logo.png"
             alt="Rilogram Logo"
-            width={105}
-            height={70}
+            width={120}
+            height={80}
             className={styles.logoImage}
           />
-          <h1 className={styles.logoTitle}>Rilogram</h1>
+          <h1 className={styles.logoTitle} style={{ letterSpacing: '4px', fontWeight: 900 }}>RILOGRAM</h1>
           <p className={styles.logoSubtitle}>Community Invitation</p>
         </div>
 

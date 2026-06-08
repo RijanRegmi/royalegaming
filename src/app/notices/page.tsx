@@ -171,10 +171,10 @@ export default function NoticesPage() {
           <img 
             src="/rilogram_logo.png" 
             alt="Rilogram Logo" 
-            style={{ width: '54px', height: '36px', borderRadius: '6px', objectFit: 'contain', marginRight: '10px' }}
+            style={{ width: '72px', height: '48px', borderRadius: '8px', objectFit: 'contain', marginRight: '10px' }}
           />
           <div>
-            <span className="lobby-logo-text">Rilogram</span>
+            <span className="lobby-logo-text" style={{ letterSpacing: '2px', fontWeight: 800 }}>RILOGRAM</span>
             <div className="lobby-logo-sub">Notices Board</div>
           </div>
         </div>

@@ -40,45 +40,65 @@ export default function Loading() {
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1,
-        gap: '16px',
+        gap: '24px',
       }}>
+        {/* RILOGRAM Logo */}
+        <div style={{
+          borderRadius: '24px',
+          boxShadow: '0 0 24px rgba(168, 85, 247, 0.2)',
+          overflow: 'hidden',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}>
+          <img 
+            src="/rilogram_logo.png" 
+            alt="Rilogram Logo" 
+            style={{ width: '180px', height: '120px', objectFit: 'contain' }}
+          />
+        </div>
+
         {/* Animated spinner */}
         <div style={{
-          width: '56px',
-          height: '56px',
+          width: '36px',
+          height: '36px',
           borderRadius: '50%',
           border: '3px solid rgba(168,85,247,0.15)',
           borderTop: '3px solid #a855f7',
           animation: 'spin 0.8s linear infinite',
         }} />
         <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
-        <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Rilogram...</p>
       </div>
 
       {/* Developed by RJN */}
       <div style={{
         position: 'absolute',
-        bottom: '28px',
+        bottom: '36px',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: '8px',
         zIndex: 1,
       }}>
+        <span style={{
+          fontSize: '12px',
+          color: 'rgba(255, 255, 255, 0.35)',
+          fontWeight: 400,
+          letterSpacing: '1px',
+          marginBottom: '8px',
+        }}>
+          from
+        </span>
         <img 
           src="/assets/logo/RJN.png" 
           alt="RJN Logo" 
-          style={{ width: '32px', height: '32px', borderRadius: '6px', objectFit: 'contain' }}
+          style={{ 
+            width: '36px', 
+            height: '36px', 
+            borderRadius: '50%', 
+            border: '2px solid rgba(255, 255, 255, 0.1)',
+            objectFit: 'cover' 
+          }}
         />
-        <span style={{
-          fontSize: '11px',
-          color: 'rgba(255, 255, 255, 0.35)',
-          fontWeight: 600,
-          letterSpacing: '1px',
-          textTransform: 'uppercase',
-        }}>
-          Developed by RJN
-        </span>
       </div>
     </div>
   );
