@@ -561,7 +561,7 @@ export default function Home() {
           animation: 'spin 0.8s linear infinite',
         }} />
         <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
-        <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Royale Gaming...</p>
+        <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Rilogram...</p>
       </div>
     );
   }
@@ -898,7 +898,7 @@ export default function Home() {
         {/* ── TOP SECTION: Badge + Title + Subtitle ── */}
         <div className="landing-top">
           <div className="premium-badge">
-            <Sparkles size={13} fill="currentColor" /> Welcome to Royale Gaming
+            <Sparkles size={13} fill="currentColor" /> Welcome to Rilogram
           </div>
           <h1 className="landing-title">
             The Ultimate Realm of{' '}
@@ -978,7 +978,7 @@ export default function Home() {
             </button>
           </div>
           <span className="landing-footer">
-            © 2026 Royale Gaming. All rights reserved.
+            © 2026 Rilogram. All rights reserved.
           </span>
         </div>
       </div>

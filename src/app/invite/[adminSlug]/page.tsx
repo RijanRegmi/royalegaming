@@ -116,12 +116,12 @@ export default function InvitePage() {
         <div className={styles.authLogo}>
           <Image
             src="/royale_logo.jpg"
-            alt="Royale Gaming Logo"
+            alt="Rilogram Logo"
             width={70}
             height={70}
             className={styles.logoImage}
           />
-          <h1 className={styles.logoTitle}>Royale Gaming</h1>
+          <h1 className={styles.logoTitle}>Rilogram</h1>
           <p className={styles.logoSubtitle}>Community Invitation</p>
         </div>
 

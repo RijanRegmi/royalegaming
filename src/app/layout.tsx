@@ -3,8 +3,8 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "RoyaleGaming Support Chat",
-  description: "Connect with RoyaleGaming Support and Administration team in real-time.",
+  title: "Rilogram Support Chat",
+  description: "Connect with Rilogram Support and Administration team in real-time.",
   icons: {
     icon: "/royale_logo.jpg",
     shortcut: "/royale_logo.jpg",

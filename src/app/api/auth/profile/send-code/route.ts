@@ -65,13 +65,13 @@ export async function POST(req: NextRequest) {
         }
 
         await transporter.sendMail({
-          from: `"RoyaleGaming Support" <${smtpFrom}>`,
+          from: `"Rilogram Support" <${smtpFrom}>`,
           to: user.email,
           subject: 'Your Password Change Verification Code',
           text: `Hello ${user.name},\n\nYou requested to change your account password. Your 6-digit verification code is:\n\n${code}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please secure your account.`,
           html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-              <h2 style="color: #00a884; text-align: center;">RoyaleGaming Profile Security</h2>
+              <h2 style="color: #00a884; text-align: center;">Rilogram Profile Security</h2>
               <p>Hello <strong>${user.name}</strong>,</p>
               <p>You requested a password change. Please use the following 6-digit verification code to proceed:</p>
               <div style="background-color: #f4f4f4; padding: 15px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 4px; color: #333; border-radius: 4px; margin: 20px 0;">

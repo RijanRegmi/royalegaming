@@ -52,7 +52,7 @@ export default function Loading() {
           animation: 'spin 0.8s linear infinite',
         }} />
         <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
-        <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Royale Gaming...</p>
+        <p style={{ color: '#8fa0b5', fontSize: '14px', margin: 0 }}>Loading Rilogram...</p>
       </div>
     </div>
   );

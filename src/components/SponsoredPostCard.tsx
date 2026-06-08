@@ -29,10 +29,10 @@ export default function SponsoredPostCard({ style }: SponsoredPostCardProps) {
             color: '#ffffff',
             fontSize: '14px'
           }}>
-            RG
+            RL
           </div>
           <div>
-            <h4 style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px', margin: 0 }}>Royale Gaming Premium Events</h4>
+            <h4 style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px', margin: 0 }}>Rilogram Premium Events</h4>
             <span style={{ color: '#8fa0b5', fontSize: '11px' }}>Sponsored Partner</span>
           </div>
         </div>
@@ -84,10 +84,10 @@ export default function SponsoredPostCard({ style }: SponsoredPostCardProps) {
           color: '#ffffff',
           fontSize: '14px'
         }}>
-          RG
+          RL
         </div>
         <div>
-          <h4 style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px', margin: 0 }}>Royale Gaming Premium Events</h4>
+          <h4 style={{ color: '#ffffff', fontWeight: 600, fontSize: '14px', margin: 0 }}>Rilogram Premium Events</h4>
           <span style={{ color: '#8fa0b5', fontSize: '11px' }}>Sponsored Partner</span>
         </div>
       </div>

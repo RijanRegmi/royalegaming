@@ -1,4 +1,4 @@
-// Service Worker for RoyaleGaming support chat push notifications
+// Service Worker for Rilogram support chat push notifications
 
 self.addEventListener('push', function (event) {
   if (!event.data) {
@@ -7,7 +7,7 @@ self.addEventListener('push', function (event) {
 
   try {
     const payload = event.data.json();
-    const title = payload.title || 'RoyaleGaming Support';
+    const title = payload.title || 'Rilogram Support';
     
     const options = {
       body: payload.body || 'New message received',

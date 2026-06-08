@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     // Generate a unique identifier for the guest
     const randomId = Math.random().toString(36).substring(2, 7).toUpperCase();
     const guestName = `Guest ${randomId}`;
-    const guestEmail = `guest_${randomId.toLowerCase()}@royalegaming.com`;
+    const guestEmail = `guest_${randomId.toLowerCase()}@rilogram.com`;
 
     // Read pending admin cookie or fallback to oldest active admin
     const pendingAdminSlug = req.cookies.get('pending_admin_slug')?.value;

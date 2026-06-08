@@ -4,7 +4,7 @@ import Game from '@/models/Game';
 
 export async function seedSuperAdmin() {
   try {
-    const email = (process.env.SUPER_ADMIN_EMAIL || 'superadmin@royalegaming.com').toLowerCase();
+    const email = (process.env.SUPER_ADMIN_EMAIL || 'superadmin@rilogram.com').toLowerCase();
     const superAdmin = await User.findOne({ email });
     if (!superAdmin) {
       const password = process.env.SUPER_ADMIN_PASSWORD || 'SuperAdmin2026!';

@@ -276,7 +276,7 @@ export default function SecurePasswordPage() {
         <div className="auth-logo" style={{ marginBottom: '28px' }}>
           <img
             src="/royale_logo.jpg"
-            alt="Royale Gaming Logo"
+            alt="Rilogram Logo"
             style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
           />
           <h1>Secure Change</h1>

@@ -308,10 +308,10 @@ export default function LoginPage() {
         <div className="auth-logo">
           <img 
             src="/royale_logo.jpg" 
-            alt="Royale Gaming Logo" 
+            alt="Rilogram Logo" 
             style={{ width: '60px', height: '60px', borderRadius: '12px', objectFit: 'cover', marginBottom: '12px' }}
           />
-          <h1>Royale Gaming</h1>
+          <h1>Rilogram</h1>
           <p>Support Chat System</p>
         </div>
 
