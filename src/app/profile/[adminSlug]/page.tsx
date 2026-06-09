@@ -6,6 +6,7 @@ import { Shield, ShieldAlert, ArrowLeft, Loader2, Heart, X } from 'lucide-react'
 import styles from '../profile.module.css';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
+import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
 
 interface AdminInfo {
   id: string;
@@ -364,15 +365,15 @@ export default function AdminProfilePublicPage() {
                       )}
 
                       {post.image && (
-                        <div className="post-image-container" style={{ overflow: 'hidden', borderRadius: '8px', marginBottom: '12px', cursor: 'pointer' }} onClick={() => setLightboxImage(post.image)}>
-                          <img 
-                            src={post.image} 
-                            alt="Announcement Media" 
-                            className="post-image" 
-                            style={{ width: '100%', maxHeight: '320px', objectFit: 'cover' }}
-                            title="Click to view full screen"
-                          />
-                        </div>
+                        <DoubleTapLikeImage
+                          src={post.image}
+                          alt="Announcement Media"
+                          onLike={() => {
+                            if (!hasLiked) {
+                              handleLikePost(post._id);
+                            }
+                          }}
+                        />
                       )}
 
                       <div className="post-actions" style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>

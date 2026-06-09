@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
+import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
 
 interface User {
   _id: string;
@@ -1047,15 +1048,15 @@ export default function ProfilePage() {
                           )}
 
                           {post.image && (
-                            <div className="post-image-container" style={{ overflow: 'hidden', borderRadius: '8px', marginBottom: '12px', cursor: 'pointer' }} onClick={() => setLightboxImage(post.image)}>
-                              <img 
-                                src={post.image} 
-                                alt="Announcement Media" 
-                                className="post-image" 
-                                style={{ width: '100%', maxHeight: '320px', objectFit: 'cover' }}
-                                title="Click to view full screen"
-                              />
-                            </div>
+                            <DoubleTapLikeImage
+                              src={post.image}
+                              alt="Announcement Media"
+                              onLike={() => {
+                                if (!hasLiked) {
+                                  handleLikePost(post._id);
+                                }
+                              }}
+                            />
                           )}
 
                           <div className="post-actions" style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>

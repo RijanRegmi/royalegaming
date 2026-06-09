@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MessageSquare, LogOut, LogIn, Shield, Bell, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X, Gamepad2, Sparkles } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
+import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
 
 interface PostItem {
   _id: string;
@@ -1526,16 +1527,15 @@ export default function Home() {
 
                           {/* Post Image */}
                           {post.image && (
-                            <div className="post-image-container">
-                              <img
-                                src={post.image}
-                                alt="Announcement Media"
-                                className="post-image"
-                                onClick={() => setLightboxImage(post.image!)}
-                                style={{ cursor: 'pointer' }}
-                                title="Click to view full screen"
-                              />
-                            </div>
+                            <DoubleTapLikeImage
+                              src={post.image}
+                              alt="Announcement Media"
+                              onLike={() => {
+                                if (!hasLiked) {
+                                  handleLikePost(post._id);
+                                }
+                              }}
+                            />
                           )}
 
                           {/* Post Actions (Likes) */}
@@ -1827,16 +1827,15 @@ export default function Home() {
                           )}
 
                           {post.image && (
-                            <div className="post-image-container">
-                              <img
-                                src={post.image}
-                                alt="Announcement Media"
-                                className="post-image"
-                                onClick={() => setLightboxImage(post.image!)}
-                                style={{ cursor: 'pointer' }}
-                                title="Click to view full screen"
-                              />
-                            </div>
+                            <DoubleTapLikeImage
+                              src={post.image}
+                              alt="Announcement Media"
+                              onLike={() => {
+                                if (!hasLiked) {
+                                  handleLikePost(post._id);
+                                }
+                              }}
+                            />
                           )}
 
                           <div className="post-actions">
