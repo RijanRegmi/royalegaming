@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     let chatUserId = '';
     let adminIdStr = '';
 
-    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id email phone');
     const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
 
     if (payload.role === 'user') {
@@ -158,34 +158,45 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: 1 });
 
     // Mark messages as read
-    if (payload.role === 'user') {
+    if (payload.role === 'super_admin') {
+      // Super admin viewing user/admin support chat: mark user/admin's messages as read
       await Message.updateMany(
-        { chatUserId, adminId: adminIdStr, senderId: { $ne: payload.userId }, isRead: false, deletedFor: { $ne: payload.userId } },
-        { $set: { isRead: true } }
-      );
-    } else if (isTargetAdmin) {
-      // Admin viewing Admin chat: mark other admin's messages as read
-      await Message.updateMany(
-        { senderId: chatUserId, recipientId: payload.userId, isRead: false, deletedFor: { $ne: payload.userId } },
+        {
+          chatUserId,
+          adminId: primarySuperAdminId,
+          senderId: chatUserId,
+          isRead: false,
+          deletedFor: { $ne: payload.userId }
+        },
         { $set: { isRead: true } }
       );
     } else {
-      // Admin viewing player chat: mark player's messages as read
+      // Player or standard admin viewing their chat: mark incoming messages as read
       await Message.updateMany(
-        { chatUserId, adminId: adminIdStr, senderId: chatUserId, isRead: false, deletedFor: { $ne: payload.userId } },
+        {
+          chatUserId,
+          adminId: adminIdStr,
+          senderId: { $ne: payload.userId },
+          isRead: false,
+          deletedFor: { $ne: payload.userId }
+        },
         { $set: { isRead: true } }
       );
     }
 
     let sanitizedMessages = messages;
     if (payload.role !== 'super_admin') {
+      const primarySuperAdminEmail = primarySuperAdmin ? primarySuperAdmin.email : 'support@rilogram.com';
+      const primarySuperAdminPhone = primarySuperAdmin ? (primarySuperAdmin.phone || '') : '';
+
       sanitizedMessages = messages.map((msg: any) => {
         const msgObj = msg.toObject ? msg.toObject() : msg;
         if (msgObj.senderId && msgObj.senderId.role === 'super_admin') {
           msgObj.senderId = {
             ...msgObj.senderId,
             name: 'Support Chat',
-            email: 'support@rilogram.com',
+            email: primarySuperAdminEmail,
+            phone: primarySuperAdminPhone,
             avatar: '',
           };
         }
@@ -193,7 +204,8 @@ export async function GET(req: NextRequest) {
           msgObj.recipientId = {
             ...msgObj.recipientId,
             name: 'Support Chat',
-            email: 'support@rilogram.com',
+            email: primarySuperAdminEmail,
+            phone: primarySuperAdminPhone,
             avatar: '',
           };
         }

@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     await dbConnect();
 
     let queryUsers: any = {};
-    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id email phone');
     const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id : null;
 
     if (payload.role === 'super_admin') {
@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
     const users = await User.find(queryUsers).select('-password');
 
     const adminUserId = new mongoose.Types.ObjectId(payload.userId);
+    const primarySuperAdminObj = primarySuperAdminId ? new mongoose.Types.ObjectId(primarySuperAdminId.toString()) : null;
 
     // 1. Fetch latest messages for each conversation partner in a single aggregation query
     const latestMessages = await Message.aggregate([
@@ -67,8 +68,9 @@ export async function GET(req: NextRequest) {
         $match: {
           deletedFor: { $ne: adminUserId },
           $or: [
-            // User support chat: adminId matches the logged-in admin
+            // User support chat: adminId matches the logged-in admin or the primary Super Admin
             { adminId: adminUserId },
+            ...(primarySuperAdminObj ? [{ adminId: primarySuperAdminObj }] : []),
             // Direct message between admin and super_admin
             { senderId: adminUserId, recipientId: { $exists: true } },
             { recipientId: adminUserId, senderId: { $exists: true } }
@@ -88,9 +90,21 @@ export async function GET(req: NextRequest) {
         $addFields: {
           conversationUserId: {
             $cond: {
-              if: { $eq: ['$chatUserId', adminUserId] },
-              then: '$senderId',
-              else: '$chatUserId'
+              if: { $eq: ['$adminId', primarySuperAdminObj] },
+              then: {
+                $cond: {
+                  if: { $in: [payload.role, ['super_admin']] },
+                  then: '$chatUserId',
+                  else: primarySuperAdminObj
+                }
+              },
+              else: {
+                $cond: {
+                  if: { $eq: ['$chatUserId', adminUserId] },
+                  then: '$senderId',
+                  else: '$chatUserId'
+                }
+              }
             }
           }
         }
@@ -116,6 +130,7 @@ export async function GET(req: NextRequest) {
             {
               $or: [
                 { adminId: adminUserId },
+                ...(primarySuperAdminObj ? [{ adminId: primarySuperAdminObj }] : []),
                 { recipientId: adminUserId }
               ]
             },
@@ -132,9 +147,21 @@ export async function GET(req: NextRequest) {
         $addFields: {
           conversationUserId: {
             $cond: {
-              if: { $eq: ['$chatUserId', adminUserId] },
-              then: '$senderId',
-              else: '$chatUserId'
+              if: { $eq: ['$adminId', primarySuperAdminObj] },
+              then: {
+                $cond: {
+                  if: { $in: [payload.role, ['super_admin']] },
+                  then: '$chatUserId',
+                  else: primarySuperAdminObj
+                }
+              },
+              else: {
+                $cond: {
+                  if: { $eq: ['$chatUserId', adminUserId] },
+                  then: '$senderId',
+                  else: '$chatUserId'
+                }
+              }
             }
           }
         }
@@ -186,12 +213,15 @@ export async function GET(req: NextRequest) {
       const isSuperAdmin = user.role === 'super_admin';
       const shouldDisguise = isSuperAdmin && payload.role !== 'super_admin';
 
+      const primarySuperAdminEmail = primarySuperAdmin ? primarySuperAdmin.email : 'support@rilogram.com';
+      const primarySuperAdminPhone = primarySuperAdmin ? (primarySuperAdmin.phone || '') : '';
+
       return {
         id: user._id,
         name: shouldDisguise ? 'Support Chat' : user.name,
-        email: shouldDisguise ? 'support@rilogram.com' : user.email,
+        email: shouldDisguise ? primarySuperAdminEmail : user.email,
         username: shouldDisguise ? 'support' : (user.username || ''),
-        phone: shouldDisguise ? '' : (user.phone || ''),
+        phone: shouldDisguise ? primarySuperAdminPhone : (user.phone || ''),
         avatar: shouldDisguise ? '' : (user.avatar || ''),
         role: user.role,
         isFrozen: user.isFrozen || false,

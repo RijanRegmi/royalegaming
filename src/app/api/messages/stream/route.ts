@@ -48,8 +48,17 @@ export async function GET(req: NextRequest) {
   };
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
+      let primarySuperAdminEmail = 'support@rilogram.com';
+      let primarySuperAdminPhone = '';
       try {
+        const User = (await import('@/models/User')).default;
+        const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('email phone');
+        if (primarySuperAdmin) {
+          primarySuperAdminEmail = primarySuperAdmin.email || 'support@rilogram.com';
+          primarySuperAdminPhone = primarySuperAdmin.phone || '';
+        }
+
         const onlineUsers = (global as any).onlineUsers;
         const userRecord = onlineUsers.get(payload.userId) || { count: 0, role: payload.role };
         onlineUsers.set(payload.userId, { count: userRecord.count + 1, role: payload.role });
@@ -101,7 +110,8 @@ export async function GET(req: NextRequest) {
               msgObj.senderId = {
                 ...msgObj.senderId,
                 name: 'Support Chat',
-                email: 'support@rilogram.com',
+                email: primarySuperAdminEmail,
+                phone: primarySuperAdminPhone,
                 avatar: '',
               };
             }
@@ -109,7 +119,8 @@ export async function GET(req: NextRequest) {
               msgObj.recipientId = {
                 ...msgObj.recipientId,
                 name: 'Support Chat',
-                email: 'support@rilogram.com',
+                email: primarySuperAdminEmail,
+                phone: primarySuperAdminPhone,
                 avatar: '',
               };
             }
@@ -136,7 +147,8 @@ export async function GET(req: NextRequest) {
               msgObj.senderId = {
                 ...msgObj.senderId,
                 name: 'Support Chat',
-                email: 'support@rilogram.com',
+                email: primarySuperAdminEmail,
+                phone: primarySuperAdminPhone,
                 avatar: '',
               };
             }
@@ -144,7 +156,8 @@ export async function GET(req: NextRequest) {
               msgObj.recipientId = {
                 ...msgObj.recipientId,
                 name: 'Support Chat',
-                email: 'support@rilogram.com',
+                email: primarySuperAdminEmail,
+                phone: primarySuperAdminPhone,
                 avatar: '',
               };
             }
