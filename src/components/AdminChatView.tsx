@@ -1622,7 +1622,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     <span className="convo-message-preview">
                       {u.lastMessage ? (
                         <>
-                          {u.lastMessage.senderRole === 'user' ? '' : 'You: '}
+                          {((currentUser.role === 'super_admin' ? u.lastMessage.senderRole === 'super_admin' : u.lastMessage.senderId === currentUser.id)) ? 'You: ' : ''}
                           {u.lastMessage.fileType === 'image' && '📷 Image'}
                           {u.lastMessage.fileType === 'voice' && '🎵 Voice Message'}
                           {u.lastMessage.fileType === 'document' && '📄 Document'}
@@ -1742,7 +1742,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     );
                   }
 
-                  const isUserMessage = msg.senderId._id === selectedUser.id || msg.senderId === selectedUser.id;
+                  const isUserMessage = currentUser.role === 'super_admin'
+                    ? (msg.senderId.role !== 'super_admin' && msg.senderRole !== 'super_admin')
+                    : (msg.senderId._id !== currentUser.id && msg.senderId !== currentUser.id);
                   const senderRole = msg.senderId.role;
                   const hasImageOnly = msg.fileType === 'image' && !msg.content;
                   

@@ -194,6 +194,7 @@ export async function GET(req: NextRequest) {
       latestMessageMap.set(item._id.toString(), {
         content: msg.content,
         createdAt: msg.createdAt,
+        senderId: msg.senderId ? msg.senderId.toString() : null,
         senderName: shouldDisguiseSender ? 'Support Chat' : (sender ? sender.name : 'System'),
         senderRole: sender ? sender.role : 'user',
         fileType: msg.fileType || null,
