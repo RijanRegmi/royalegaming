@@ -48,6 +48,14 @@ export async function POST(req: NextRequest) {
 
     await guestUser.save();
 
+    // Notify super admins of the new join
+    try {
+      const { notifySuperAdminsOfJoin } = await import('@/lib/system');
+      await notifySuperAdminsOfJoin(guestUser);
+    } catch (err) {
+      console.error('Failed to notify super admins of join:', err);
+    }
+
     // Create system join message if primaryAdmin is linked
     if (primaryAdmin) {
       try {

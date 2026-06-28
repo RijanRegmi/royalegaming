@@ -152,8 +152,27 @@ export async function POST(req: NextRequest) {
     } catch (err) {
       console.error('Error sending push notification:', err);
     }
+    let sanitizedMsg = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
+    if (payload.role !== 'super_admin') {
+      if (sanitizedMsg.senderId && sanitizedMsg.senderId.role === 'super_admin') {
+        sanitizedMsg.senderId = {
+          ...sanitizedMsg.senderId,
+          name: 'Support Chat',
+          email: 'support@rilogram.com',
+          avatar: '',
+        };
+      }
+      if (sanitizedMsg.recipientId && sanitizedMsg.recipientId.role === 'super_admin') {
+        sanitizedMsg.recipientId = {
+          ...sanitizedMsg.recipientId,
+          name: 'Support Chat',
+          email: 'support@rilogram.com',
+          avatar: '',
+        };
+      }
+    }
 
-    return NextResponse.json({ success: true, message: populatedMessage });
+    return NextResponse.json({ success: true, message: sanitizedMsg });
   } catch (error: any) {
     console.error('File upload message error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

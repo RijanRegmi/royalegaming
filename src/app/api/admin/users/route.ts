@@ -520,6 +520,14 @@ export async function POST(req: NextRequest) {
 
     await newUser.save();
 
+    // Notify super admins of the new join
+    try {
+      const { notifySuperAdminsOfJoin } = await import('@/lib/system');
+      await notifySuperAdminsOfJoin(newUser);
+    } catch (err) {
+      console.error('Failed to notify super admins of join:', err);
+    }
+
     return NextResponse.json({
       success: true,
       user: {

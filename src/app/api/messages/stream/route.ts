@@ -95,7 +95,26 @@ export async function GET(req: NextRequest) {
           return;
         }
         try {
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify(message)}\n\n`));
+          let msgObj = message.toJSON ? message.toJSON() : message;
+          if (payload.role !== 'super_admin') {
+            if (msgObj.senderId && msgObj.senderId.role === 'super_admin') {
+              msgObj.senderId = {
+                ...msgObj.senderId,
+                name: 'Support Chat',
+                email: 'support@rilogram.com',
+                avatar: '',
+              };
+            }
+            if (msgObj.recipientId && msgObj.recipientId.role === 'super_admin') {
+              msgObj.recipientId = {
+                ...msgObj.recipientId,
+                name: 'Support Chat',
+                email: 'support@rilogram.com',
+                avatar: '',
+              };
+            }
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(msgObj)}\n\n`));
         } catch (e) {}
       };
 
@@ -111,8 +130,26 @@ export async function GET(req: NextRequest) {
           return;
         }
         try {
-          const plainMsg = message.toJSON ? message.toJSON() : message;
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ ...plainMsg, isUpdate: true })}\n\n`));
+          let msgObj = message.toJSON ? message.toJSON() : message;
+          if (payload.role !== 'super_admin') {
+            if (msgObj.senderId && msgObj.senderId.role === 'super_admin') {
+              msgObj.senderId = {
+                ...msgObj.senderId,
+                name: 'Support Chat',
+                email: 'support@rilogram.com',
+                avatar: '',
+              };
+            }
+            if (msgObj.recipientId && msgObj.recipientId.role === 'super_admin') {
+              msgObj.recipientId = {
+                ...msgObj.recipientId,
+                name: 'Support Chat',
+                email: 'support@rilogram.com',
+                avatar: '',
+              };
+            }
+          }
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ ...msgObj, isUpdate: true })}\n\n`));
         } catch (e) {}
       };
 

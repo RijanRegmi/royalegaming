@@ -1612,7 +1612,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   <div className="convo-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{u.name}</span>
                     <span className={`role-badge ${u.role}`} style={{ fontSize: '8px', padding: '1px 4px', textTransform: 'uppercase', flexShrink: 0, marginTop: 0 }}>
-                      {u.role === 'super_admin' ? 'Super Admin' : u.role === 'admin' ? 'Admin' : 'User'}
+                      {u.role === 'super_admin' ? (currentUser.role === 'super_admin' ? 'Super Admin' : 'Support') : u.role === 'admin' ? 'Admin' : 'User'}
                     </span>
                     <span className="convo-time" style={{ marginLeft: 'auto', flexShrink: 0 }}>
                       {u.lastMessage ? formatTime(u.lastMessage.createdAt) : ''}
@@ -1675,7 +1675,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                       maxWidth: '120px'
                     }}>{selectedUser.name}</span>
                     <span className={`role-badge ${selectedUser.role}`} style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0, flexShrink: 0 }}>
-                      {selectedUser.role === 'super_admin' ? 'Super Admin' : selectedUser.role === 'admin' ? 'Admin' : 'User'}
+                      {selectedUser.role === 'super_admin' ? (currentUser.role === 'super_admin' ? 'Super Admin' : 'Support') : selectedUser.role === 'admin' ? 'Admin' : 'User'}
                     </span>
                   </div>
                   <span className="chat-user-status" style={{
@@ -2249,7 +2249,9 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           </div>
           <h2 className="details-name">{selectedUser.name}</h2>
           <div className="details-role">
-            <span className="role-badge user">Regular User</span>
+            <span className={`role-badge ${selectedUser.role}`}>
+              {selectedUser.role === 'super_admin' ? (currentUser.role === 'super_admin' ? 'Super Admin' : 'Support') : selectedUser.role === 'admin' ? 'Admin' : 'Regular User'}
+            </span>
           </div>
 
           <div className="details-info-section">

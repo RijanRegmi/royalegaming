@@ -112,19 +112,31 @@ export async function POST(req: NextRequest) {
         console.error('Push notification error for target user:', err);
       }
     } else {
-      // Broadcast push notifications to users based on role
+      // Broadcast push notifications to users based on role (Web Push and FCM)
       const roleFilter = targetRole === 'all' ? {} : { role: targetRole };
-      const usersToNotify = await User.find({ ...roleFilter, fcmToken: { $ne: null } }).select('_id');
-      
-      const notifyPromises = usersToNotify.map(async (u) => {
+      const fcmUsers = await User.find({ ...roleFilter, fcmToken: { $ne: null } }).select('_id');
+      const fcmUserIds = fcmUsers.map((u) => u._id.toString());
+
+      const PushSubscription = (await import('@/models/PushSubscription')).default;
+      const webPushUserIds = await PushSubscription.distinct('userId');
+
+      const combinedUserIds = Array.from(new Set([...fcmUserIds, ...webPushUserIds.map((id) => id.toString())]));
+
+      let finalUserIds = combinedUserIds;
+      if (targetRole !== 'all') {
+        const matchingUsers = await User.find({ _id: { $in: combinedUserIds }, role: targetRole }).select('_id');
+        finalUserIds = matchingUsers.map((u) => u._id.toString());
+      }
+
+      const notifyPromises = finalUserIds.map(async (userId) => {
         try {
-          await sendPushNotification(u._id.toString(), title.trim(), {
+          await sendPushNotification(userId, title.trim(), {
             content: content.trim(),
             isSystem: true,
-            chatUserId: u._id.toString(),
+            chatUserId: userId,
           });
         } catch (err) {
-          console.error(`Failed broadcast push to user ${u._id}:`, err);
+          console.error(`Failed broadcast push to user ${userId}:`, err);
         }
       });
 

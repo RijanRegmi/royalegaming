@@ -128,6 +128,35 @@ export async function POST(req: NextRequest) {
     await newPost.save();
 
     const populatedPost = await Post.findById(newPost._id).populate('adminId', 'name username avatar role');
+
+    // Send push notifications to all users connected to this admin
+    try {
+      let linkedUsers = [];
+      if (payload.role === 'super_admin') {
+        linkedUsers = await User.find({ role: 'user' }).select('_id');
+      } else {
+        linkedUsers = await User.find({ role: 'user', linkedAdmins: payload.userId }).select('_id');
+      }
+
+      const adminName = (populatedPost?.adminId as any)?.name || 'Support Chat';
+      const notifyPromises = linkedUsers.map(async (u: any) => {
+        try {
+          const { sendPushNotification } = await import('@/lib/notifications');
+          await sendPushNotification(u._id.toString(), adminName, {
+            content: content?.trim() || 'New post published',
+            isSystem: true,
+            chatUserId: u._id.toString(),
+          });
+        } catch (err) {
+          console.error(`Failed to send post push notification to user ${u._id}:`, err);
+        }
+      });
+      // Execute asynchronously in parallel
+      Promise.allSettled(notifyPromises);
+    } catch (err) {
+      console.error('Failed to notify users of new post:', err);
+    }
+
     return NextResponse.json({ success: true, post: populatedPost });
   } catch (error: any) {
     console.error('Create post error:', error);

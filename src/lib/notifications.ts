@@ -47,6 +47,24 @@ export async function sendPushNotification(
   try {
     await dbConnect();
 
+    const recipientUser = await User.findById(recipientId);
+
+    // Disguise Super Admin identity for standard users/admins
+    let finalSenderName = senderName;
+    let senderUser = null;
+    if (message.senderId) {
+      const senderIdObj = message.senderId as any;
+      const senderIdStr = senderIdObj._id?.toString() || senderIdObj.toString();
+      if (senderIdStr) {
+        senderUser = await User.findById(senderIdStr);
+        if (senderUser && senderUser.role === 'super_admin') {
+          if (recipientUser && recipientUser.role !== 'super_admin') {
+            finalSenderName = 'Support Chat';
+          }
+        }
+      }
+    }
+
     // Determine content text
     let bodyText = '';
     if (message.isUnsent) {
@@ -61,12 +79,11 @@ export async function sendPushNotification(
     }
 
     // 1. Send Mobile Push (FCM)
-    const recipientUser = await User.findById(recipientId);
     if (recipientUser && recipientUser.fcmToken && admin.apps.length > 0) {
       const isRecipientAdmin = recipientUser.role === 'admin' || recipientUser.role === 'super_admin';
       const notificationTitle = (isRecipientAdmin && !message.isSystem)
-        ? `${senderName} sent you a message`
-        : senderName;
+        ? `${finalSenderName} sent you a message`
+        : finalSenderName;
 
       const fcmPayload = {
         apns: {
@@ -127,12 +144,15 @@ export async function sendPushNotification(
 
     // Construct the push payload
     const payload = JSON.stringify({
-      title: senderName,
+      title: finalSenderName,
       body: bodyText,
-      icon: message.senderId?.avatar || '/games/default-icon.png', // custom icon if available
+      icon: (senderUser && senderUser.role === 'super_admin' && recipientUser?.role !== 'super_admin')
+        ? '/games/default-icon.png'
+        : (message.senderId?.avatar || '/games/default-icon.png'),
       badge: '/games/default-badge.png',
       url: redirectUrl,
     });
+
 
     // Send to all subscriptions in parallel
     const sendPromises = subscriptions.map(async (sub) => {

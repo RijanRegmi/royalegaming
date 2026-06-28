@@ -150,7 +150,31 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, messages });
+    let sanitizedMessages = messages;
+    if (payload.role !== 'super_admin') {
+      sanitizedMessages = messages.map((msg: any) => {
+        const msgObj = msg.toObject ? msg.toObject() : msg;
+        if (msgObj.senderId && msgObj.senderId.role === 'super_admin') {
+          msgObj.senderId = {
+            ...msgObj.senderId,
+            name: 'Support Chat',
+            email: 'support@rilogram.com',
+            avatar: '',
+          };
+        }
+        if (msgObj.recipientId && msgObj.recipientId.role === 'super_admin') {
+          msgObj.recipientId = {
+            ...msgObj.recipientId,
+            name: 'Support Chat',
+            email: 'support@rilogram.com',
+            avatar: '',
+          };
+        }
+        return msgObj;
+      });
+    }
+
+    return NextResponse.json({ success: true, messages: sanitizedMessages });
   } catch (error: any) {
     console.error('Fetch messages error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
@@ -283,7 +307,27 @@ export async function POST(req: NextRequest) {
       console.error('Error sending push notification:', err);
     }
 
-    return NextResponse.json({ success: true, message: populatedMessage });
+    let sanitizedMsg = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
+    if (payload.role !== 'super_admin') {
+      if (sanitizedMsg.senderId && sanitizedMsg.senderId.role === 'super_admin') {
+        sanitizedMsg.senderId = {
+          ...sanitizedMsg.senderId,
+          name: 'Support Chat',
+          email: 'support@rilogram.com',
+          avatar: '',
+        };
+      }
+      if (sanitizedMsg.recipientId && sanitizedMsg.recipientId.role === 'super_admin') {
+        sanitizedMsg.recipientId = {
+          ...sanitizedMsg.recipientId,
+          name: 'Support Chat',
+          email: 'support@rilogram.com',
+          avatar: '',
+        };
+      }
+    }
+
+    return NextResponse.json({ success: true, message: sanitizedMsg });
   } catch (error: any) {
     console.error('Send message error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
