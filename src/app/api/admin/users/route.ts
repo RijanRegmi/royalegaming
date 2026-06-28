@@ -153,10 +153,13 @@ export async function GET(req: NextRequest) {
       const msg = item.latestMsg;
       if (!msg) return;
       const sender = msg.senderId ? senderMap.get(msg.senderId.toString()) : null;
+      const isSuperAdminSender = sender && sender.role === 'super_admin';
+      const shouldDisguiseSender = isSuperAdminSender && payload.role !== 'super_admin';
+
       latestMessageMap.set(item._id.toString(), {
         content: msg.content,
         createdAt: msg.createdAt,
-        senderName: sender ? sender.name : 'System',
+        senderName: shouldDisguiseSender ? 'Support Chat' : (sender ? sender.name : 'System'),
         senderRole: sender ? sender.role : 'user',
         fileType: msg.fileType || null,
         isSystem: msg.isSystem || false,
@@ -172,13 +175,16 @@ export async function GET(req: NextRequest) {
     // Map user list with activity details using our in-memory lookup maps
     const usersWithActivity = users.map((user) => {
       const userIdStr = user._id.toString();
+      const isSuperAdmin = user.role === 'super_admin';
+      const shouldDisguise = isSuperAdmin && payload.role !== 'super_admin';
+
       return {
         id: user._id,
-        name: user.name,
-        email: user.email,
-        username: user.username || '',
-        phone: user.phone || '',
-        avatar: user.avatar || '',
+        name: shouldDisguise ? 'Support Chat' : user.name,
+        email: shouldDisguise ? 'support@rilogram.com' : user.email,
+        username: shouldDisguise ? 'support' : (user.username || ''),
+        phone: shouldDisguise ? '' : (user.phone || ''),
+        avatar: shouldDisguise ? '' : (user.avatar || ''),
         role: user.role,
         isFrozen: user.isFrozen || false,
         createdAt: user.createdAt,

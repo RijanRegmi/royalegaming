@@ -1428,8 +1428,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       u.email.toLowerCase().includes(searchQuery.toLowerCase());
       
     if (searchQuery.trim() === '') {
-      // Show only users with a valid last message when search is empty
-      return !!u.lastMessage;
+      // Show only users with a valid last message when search is empty, or if the user is a super admin (disguised support chat)
+      return !!u.lastMessage || u.role === 'super_admin';
     }
     
     return matchesSearch;
