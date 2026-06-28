@@ -20,32 +20,40 @@ export async function GET(req: NextRequest) {
     await dbConnect();
 
     let queryUsers: any = {};
-    if (payload.role === 'super_admin') {
-      const superAdminUserId = new mongoose.Types.ObjectId(payload.userId);
-      const chatUserIds = await Message.find({ adminId: superAdminUserId }).distinct('chatUserId');
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id : null;
 
-      // Super admin sees all admins, plus players with no linked admins, plus players who have messaged them
+    if (payload.role === 'super_admin') {
+      const chatUserIds = primarySuperAdminId
+        ? await Message.find({ adminId: primarySuperAdminId }).distinct('chatUserId')
+        : [];
+
+      // Super admin sees all admins, plus other super admins, plus players with no linked admins, plus players who have messaged the unified support chat
       queryUsers = {
         $or: [
           { role: 'admin' },
+          { role: 'super_admin' },
           { role: 'user', $or: [ { linkedAdmins: { $size: 0 } }, { linkedAdmins: { $exists: false } } ] },
           { _id: { $in: chatUserIds } }
         ]
       };
-    }
- else {
+    } else {
       const currentAdmin = await User.findById(payload.userId);
       if (currentAdmin?.isFrozen) {
-        // Frozen admin can only message/see super admin
-        queryUsers = { role: 'super_admin' };
+        // Frozen admin can only message/see the unified support chat
+        queryUsers = primarySuperAdminId ? { _id: primarySuperAdminId } : { role: 'super_admin' };
       } else {
-        // Standard admin sees players linked to them, plus the super admin
+        // Standard admin sees players linked to them, plus the unified support chat (primary super admin)
         queryUsers = {
           $or: [
-            { role: 'user', linkedAdmins: payload.userId },
-            { role: 'super_admin' }
+            { role: 'user', linkedAdmins: payload.userId }
           ]
         };
+        if (primarySuperAdminId) {
+          queryUsers.$or.push({ _id: primarySuperAdminId });
+        } else {
+          queryUsers.$or.push({ role: 'super_admin' });
+        }
       }
     }
 

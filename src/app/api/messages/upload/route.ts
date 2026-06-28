@@ -43,6 +43,9 @@ export async function POST(req: NextRequest) {
     let recipientId = '';
     let adminIdStr = '';
 
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+
     if (payload.role === 'user') {
       // Users can only send to their linked admins
       chatUserId = payload.userId;
@@ -53,21 +56,35 @@ export async function POST(req: NextRequest) {
         // Fallback: use first linked admin
         if (userObj && userObj.linkedAdmins && userObj.linkedAdmins.length > 0) {
           reqAdminId = userObj.linkedAdmins[0].toString();
+        } else {
+          reqAdminId = primarySuperAdminId;
         }
       }
+
+      // If the target admin is a super admin, map it to the unified primarySuperAdminId
+      if (reqAdminId) {
+        const targetAdminObj = await User.findById(reqAdminId);
+        if (targetAdminObj && targetAdminObj.role === 'super_admin') {
+          reqAdminId = primarySuperAdminId;
+        }
+      }
+
       if (!reqAdminId) {
         return NextResponse.json({ error: 'No associated administrator found. Please link with an admin.' }, { status: 400 });
       }
 
       // Verify link
       if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
-        return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+        const targetAdmin = await User.findById(reqAdminId);
+        if (!targetAdmin || targetAdmin.role !== 'super_admin') {
+          return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+        }
       }
 
       recipientId = reqAdminId;
       adminIdStr = reqAdminId;
     } else {
-      // Admins must specify which user's chat they are replying to
+      // Admins/Super Admins must specify which user's chat they are replying to
       if (!bodyChatUserId) {
         return NextResponse.json({ error: 'Missing chatUserId' }, { status: 400 });
       }
@@ -75,17 +92,26 @@ export async function POST(req: NextRequest) {
       recipientId = bodyChatUserId;
 
       const targetUser = await User.findById(chatUserId);
-      const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
+      const isTargetSuperAdmin = targetUser && targetUser.role === 'super_admin';
+      const isCurrentSuperAdmin = payload.role === 'super_admin';
 
-      if (payload.role === 'admin' && !isTargetAdmin) {
-        // Standard admins can only reply to linked players
-        if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
-          return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
-        }
-        adminIdStr = payload.userId;
+      if (isCurrentSuperAdmin) {
+        // Super admin sending support message or DM
+        adminIdStr = primarySuperAdminId;
       } else {
-        // Super admin or admin-to-admin DM
-        adminIdStr = bodyAdminId || payload.userId;
+        // Logged-in is standard admin
+        if (isTargetSuperAdmin) {
+          // Standard admin to Super Admin: unified support chat
+          recipientId = primarySuperAdminId;
+          adminIdStr = primarySuperAdminId;
+        } else {
+          // Standard admin to player
+          // Verify standard admin is linked to this player
+          if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
+            return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
+          }
+          adminIdStr = payload.userId;
+        }
       }
     }
 

@@ -28,19 +28,18 @@ export async function GET(req: NextRequest) {
       ? encryptSlug(user.username || user._id.toString())
       : '';
 
-    let adminsList = [...(user.linkedAdmins || [])];
+    // Filter out any super_admins from the player's linkedAdmins database list
+    let filteredAdmins = (user.linkedAdmins || []).filter((admin: any) => admin.role !== 'super_admin');
+    
     if (user.role === 'user') {
-      const superAdmin = await User.findOne({ role: 'super_admin' }).select('name username avatar role');
-      if (superAdmin) {
-        const hasSuperAdmin = adminsList.some((admin: any) => admin._id.toString() === superAdmin._id.toString());
-        if (!hasSuperAdmin) {
-          adminsList.push(superAdmin);
-        }
+      const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('name username avatar role');
+      if (primarySuperAdmin) {
+        filteredAdmins.push(primarySuperAdmin);
       }
     }
 
     // Disguise any super_admin in the adminsList as "Support Chat"
-    const disguisedAdminsList = adminsList.map((admin: any) => {
+    const disguisedAdminsList = filteredAdmins.map((admin: any) => {
       const adminObj = admin.toObject ? admin.toObject() : admin;
       if (adminObj.role === 'super_admin') {
         return {
