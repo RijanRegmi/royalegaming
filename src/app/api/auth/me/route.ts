@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     await dbConnect();
     let user = await User.findById(payload.userId)
       .select('-password')
-      .populate('linkedAdmins', 'name username avatar');
+      .populate('linkedAdmins', 'name username avatar role');
       
     if (!user) {
       return NextResponse.json({ authenticated: false }, { status: 404 });
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
 
     let adminsList = [...(user.linkedAdmins || [])];
     if (user.role === 'user') {
-      const superAdmin = await User.findOne({ role: 'super_admin' }).select('name username avatar');
+      const superAdmin = await User.findOne({ role: 'super_admin' }).select('name username avatar role');
       if (superAdmin) {
         const hasSuperAdmin = adminsList.some((admin: any) => admin._id.toString() === superAdmin._id.toString());
         if (!hasSuperAdmin) {
@@ -38,6 +38,20 @@ export async function GET(req: NextRequest) {
         }
       }
     }
+
+    // Disguise any super_admin in the adminsList as "Support Chat"
+    const disguisedAdminsList = adminsList.map((admin: any) => {
+      const adminObj = admin.toObject ? admin.toObject() : admin;
+      if (adminObj.role === 'super_admin') {
+        return {
+          ...adminObj,
+          name: 'Support Chat',
+          username: 'support',
+          avatar: '',
+        };
+      }
+      return adminObj;
+    });
 
 
     return NextResponse.json({
@@ -51,7 +65,7 @@ export async function GET(req: NextRequest) {
         avatar: user.avatar || '',
         username: user.username || '',
         inviteCode,
-        linkedAdmins: adminsList,
+        linkedAdmins: disguisedAdminsList,
         isFrozen: user.isFrozen || false,
         billingStartDate: user.billingStartDate || null,
         extendedUntil: user.extendedUntil || null,
