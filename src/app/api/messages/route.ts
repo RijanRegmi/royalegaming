@@ -82,28 +82,33 @@ export async function GET(req: NextRequest) {
       if (!targetUserId) {
         return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
       }
-      chatUserId = targetUserId;
-      
-      if (payload.role === 'admin') {
-        // Standard admins can only access players linked to them
-        const targetUser = await User.findById(targetUserId);
-        const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
-        
-        if (!isTargetAdmin) {
-          if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
-            return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
-          }
-        }
-        
-        // If chatting with a super admin (disguised Support Chat), scope to primarySuperAdminId
-        if (isTargetAdmin && targetUser.role === 'super_admin') {
+
+      const targetUser = await User.findById(targetUserId);
+      const isTargetSuperAdmin = targetUser && targetUser.role === 'super_admin';
+      const isCurrentSuperAdmin = payload.role === 'super_admin';
+
+      if (isCurrentSuperAdmin) {
+        if (isTargetSuperAdmin) {
+          // Super-to-Super DM: direct routing
+          chatUserId = targetUserId;
           adminIdStr = primarySuperAdminId;
         } else {
-          adminIdStr = payload.userId;
+          // Super admin viewing user/admin's support chat
+          chatUserId = targetUserId;
+          adminIdStr = primarySuperAdminId;
         }
       } else {
-        // Super admin can specify an adminId query parameter or default to primarySuperAdminId
-        adminIdStr = getSafeQueryParam(req, 'adminId') || primarySuperAdminId;
+        // Logged-in is standard admin
+        if (isTargetSuperAdmin) {
+          // Standard admin viewing Support Chat:
+          // The standard admin is the "user" in this support conversation!
+          chatUserId = payload.userId;
+          adminIdStr = primarySuperAdminId;
+        } else {
+          // Standard admin viewing player
+          chatUserId = targetUserId;
+          adminIdStr = payload.userId;
+        }
       }
     }
 
@@ -112,14 +117,13 @@ export async function GET(req: NextRequest) {
     const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
     const isCurrentAdmin = payload.role === 'admin' || payload.role === 'super_admin';
 
-    let query: any = {};
-    
     // Determine if it is a private DM (Admin-to-Admin DM or Super-to-Super DM)
     const isPrivateDM = isCurrentAdmin && isTargetAdmin && (
       (payload.role === 'admin' && targetUser.role === 'admin') ||
       (payload.role === 'super_admin' && targetUser.role === 'super_admin')
     );
 
+    let query: any = {};
     if (isPrivateDM) {
       // Admin to Admin Direct Message query
       query = {
