@@ -277,7 +277,7 @@ export default function SecurePasswordPage() {
           <img
             src="/rilogram_logo.png"
             alt="Rilogram Logo"
-            style={{ width: '120px', height: '80px', borderRadius: '10px', objectFit: 'contain', marginBottom: '12px' }}
+            style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
           />
           <h1>Secure Change</h1>
           <p>Verify your email to update your password</p>

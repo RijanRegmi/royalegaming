@@ -54,7 +54,7 @@ export default function Loading() {
           <img 
             src="/rilogram_logo.png" 
             alt="Rilogram Logo" 
-            style={{ width: '180px', height: '120px', objectFit: 'contain' }}
+            style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover' }}
           />
         </div>
 

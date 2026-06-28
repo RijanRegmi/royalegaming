@@ -789,31 +789,47 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     }
   }, []);
 
-  // Fetch messages for selected user
+  // Fetch messages for selected user — uses AbortController to cancel if user switches mid-flight
   useEffect(() => {
     if (!selectedUser) {
       setMessages([]);
       return;
     }
 
+    const abortController = new AbortController();
+    const targetUserId = selectedUser.id;
+
     const fetchMessages = async () => {
       setChatLoading(true);
+      // Immediately clear messages to prevent previous user's messages showing
       setMessages([]);
       try {
-        const res = await fetch(`/api/messages?userId=${selectedUser.id}`);
+        const res = await fetch(`/api/messages?userId=${targetUserId}`, {
+          signal: abortController.signal,
+        });
         const data = await res.json();
-        if (res.ok && data.success) {
+        // Only apply if this response still belongs to the currently selected user
+        if (res.ok && data.success && selectedUserRef.current?.id === targetUserId) {
           setMessages(data.messages);
-          setUsers(prev => prev.map(u => u.id === selectedUser.id ? { ...u, unreadCount: 0 } : u));
+          setUsers(prev => prev.map(u => u.id === targetUserId ? { ...u, unreadCount: 0 } : u));
         }
-      } catch (err) {
-        console.error('Error fetching conversation messages:', err);
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error('Error fetching conversation messages:', err);
+        }
       } finally {
-        setChatLoading(false);
+        if (selectedUserRef.current?.id === targetUserId) {
+          setChatLoading(false);
+        }
       }
     };
 
     fetchMessages();
+
+    // Abort any in-flight request when user switches
+    return () => {
+      abortController.abort();
+    };
   }, [selectedUser]);
 
   // Click listener to close emoji picker and payment dropdown when clicking outside
@@ -1068,13 +1084,16 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
       pollUsers();
 
-      // 2. Fetch messages if there is a selected user conversation
-      if (selectedUser) {
+      // 2. Fetch messages — always read from ref so we get the latest selected user at call time
+      const activeUser = selectedUserRef.current;
+      if (activeUser) {
+        const pollUserId = activeUser.id;
         const pollMessages = async () => {
           try {
-            const res = await fetch(`/api/messages?userId=${selectedUser.id}`);
+            const res = await fetch(`/api/messages?userId=${pollUserId}`);
             const data = await res.json();
-            if (res.ok && data.success) {
+            // Guard: only apply if the selected user hasn't changed since this poll fired
+            if (res.ok && data.success && selectedUserRef.current?.id === pollUserId) {
               setMessages((prev) => {
                 const prevMap = new Map(prev.map((msg) => [msg._id, msg]));
                 let hasChanges = false;
@@ -1107,7 +1126,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     }, 5000); // Poll every 5 seconds
 
     return () => clearInterval(pollInterval);
-  }, [selectedUser]);
+  }, []);
 
   // Scroll to bottom only when switching conversations or when a new message is added
   useEffect(() => {

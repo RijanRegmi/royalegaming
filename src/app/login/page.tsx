@@ -309,7 +309,7 @@ export default function LoginPage() {
           <img 
             src="/rilogram_logo.png" 
             alt="Rilogram Logo" 
-            style={{ width: '120px', height: '80px', borderRadius: '10px', objectFit: 'contain', marginBottom: '12px' }}
+            style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
           />
           <h1 style={{ letterSpacing: '4px', fontWeight: 900 }}>RILOGRAM</h1>
           <p>Support Chat System</p>

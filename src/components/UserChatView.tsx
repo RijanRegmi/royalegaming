@@ -715,7 +715,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     };
   }, []);
 
-  // Fetch initial messages
+  // Fetch initial messages — uses AbortController to cancel if admin switches mid-flight
   const fetchMessages = async () => {
     if (!selectedAdmin) {
       setMessages([]);
@@ -724,8 +724,8 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     }
     setLoading(true);
     setError(false);
+    const adminId = selectedAdmin._id || selectedAdmin.id;
     try {
-      const adminId = selectedAdmin._id || selectedAdmin.id;
       const res = await fetch(`/api/messages?adminId=${adminId}`);
       const data = await res.json();
       if (res.ok && data.success) {
@@ -742,7 +742,48 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   };
 
   useEffect(() => {
-    fetchMessages();
+    if (!selectedAdmin) {
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+    const targetAdminId = (selectedAdmin._id || selectedAdmin.id) as string;
+
+    const load = async () => {
+      setLoading(true);
+      setError(false);
+      // Clear immediately so previous user's messages are never visible
+      setMessages([]);
+      try {
+        const res = await fetch(`/api/messages?adminId=${targetAdminId}`, {
+          signal: abortController.signal,
+        });
+        const data = await res.json();
+        // Only apply if we're still looking at the same admin
+        if (res.ok && data.success && (selectedAdminRef.current?._id || selectedAdminRef.current?.id) === targetAdminId) {
+          setMessages(data.messages);
+        } else if (!res.ok) {
+          throw new Error(data.error || 'Failed to fetch messages');
+        }
+      } catch (err: any) {
+        if (err?.name !== 'AbortError') {
+          console.error('Error fetching messages:', err);
+          setError(true);
+        }
+      } finally {
+        if ((selectedAdminRef.current?._id || selectedAdminRef.current?.id) === targetAdminId) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      abortController.abort();
+    };
   }, [selectedAdmin]);
 
   // Click listener to close emoji picker when clicking outside
