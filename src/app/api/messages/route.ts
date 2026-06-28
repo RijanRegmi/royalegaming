@@ -113,7 +113,14 @@ export async function GET(req: NextRequest) {
     const isCurrentAdmin = payload.role === 'admin' || payload.role === 'super_admin';
 
     let query: any = {};
-    if (isCurrentAdmin && isTargetAdmin) {
+    
+    // Determine if it is a private DM (Admin-to-Admin DM or Super-to-Super DM)
+    const isPrivateDM = isCurrentAdmin && isTargetAdmin && (
+      (payload.role === 'admin' && targetUser.role === 'admin') ||
+      (payload.role === 'super_admin' && targetUser.role === 'super_admin')
+    );
+
+    if (isPrivateDM) {
       // Admin to Admin Direct Message query
       query = {
         deletedFor: { $ne: payload.userId },
