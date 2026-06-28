@@ -1883,11 +1883,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                             }
                           }}
                         >
-                        {!isUserMessage && (
-                          <span className="message-sender-name" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                            {msg.senderId.name} ({senderRole === 'super_admin' ? 'Super Admin' : 'Admin'})
-                          </span>
-                        )}
+
+
 
                         {/* Reply Reference Quote */}
                         {msg.replyTo && (

@@ -28,13 +28,17 @@ export async function GET(req: NextRequest) {
       ? encryptSlug(user.username || user._id.toString())
       : '';
 
-    let adminsList = user.linkedAdmins || [];
-    if (user.role === 'user' && adminsList.length === 0) {
+    let adminsList = [...(user.linkedAdmins || [])];
+    if (user.role === 'user') {
       const superAdmin = await User.findOne({ role: 'super_admin' }).select('name username avatar');
       if (superAdmin) {
-        adminsList = [superAdmin];
+        const hasSuperAdmin = adminsList.some((admin: any) => admin._id.toString() === superAdmin._id.toString());
+        if (!hasSuperAdmin) {
+          adminsList.push(superAdmin);
+        }
       }
     }
+
 
     return NextResponse.json({
       authenticated: true,
