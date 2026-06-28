@@ -112,8 +112,9 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Determine target user role to distinguish Admin-to-Admin chat
-    const targetUser = await User.findById(chatUserId);
+    // Determine target user role to distinguish Admin-to-Admin chat based on original target
+    const originalTargetId = payload.role === 'user' ? getSafeQueryParam(req, 'adminId') : getSafeQueryParam(req, 'userId');
+    const targetUser = originalTargetId ? await User.findById(originalTargetId) : null;
     const isTargetAdmin = targetUser && (targetUser.role === 'admin' || targetUser.role === 'super_admin');
     const isCurrentAdmin = payload.role === 'admin' || payload.role === 'super_admin';
 
@@ -293,6 +294,7 @@ export async function POST(req: NextRequest) {
         // Logged-in is standard admin
         if (isTargetSuperAdmin) {
           // Standard admin to Super Admin: unified support chat
+          chatUserId = payload.userId;
           recipientId = primarySuperAdminId;
           adminIdStr = primarySuperAdminId;
         } else {

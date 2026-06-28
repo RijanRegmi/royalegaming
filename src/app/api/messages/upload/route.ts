@@ -102,6 +102,7 @@ export async function POST(req: NextRequest) {
         // Logged-in is standard admin
         if (isTargetSuperAdmin) {
           // Standard admin to Super Admin: unified support chat
+          chatUserId = payload.userId;
           recipientId = primarySuperAdminId;
           adminIdStr = primarySuperAdminId;
         } else {
