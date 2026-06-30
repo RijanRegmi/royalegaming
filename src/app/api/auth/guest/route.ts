@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
           content: `${guestUser.name} joined support chat`,
           isRead: false,
           isSystem: true,
+          systemMessageFor: primaryAdmin._id,
         });
         await systemMessage.save();
 

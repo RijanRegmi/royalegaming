@@ -52,16 +52,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
     
-    // If admin or super_admin, fetch super_admin's centralized payment gateways instead of their own
-    let fetchAdminId = payload.userId;
-    if (payload.role === 'admin' || payload.role === 'super_admin') {
-      const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
-      if (superAdmin) {
-        fetchAdminId = superAdmin._id.toString();
-      }
-    }
-
-    const payments = await Payment.find({ adminId: fetchAdminId }).sort({ createdAt: 1 });
+    const payments = await Payment.find({ adminId: payload.userId }).sort({ createdAt: 1 });
     return NextResponse.json({ success: true, payments });
   } catch (error) {
     console.error('Fetch payments error:', error);
@@ -73,8 +64,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || payload.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden: Only Super Admins can configure payment gateways' }, { status: 403 });
+    if (!payload || (payload.role !== 'admin' && payload.role !== 'super_admin')) {
+      return NextResponse.json({ error: 'Forbidden: Only administrators can configure payment gateways' }, { status: 403 });
     }
 
     await dbConnect();
@@ -101,8 +92,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment QR image file or URL is required' }, { status: 400 });
     }
 
-    const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
-    const targetAdminId = superAdmin ? superAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.userId;
 
     const newPayment = new Payment({
       adminId: targetAdminId,
@@ -124,8 +114,8 @@ export async function POST(req: NextRequest) {
 export async function PUT(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || payload.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden: Only Super Admins can update payment gateways' }, { status: 403 });
+    if (!payload || (payload.role !== 'admin' && payload.role !== 'super_admin')) {
+      return NextResponse.json({ error: 'Forbidden: Only administrators can update payment gateways' }, { status: 403 });
     }
 
     await dbConnect();
@@ -141,10 +131,7 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
     }
 
-    const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
-    const targetAdminId = superAdmin ? superAdmin._id.toString() : payload.userId;
-
-    const paymentToUpdate = await Payment.findOne({ _id: id, adminId: targetAdminId });
+    const paymentToUpdate = await Payment.findOne({ _id: id, adminId: payload.userId });
     if (!paymentToUpdate) {
       return NextResponse.json({ error: 'Payment method not found' }, { status: 404 });
     }
@@ -174,8 +161,8 @@ export async function PUT(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
-    if (!payload || payload.role !== 'super_admin') {
-      return NextResponse.json({ error: 'Forbidden: Only Super Admins can delete payment gateways' }, { status: 403 });
+    if (!payload || (payload.role !== 'admin' && payload.role !== 'super_admin')) {
+      return NextResponse.json({ error: 'Forbidden: Only administrators can delete payment gateways' }, { status: 403 });
     }
 
     await dbConnect();
@@ -187,10 +174,7 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
     }
 
-    const superAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 });
-    const targetAdminId = superAdmin ? superAdmin._id.toString() : payload.userId;
-
-    const deleted = await Payment.findOneAndDelete({ _id: id, adminId: targetAdminId });
+    const deleted = await Payment.findOneAndDelete({ _id: id, adminId: payload.userId });
     if (!deleted) {
       return NextResponse.json({ error: 'Payment method not found' }, { status: 404 });
     }

@@ -464,6 +464,7 @@ export async function PUT(req: NextRequest) {
             content: `${userName} joined support chat`,
             isRead: false,
             isSystem: true,
+            systemMessageFor: new mongoose.Types.ObjectId(adminId),
           });
           await systemMessage.save();
 

@@ -374,8 +374,8 @@ export default function AdminSettingsPage() {
 
   const handleSaveCredential = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (currentUser?.role !== 'super_admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can add or edit secure credentials' });
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only administrators can add or edit secure credentials' });
       return;
     }
     if (!credGameName || !credGameId || !credPassword) {
@@ -433,8 +433,8 @@ export default function AdminSettingsPage() {
   };
 
   const handleDeleteCredential = async (credId: string) => {
-    if (currentUser?.role !== 'admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only admins can delete secure credentials' });
+    if (currentUser?.role !== 'admin' && currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only administrators can delete secure credentials' });
       return;
     }
 
@@ -1192,7 +1192,7 @@ export default function AdminSettingsPage() {
             <Shield size={16} /> Notice Board
           </button>
         )}
-        {currentUser.role === 'admin' && (
+        {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
           <button
             className={`tab-btn ${activeTab === 'credentials' ? 'active' : ''}`}
             onClick={() => {
@@ -1974,13 +1974,13 @@ export default function AdminSettingsPage() {
             <div>
               <span style={{ fontWeight: 600, display: 'block' }}>Secure Game Credentials</span>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                {currentUser.role === 'admin' 
+                {(currentUser.role === 'admin' || currentUser.role === 'super_admin') 
                   ? 'Manage and assign game accounts' 
                   : 'View and copy credentials for players (Read-only)'}
               </span>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              {currentUser.role === 'admin' && (
+              {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
                 <button
                   className="btn-primary"
                   style={{
@@ -2023,7 +2023,7 @@ export default function AdminSettingsPage() {
                   <th>Game ID / Username</th>
                   <th>Password</th>
                   <th>Last Updated</th>
-                  {currentUser.role === 'admin' && <th style={{ textAlign: 'right' }}>Actions</th>}
+                  {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -2152,7 +2152,7 @@ export default function AdminSettingsPage() {
                         day: 'numeric',
                       })}
                     </td>
-                    {currentUser.role === 'admin' && (
+                    {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
                           <button 
@@ -2198,7 +2198,7 @@ export default function AdminSettingsPage() {
               </span>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              {currentUser.role === 'super_admin' && (
+              {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
                 <button
                   className="btn-primary"
                   style={{
@@ -2237,7 +2237,7 @@ export default function AdminSettingsPage() {
                   <th>Gateway Name</th>
                   <th>Status</th>
                   <th>QR Image File / URL</th>
-                  {currentUser.role === 'super_admin' && <th style={{ textAlign: 'right' }}>Actions</th>}
+                  {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && <th style={{ textAlign: 'right' }}>Actions</th>}
                 </tr>
               </thead>
               <tbody>
@@ -2288,7 +2288,7 @@ export default function AdminSettingsPage() {
                         {payment.qrImage}
                       </span>
                     </td>
-                    {currentUser.role === 'super_admin' && (
+                    {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
                       <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'inline-flex', gap: '8px' }}>
                           <button 

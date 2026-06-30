@@ -18,6 +18,7 @@ export async function notifySuperAdminsOfJoin(newUser: any) {
         content: `${newUser.role === 'admin' ? 'Admin' : newUser.role === 'super_admin' ? 'Super Admin' : 'User'} ${newUser.name} joined the platform`,
         isRead: false,
         isSystem: true,
+        systemMessageFor: superAdmin._id,
       });
       await systemMessage.save();
 
