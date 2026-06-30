@@ -18,6 +18,7 @@ export default function AdSenseBanner({
   onStatusChange,
 }: AdSenseBannerProps) {
   const [isUnfilled, setIsUnfilled] = useState(false);
+  const [isFilled, setIsFilled] = useState(false);
   const insRef = useRef<HTMLModElement>(null);
 
   useEffect(() => {
@@ -33,13 +34,18 @@ export default function AdSenseBanner({
     const insEl = insRef.current;
     if (!insEl) return;
 
+    let timeoutId: NodeJS.Timeout;
+
     const checkStatus = () => {
       const status = insEl.getAttribute('data-ad-status');
       if (status === 'unfilled') {
         setIsUnfilled(true);
+        setIsFilled(false);
         onStatusChange?.('unfilled');
       } else if (status === 'filled') {
         setIsUnfilled(false);
+        setIsFilled(true);
+        if (timeoutId) clearTimeout(timeoutId);
         onStatusChange?.('filled');
       } else {
         onStatusChange?.('loading');
@@ -49,6 +55,16 @@ export default function AdSenseBanner({
     // Initial check
     checkStatus();
 
+    // Timeout to hide the banner if it doesn't load within 2 seconds
+    timeoutId = setTimeout(() => {
+      const status = insEl.getAttribute('data-ad-status');
+      if (status !== 'filled') {
+        setIsUnfilled(true);
+        setIsFilled(false);
+        onStatusChange?.('unfilled');
+      }
+    }, 2000);
+
     // Observe changes to the data-ad-status attribute
     const observer = new MutationObserver(() => {
       checkStatus();
@@ -57,6 +73,7 @@ export default function AdSenseBanner({
     observer.observe(insEl, { attributes: true, attributeFilter: ['data-ad-status'] });
 
     return () => {
+      if (timeoutId) clearTimeout(timeoutId);
       observer.disconnect();
     };
   }, [onStatusChange]);
@@ -65,12 +82,13 @@ export default function AdSenseBanner({
 
   return (
     <div 
-      className={`adsense-banner-container ${isUnfilled ? 'is-hidden' : 'is-visible'}`} 
+      className={`adsense-banner-container ${isUnfilled ? 'is-hidden' : isFilled ? 'is-visible' : 'is-loading'}`} 
       style={{ 
         display: isUnfilled ? 'none' : 'block', 
-        margin: isUnfilled ? '0' : '20px 0', 
+        margin: isFilled ? '20px 0' : '0', 
         overflow: 'hidden', 
-        textAlign: 'center' 
+        textAlign: 'center',
+        height: isFilled ? 'auto' : '0px',
       }}
     >
       <ins

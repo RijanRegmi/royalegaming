@@ -1194,10 +1194,9 @@ export default function Home() {
           {/* Left Vertical Ad Sidebar — only shown when content is loaded */}
           {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
             <div
-              className="desktop-ad-sidebar left"
-              style={{ display: leftAdStatus === 'filled' ? 'block' : 'none' }}
+              className={leftAdStatus === 'filled' ? 'desktop-ad-sidebar left' : ''}
             >
-              <div className="desktop-ad-sidebar-title">Partner Ad</div>
+              {leftAdStatus === 'filled' && <div className="desktop-ad-sidebar-title">Partner Ad</div>}
               <AdSenseBanner
                 adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID}
                 adFormat="vertical"
@@ -1556,10 +1555,9 @@ export default function Home() {
           {/* Right Vertical Ad Sidebar — only shown when content is loaded */}
           {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
             <div
-              className="desktop-ad-sidebar right"
-              style={{ display: rightAdStatus === 'filled' ? 'block' : 'none' }}
+              className={rightAdStatus === 'filled' ? 'desktop-ad-sidebar right' : ''}
             >
-              <div className="desktop-ad-sidebar-title">Partner Ad</div>
+              {rightAdStatus === 'filled' && <div className="desktop-ad-sidebar-title">Partner Ad</div>}
               <AdSenseBanner
                 adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID}
                 adFormat="vertical"

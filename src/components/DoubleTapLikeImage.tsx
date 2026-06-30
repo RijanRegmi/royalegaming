@@ -70,8 +70,9 @@ export default function DoubleTapLikeImage({ src, alt, onLike }: DoubleTapLikeIm
           transition: isZoomed ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           width: '100%',
           height: 'auto',
-          maxHeight: '480px',
-          objectFit: 'cover',
+          maxHeight: '600px',
+          objectFit: 'contain',
+          backgroundColor: '#080f24',
           display: 'block',
         }}
       />

@@ -3319,8 +3319,9 @@ select option {
 .post-image {
   width: 100%;
   height: auto;
-  max-height: 480px;
-  object-fit: cover;
+  max-height: 600px;
+  object-fit: contain;
+  background-color: #080f24;
   display: block;
 }
 
@@ -3599,12 +3600,8 @@ select option {
 
 @media (min-width: 1280px) {
   .desktop-ad-sidebar {
-    display: block !important;
+    display: block;
   }
-}
-
-.desktop-ad-sidebar.ad-hidden {
-  display: none !important;
 }
 
 
