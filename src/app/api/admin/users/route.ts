@@ -82,6 +82,12 @@ export async function GET(req: NextRequest) {
                 { systemMessageFor: null },
                 { systemMessageFor: adminUserId }
               ]
+            },
+            {
+              $or: [
+                { isSystem: { $ne: true } },
+                { content: { $not: /joined|connected/i } }
+              ]
             }
           ]
         }
@@ -138,6 +144,12 @@ export async function GET(req: NextRequest) {
               $or: [
                 { recipientId: adminUserId },
                 { $expr: { $eq: ['$senderId', '$chatUserId'] } }
+              ]
+            },
+            {
+              $or: [
+                { isSystem: { $ne: true } },
+                { content: { $not: /joined|connected/i } }
               ]
             }
           ]
