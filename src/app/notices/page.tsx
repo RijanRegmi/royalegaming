@@ -168,11 +168,23 @@ export default function NoticesPage() {
       {/* Header */}
       <header className="lobby-navbar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
         <div className="lobby-logo" style={{ cursor: 'pointer' }} onClick={() => router.push('/')}>
-          <img 
-            src="/rilogram_logo.png" 
-            alt="Rilogram Logo" 
-            style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', marginRight: '10px' }}
-          />
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '10px',
+            background: 'transparent'
+          }}>
+            <img 
+              src="/rilogram_logo.png" 
+              alt="Rilogram Logo" 
+              style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.22)', transformOrigin: 'center' }}
+            />
+          </div>
           <div>
             <span className="lobby-logo-text" style={{ letterSpacing: '2px', fontWeight: 800 }}>RILOGRAM</span>
             <div className="lobby-logo-sub">Notices Board</div>

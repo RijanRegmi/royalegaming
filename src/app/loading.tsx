@@ -44,17 +44,21 @@ export default function Loading() {
       }}>
         {/* RILOGRAM Logo */}
         <div style={{
-          borderRadius: '24px',
-          boxShadow: '0 0 24px rgba(168, 85, 247, 0.2)',
+          width: '120px',
+          height: '120px',
+          borderRadius: '50%',
           overflow: 'hidden',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          boxShadow: '0 0 30px rgba(168, 85, 247, 0.4)',
+          background: 'transparent',
+          position: 'relative'
         }}>
           <img 
             src="/rilogram_logo.png" 
             alt="Rilogram Logo" 
-            style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.22)', transformOrigin: 'center' }}
           />
         </div>
 

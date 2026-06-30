@@ -274,11 +274,25 @@ export default function SecurePasswordPage() {
 
         {/* Title */}
         <div className="auth-logo" style={{ marginBottom: '28px' }}>
-          <img
-            src="/rilogram_logo.png"
-            alt="Rilogram Logo"
-            style={{ width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', marginBottom: '12px' }}
-          />
+          <div style={{
+            width: '100px',
+            height: '100px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '12px',
+            background: 'transparent',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            <img
+              src="/rilogram_logo.png"
+              alt="Rilogram Logo"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.22)', transformOrigin: 'center' }}
+            />
+          </div>
           <h1>Secure Change</h1>
           <p>Verify your email to update your password</p>
         </div>

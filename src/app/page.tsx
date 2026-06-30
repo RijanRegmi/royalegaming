@@ -567,17 +567,21 @@ export default function Home() {
         }}>
           {/* RILOGRAM Logo */}
           <div style={{
-            borderRadius: '24px',
-            boxShadow: '0 0 24px rgba(168, 85, 247, 0.2)',
+            width: '120px',
+            height: '120px',
+            borderRadius: '50%',
             overflow: 'hidden',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: '0 0 30px rgba(168, 85, 247, 0.4)',
+            background: 'transparent',
+            position: 'relative'
           }}>
             <img 
               src="/rilogram_logo.png" 
               alt="Rilogram Logo" 
-              style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.22)', transformOrigin: 'center' }}
             />
           </div>
 
@@ -1070,11 +1074,23 @@ export default function Home() {
       {/* Header Navbar */}
       <header className="lobby-navbar">
         <div className="lobby-logo" onClick={() => router.push('/')}>
-          <img
-            src="/rilogram_logo.png"
-            alt="Rilogram Logo"
-            style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', marginRight: '10px' }}
-          />
+          <div style={{
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginRight: '10px',
+            background: 'transparent'
+          }}>
+            <img
+              src="/rilogram_logo.png"
+              alt="Rilogram Logo"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scale(1.22)', transformOrigin: 'center' }}
+            />
+          </div>
           <div>
             <span className="lobby-logo-text" style={{ letterSpacing: '2px', fontWeight: 800 }}>RILOGRAM</span>
             <div className="lobby-logo-sub">Community Hub</div>

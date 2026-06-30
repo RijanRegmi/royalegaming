@@ -114,13 +114,25 @@ export default function InvitePage() {
       <div className={`auth-card glass ${styles.inviteCard}`}>
         
         <div className={styles.authLogo}>
-          <Image
-            src="/rilogram_logo.png"
-            alt="Rilogram Logo"
-            width={90}
-            height={90}
-            className={styles.logoImage}
-          />
+          <div style={{
+            width: '90px',
+            height: '90px',
+            borderRadius: '50%',
+            overflow: 'hidden',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'transparent',
+            margin: '0 auto 12px auto'
+          }}>
+            <Image
+              src="/rilogram_logo.png"
+              alt="Rilogram Logo"
+              width={90}
+              height={90}
+              style={{ transform: 'scale(1.22)', transformOrigin: 'center', objectFit: 'cover' }}
+            />
+          </div>
           <h1 className={styles.logoTitle} style={{ letterSpacing: '4px', fontWeight: 900 }}>RILOGRAM</h1>
           <p className={styles.logoSubtitle}>Community Invitation</p>
         </div>
