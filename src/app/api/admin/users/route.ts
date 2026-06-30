@@ -62,19 +62,28 @@ export async function GET(req: NextRequest) {
     const adminUserId = new mongoose.Types.ObjectId(payload.userId);
     const primarySuperAdminObj = primarySuperAdminId ? new mongoose.Types.ObjectId(primarySuperAdminId.toString()) : null;
 
+    const isSuperAdmin = payload.role === 'super_admin';
+    const matchConditions: any[] = [
+      { adminId: adminUserId },
+      // Direct message between admin and super_admin
+      { senderId: adminUserId, recipientId: { $exists: true } },
+      { recipientId: adminUserId, senderId: { $exists: true } }
+    ];
+
+    if (primarySuperAdminObj) {
+      if (isSuperAdmin) {
+        matchConditions.push({ adminId: primarySuperAdminObj });
+      } else {
+        matchConditions.push({ adminId: primarySuperAdminObj, chatUserId: adminUserId });
+      }
+    }
+
     // 1. Fetch latest messages for each conversation partner in a single aggregation query
     const latestMessages = await Message.aggregate([
       {
         $match: {
           deletedFor: { $ne: adminUserId },
-          $or: [
-            // User support chat: adminId matches the logged-in admin or the primary Super Admin
-            { adminId: adminUserId },
-            ...(primarySuperAdminObj ? [{ adminId: primarySuperAdminObj }] : []),
-            // Direct message between admin and super_admin
-            { senderId: adminUserId, recipientId: { $exists: true } },
-            { recipientId: adminUserId, senderId: { $exists: true } }
-          ],
+          $or: matchConditions,
           $and: [
             {
               $or: [
@@ -127,6 +136,7 @@ export async function GET(req: NextRequest) {
     ]);
 
     // 2. Fetch unread counts for each conversation partner in a single aggregation query
+    const unreadMatchConditions = [...matchConditions, { recipientId: adminUserId }];
     const unreadCounts = await Message.aggregate([
       {
         $match: {
@@ -134,11 +144,7 @@ export async function GET(req: NextRequest) {
           deletedFor: { $ne: adminUserId },
           $and: [
             {
-              $or: [
-                { adminId: adminUserId },
-                ...(primarySuperAdminObj ? [{ adminId: primarySuperAdminObj }] : []),
-                { recipientId: adminUserId }
-              ]
+              $or: unreadMatchConditions
             },
             {
               $or: [
