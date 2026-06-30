@@ -179,8 +179,23 @@ export default function MobileNavigation() {
           className={`mobile-nav-item ${pathname.startsWith('/profile') ? 'active' : ''}`}
           onClick={() => router.push('/profile')}
           title="Profile"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          <User size={22} />
+          {user?.avatar ? (
+            <img 
+              src={user.avatar} 
+              alt="Avatar" 
+              style={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                border: pathname.startsWith('/profile') ? '2px solid var(--super-admin-color)' : '1px solid var(--border-color)',
+                objectFit: 'cover'
+              }} 
+            />
+          ) : (
+            <User size={22} />
+          )}
         </button>
       </nav>
     </>

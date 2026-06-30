@@ -759,6 +759,37 @@ export default function ProfilePage() {
               </form>
             </div>
 
+            {/* THEME SETTINGS SECTION */}
+            <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Theme Settings
+              </h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: '14px', color: 'var(--text-primary)' }}>Theme Mode</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Switch between Dark Mode (Pure Black) and Light Mode (Pure White)</div>
+                </div>
+                <button
+                  onClick={() => {
+                    const html = document.documentElement;
+                    const isLight = html.classList.contains('light');
+                    if (isLight) {
+                      html.classList.remove('light');
+                      localStorage.setItem('theme', 'dark');
+                    } else {
+                      html.classList.add('light');
+                      localStorage.setItem('theme', 'light');
+                    }
+                    window.dispatchEvent(new Event('theme-changed'));
+                  }}
+                  className="lobby-btn-chat"
+                  style={{ width: 'auto', padding: '8px 16px', fontSize: '13px' }}
+                >
+                  Toggle Theme
+                </button>
+              </div>
+            </div>
+
             {/* SECURITY / PASSWORD SECTION */}
             <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '24px' }}>
               <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
