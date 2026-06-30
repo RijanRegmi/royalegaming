@@ -1185,16 +1185,6 @@ export default function Home() {
       {/* Main Container */}
       <div className="lobby-container">
 
-
-
-        {/* Hero Section */}
-        <section className="lobby-hero" style={{ marginBottom: '32px' }}>
-          <h2>Rilogram <span style={{ color: '#a855f7', textShadow: '0 0 15px rgba(168, 85, 247, 0.3)' }}>Community Portal</span></h2>
-          <p>
-            Connect directly with our community managers, view official announcements, and request real-time support whenever needed.
-          </p>
-        </section>
-
         {/* Google AdSense Banner — only shown when content is loaded */}
         {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
           <AdSenseBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} />
@@ -1204,7 +1194,8 @@ export default function Home() {
           {/* Left Vertical Ad Sidebar — only shown when content is loaded */}
           {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
             <div
-              className={`desktop-ad-sidebar left ${leftAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
+              className="desktop-ad-sidebar left"
+              style={{ display: leftAdStatus === 'filled' ? 'block' : 'none' }}
             >
               <div className="desktop-ad-sidebar-title">Partner Ad</div>
               <AdSenseBanner
@@ -1565,7 +1556,8 @@ export default function Home() {
           {/* Right Vertical Ad Sidebar — only shown when content is loaded */}
           {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
             <div
-              className={`desktop-ad-sidebar right ${rightAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
+              className="desktop-ad-sidebar right"
+              style={{ display: rightAdStatus === 'filled' ? 'block' : 'none' }}
             >
               <div className="desktop-ad-sidebar-title">Partner Ad</div>
               <AdSenseBanner

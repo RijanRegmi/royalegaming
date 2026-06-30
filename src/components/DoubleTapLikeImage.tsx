@@ -53,7 +53,7 @@ export default function DoubleTapLikeImage({ src, alt, onLike }: DoubleTapLikeIm
         overflow: 'hidden',
         cursor: isZoomed ? 'zoom-out' : 'zoom-in',
         position: 'relative',
-        width: '100%',
+        width: 'calc(100% + 40px)',
         display: 'block',
       }}
       onClick={handleClick}
@@ -70,7 +70,8 @@ export default function DoubleTapLikeImage({ src, alt, onLike }: DoubleTapLikeIm
           transition: isZoomed ? 'none' : 'transform 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
           width: '100%',
           height: 'auto',
-          maxHeight: 'none',
+          maxHeight: '480px',
+          objectFit: 'cover',
           display: 'block',
         }}
       />

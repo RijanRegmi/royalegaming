@@ -3313,12 +3313,14 @@ select option {
   border-top: 1px solid rgba(255, 255, 255, 0.05);
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   background-color: rgba(0, 0, 0, 0.2);
+  width: calc(100% + 40px);
 }
 
 .post-image {
   width: 100%;
   height: auto;
-  max-height: none;
+  max-height: 480px;
+  object-fit: cover;
   display: block;
 }
 
