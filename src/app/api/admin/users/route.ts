@@ -141,6 +141,7 @@ export async function GET(req: NextRequest) {
       {
         $match: {
           isRead: false,
+          senderId: { $ne: adminUserId },
           deletedFor: { $ne: adminUserId },
           $and: [
             {
