@@ -253,6 +253,16 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     setTimeout(() => setReferralCopied(false), 2000);
   };
 
+  useEffect(() => {
+    const handleOpenModal = () => {
+      setShowReferralModal(true);
+    };
+    window.addEventListener('open-invite-modal', handleOpenModal);
+    return () => {
+      window.removeEventListener('open-invite-modal', handleOpenModal);
+    };
+  }, []);
+
   // Helper to convert base64 VAPID public key to Uint8Array for subscribe option
   const urlBase64ToUint8Array = (base64String: string) => {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);

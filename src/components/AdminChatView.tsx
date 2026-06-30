@@ -191,6 +191,16 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
 
+  useEffect(() => {
+    const handleOpenModal = () => {
+      setShowInviteModal(true);
+    };
+    window.addEventListener('open-invite-modal', handleOpenModal);
+    return () => {
+      window.removeEventListener('open-invite-modal', handleOpenModal);
+    };
+  }, []);
+
   const handleCopyInviteLink = () => {
     if (typeof window === 'undefined') return;
     const slug = (currentUser as any).inviteCode || currentUser.username || currentUser.id;

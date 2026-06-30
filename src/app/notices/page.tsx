@@ -163,7 +163,7 @@ export default function NoticesPage() {
   const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at top, #131a35 0%, #090d16 100%)', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+    <div className="notices-page" style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at top, #131a35 0%, #090d16 100%)', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
       
       {/* Header */}
       <header className="lobby-navbar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
