@@ -819,6 +819,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       try {
         const data = JSON.parse(event.data);
         if (data.connected) {
+          fetchMessages();
           if (data.onlineUsers) {
             const usersMap: Record<string, string> = {};
             data.onlineUsers.forEach((u: any) => {
@@ -934,7 +935,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         }
       };
       fetchSilent();
-    }, 5000); // Poll every 5 seconds
+    }, 2000); // Poll every 2 seconds
 
     return () => clearInterval(pollInterval);
   }, []);

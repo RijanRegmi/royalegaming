@@ -97,7 +97,7 @@ export async function GET(req: NextRequest) {
 
       // Listen for message broadcasts
       onMessage = (message: any) => {
-        if (payload.role === 'user' && message.chatUserId.toString() !== payload.userId) {
+        if (payload.role === 'user' && message.chatUserId?.toString() !== payload.userId) {
           return;
         }
         if (message.systemMessageFor && message.systemMessageFor.toString() !== payload.userId) {
