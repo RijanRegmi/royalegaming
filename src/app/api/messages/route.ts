@@ -157,31 +157,34 @@ export async function GET(req: NextRequest) {
       })
       .sort({ createdAt: 1 });
 
-    // Mark messages as read
-    if (payload.role === 'super_admin') {
-      // Super admin viewing user/admin support chat: mark user/admin's messages as read
-      await Message.updateMany(
-        {
-          chatUserId,
-          adminId: primarySuperAdminId,
-          senderId: chatUserId,
-          isRead: false,
-          deletedFor: { $ne: payload.userId }
-        },
-        { $set: { isRead: true } }
-      );
-    } else {
-      // Player or standard admin viewing their chat: mark incoming messages as read
-      await Message.updateMany(
-        {
-          chatUserId,
-          adminId: adminIdStr,
-          senderId: { $ne: payload.userId },
-          isRead: false,
-          deletedFor: { $ne: payload.userId }
-        },
-        { $set: { isRead: true } }
-      );
+    // Mark messages as read (only if markAsRead query parameter is not false)
+    const markAsRead = getSafeQueryParam(req, 'markAsRead') !== 'false';
+    if (markAsRead) {
+      if (payload.role === 'super_admin') {
+        // Super admin viewing user/admin support chat: mark user/admin's messages as read
+        await Message.updateMany(
+          {
+            chatUserId,
+            adminId: primarySuperAdminId,
+            senderId: chatUserId,
+            isRead: false,
+            deletedFor: { $ne: payload.userId }
+          },
+          { $set: { isRead: true } }
+        );
+      } else {
+        // Player or standard admin viewing their chat: mark incoming messages as read
+        await Message.updateMany(
+          {
+            chatUserId,
+            adminId: adminIdStr,
+            senderId: { $ne: payload.userId },
+            isRead: false,
+            deletedFor: { $ne: payload.userId }
+          },
+          { $set: { isRead: true } }
+        );
+      }
     }
 
     let sanitizedMessages = messages;
