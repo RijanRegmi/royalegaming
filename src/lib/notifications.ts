@@ -98,8 +98,8 @@ export async function sendPushNotification(
           },
         },
         data: {
-          title: notificationTitle,
-          body: bodyText,
+          notifTitle: notificationTitle,
+          notifBody: bodyText,
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
           chatUserId: message.chatUserId?.toString() || '',
           messageId: message._id?.toString() || '',
