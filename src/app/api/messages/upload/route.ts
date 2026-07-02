@@ -172,13 +172,11 @@ export async function POST(req: NextRequest) {
     // Broadcast the new message in real-time
     chatEmitter.emit('message', populatedMessage);
 
-    // Send push notification to the specific recipient (blocking so serverless completes)
+    // Send push notification to the specific recipient (non-blocking for immediate sender response)
     const senderName = (populatedMessage.senderId as any)?.name || 'Support Chat';
-    try {
-      await sendPushNotification(recipientId, senderName, populatedMessage);
-    } catch (err) {
+    sendPushNotification(recipientId, senderName, populatedMessage).catch((err) => {
       console.error('Error sending push notification:', err);
-    }
+    });
     let sanitizedMsg = populatedMessage.toObject ? populatedMessage.toObject() : populatedMessage;
     if (payload.role !== 'super_admin') {
       if (sanitizedMsg.senderId && sanitizedMsg.senderId.role === 'super_admin') {
