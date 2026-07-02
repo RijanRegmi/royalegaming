@@ -103,6 +103,9 @@ export async function sendPushNotification(
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
           chatUserId: message.chatUserId?.toString() || '',
           messageId: message._id?.toString() || '',
+          senderAvatar: (senderUser && senderUser.role === 'super_admin' && recipientUser?.role !== 'super_admin')
+            ? ''
+            : (senderUser?.avatar || ''),
         },
         token: recipientUser.fcmToken,
       };
