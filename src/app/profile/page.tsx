@@ -570,21 +570,7 @@ export default function ProfilePage() {
   return (
     <div className="auth-page" style={{ overflowY: 'auto' }}>
       <div className="lobby-content-layout" style={{ maxWidth: '1400px', margin: '40px auto', width: '100%' }}>
-        {/* Left Vertical Ad Sidebar — only shown when content is loaded */}
-        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && myPosts.length > 0 && (
-          <div 
-            className={`desktop-ad-sidebar left ${leftAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
-            style={{ marginTop: '0' }}
-          >
-            <div className="desktop-ad-sidebar-title">Partner Ad</div>
-            <AdSenseBanner 
-              adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
-              adFormat="vertical" 
-              style={{ display: 'block', width: '136px', height: '600px' }} 
-              onStatusChange={(status) => setLeftAdStatus(status)}
-            />
-          </div>
-        )}
+
 
         <div className="auth-card" style={{ maxWidth: '900px', width: '100%', margin: '0' }}>
 
@@ -1068,24 +1054,7 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-    </div>
-
-    {/* Right Vertical Ad Sidebar — only shown when content is loaded */}
-    {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && myPosts.length > 0 && (
-      <div 
-        className={`desktop-ad-sidebar right ${rightAdStatus !== 'filled' ? 'ad-hidden' : ''}`}
-        style={{ marginTop: '0' }}
-      >
-        <div className="desktop-ad-sidebar-title">Partner Ad</div>
-        <AdSenseBanner 
-          adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} 
-          adFormat="vertical" 
-          style={{ display: 'block', width: '136px', height: '600px' }} 
-          onStatusChange={(status) => setRightAdStatus(status)}
-        />
-      </div>
-    )}
-  </div>
+    </div>  </div>
 
       {showAvatarModal && (
         <div className={styles.modalOverlay} onClick={() => setShowAvatarModal(false)}>

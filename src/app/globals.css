@@ -4,75 +4,75 @@
 :root {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   
-  /* Color Palette - Premium Modern Dark Mode (WhatsApp-like but more sleek) */
-  --bg-app: #0c0f12;
-  --bg-panel: #161a1f;
-  --bg-panel-hover: #222932;
-  --bg-chat-area: #0d1115;
-  --bg-bubble-sent: #005c4b;
-  --bg-bubble-received: #202c33;
-  --bg-bubble-admin-sent: #1b3d54; /* Blue tint for admin messages */
+  /* Color Palette - Instagram-like Pure Dark Mode */
+  --bg-app: #000000;
+  --bg-panel: #000000;
+  --bg-panel-hover: #121212;
+  --bg-chat-area: #000000;
+  --bg-bubble-sent: #262626;
+  --bg-bubble-received: #121212;
+  --bg-bubble-admin-sent: #1c273a;
   
-  --border-color: rgba(255, 255, 255, 0.08);
-  --border-light: rgba(255, 255, 255, 0.04);
+  --border-color: #262626;
+  --border-light: #1c1c1c;
   
-  --text-primary: #e9edef;
-  --text-secondary: #8696a0;
-  --text-muted: #667781;
+  --text-primary: #f5f5f5;
+  --text-secondary: #a8a8a8;
+  --text-muted: #737373;
   --text-light: #ffffff;
   
-  --accent-color: #00a884;
-  --accent-hover: #00c99e;
-  --accent-light: rgba(0, 168, 132, 0.15);
+  --accent-color: #0095f6; /* Instagram Verified Blue / primary action color */
+  --accent-hover: #1877f2;
+  --accent-light: rgba(0, 149, 246, 0.15);
   
-  --admin-color: #0080ff;
-  --admin-light: rgba(0, 128, 255, 0.15);
+  --admin-color: #0095f6;
+  --admin-light: rgba(0, 149, 246, 0.15);
   --super-admin-color: #a855f7;
   --super-admin-light: rgba(168, 85, 247, 0.15);
   
-  --error-color: #ea0038;
-  --success-color: #25d366;
+  --error-color: #ed4956; /* Instagram Error Red */
+  --success-color: #58c322;
   
-  --shadow-sm: 0 2px 4px rgba(0,0,0,0.2);
-  --shadow-md: 0 4px 12px rgba(0,0,0,0.3);
-  --shadow-lg: 0 12px 28px rgba(0,0,0,0.4);
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.5);
+  --shadow-lg: 0 12px 28px rgba(0,0,0,0.6);
   
-  --radius-sm: 6px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --radius-full: 9999px;
   
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   
-  --bg-glass: rgba(22, 26, 31, 0.8);
+  --bg-glass: rgba(0, 0, 0, 0.85);
 }
 
 /* Light mode overrides */
 html.light {
   --bg-app: #ffffff;
-  --bg-panel: #f8fafc;
-  --bg-panel-hover: #f1f5f9;
+  --bg-panel: #ffffff;
+  --bg-panel-hover: #fafafa;
   --bg-chat-area: #ffffff;
-  --bg-bubble-sent: #d9fdd3;
+  --bg-bubble-sent: #e0f2fe;
   --bg-bubble-received: #f1f5f9;
   --bg-bubble-admin-sent: #e0f2fe;
   
-  --border-color: rgba(0, 0, 0, 0.08);
-  --border-light: rgba(0, 0, 0, 0.04);
+  --border-color: #dbdbdb;
+  --border-light: #efefef;
   
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #000000;
+  --text-secondary: #737373;
+  --text-muted: #a8a8a8;
   --text-light: #000000;
   
-  --accent-color: #0d9488;
-  --accent-hover: #0f766e;
-  --accent-light: rgba(13, 148, 136, 0.1);
+  --accent-color: #0095f6;
+  --accent-hover: #1877f2;
+  --accent-light: rgba(0, 149, 246, 0.1);
   
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.05);
   
   --bg-glass: rgba(255, 255, 255, 0.85);
 }
@@ -2659,8 +2659,8 @@ select option {
 /* Page Background - Beautiful Acesweeps Blue Gradient */
 .lobby-page {
   min-height: 100vh;
-  background: radial-gradient(circle at 50% 30%, #0d1b3e 0%, #060b18 100%) !important;
-  color: #e9edef;
+  background: var(--bg-app) !important;
+  color: var(--text-primary);
   font-family: 'Inter', sans-serif;
   overflow-y: auto;
   position: relative;
@@ -2676,10 +2676,10 @@ select option {
 
 /* Header Navbar - Sleek and clean */
 .lobby-navbar {
-  background-color: rgba(6, 11, 24, 0.85);
+  background-color: var(--bg-panel);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -2710,7 +2710,7 @@ select option {
 .lobby-logo-text {
   font-size: 22px;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text-primary);
   letter-spacing: -0.5px;
 }
 

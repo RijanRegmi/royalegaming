@@ -1200,28 +1200,9 @@ export default function Home() {
       </header>
 
       {/* Main Container */}
-      <div className="lobby-container">
-
-        {/* Google AdSense Banner — only shown when content is loaded */}
-        {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
-          <AdSenseBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID} />
-        )}
+      <div className="lobby-container" style={{ paddingTop: '20px' }}>
 
         <div className="lobby-content-layout">
-          {/* Left Vertical Ad Sidebar — only shown when content is loaded */}
-          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
-            <div
-              className={leftAdStatus === 'filled' ? 'desktop-ad-sidebar left' : ''}
-            >
-              {leftAdStatus === 'filled' && <div className="desktop-ad-sidebar-title">Partner Ad</div>}
-              <AdSenseBanner
-                adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID}
-                adFormat="vertical"
-                style={{ display: 'block', width: '136px', height: '600px' }}
-                onStatusChange={(status) => setLeftAdStatus(status)}
-              />
-            </div>
-          )}
 
           <div className="feed-container">
             {/* Post Creator (Admins only) */}
@@ -1493,21 +1474,6 @@ export default function Home() {
               })
             )}
           </div>
-
-          {/* Right Vertical Ad Sidebar — only shown when content is loaded */}
-          {process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID && !loadingPosts && posts.length > 0 && (
-            <div
-              className={rightAdStatus === 'filled' ? 'desktop-ad-sidebar right' : ''}
-            >
-              {rightAdStatus === 'filled' && <div className="desktop-ad-sidebar-title">Partner Ad</div>}
-              <AdSenseBanner
-                adSlot={process.env.NEXT_PUBLIC_ADSENSE_BANNER_SLOT_ID}
-                adFormat="vertical"
-                style={{ display: 'block', width: '136px', height: '600px' }}
-                onStatusChange={(status) => setRightAdStatus(status)}
-              />
-            </div>
-          )}
         </div>
       </div>
 

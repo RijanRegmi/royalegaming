@@ -25,7 +25,6 @@ const VerifiedBadge = () => (
       fill: '#0095f6', 
       display: 'inline-block', 
       marginLeft: '4px',
-      verticalAlign: 'middle',
       flexShrink: 0 
     }}
   >
@@ -417,121 +416,174 @@ export default function PostCard({
         </button>
       </div>
 
-      {/* 5. Comments Section */}
+      {/* 5. Comments Modal Popup */}
       {showComments && (
         <div 
           style={{ 
-            marginTop: '12px', 
-            borderTop: '1px solid var(--border-light)',
-            paddingTop: '12px',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(10px)',
+            zIndex: 99999,
             display: 'flex',
-            flexDirection: 'column',
-            gap: '12px'
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            animation: 'fadeIn 0.2s ease-out'
           }}
+          onClick={() => setShowComments(false)}
         >
-          {/* Comments List */}
-          {comments.length > 0 ? (
+          {/* Modal Container */}
+          <div 
+            style={{ 
+              backgroundColor: 'var(--bg-panel)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              width: '100%',
+              maxWidth: '500px',
+              maxHeight: '80vh',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: 'var(--shadow-lg)',
+              animation: 'scaleIn 0.2s ease-out',
+              overflow: 'hidden'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
             <div 
               style={{ 
-                maxHeight: '200px', 
-                overflowY: 'auto', 
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
-                paddingRight: '4px'
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '16px', 
+                borderBottom: '1px solid var(--border-color)' 
               }}
             >
-              {comments.map((comment: any) => (
-                <div key={comment._id || comment.createdAt} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                  {comment.userAvatar ? (
-                    <img 
-                      src={comment.userAvatar} 
-                      alt={comment.userName} 
-                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} 
-                    />
-                  ) : (
-                    <div 
-                      style={{ 
-                        width: '28px', 
-                        height: '28px', 
-                        borderRadius: '50%', 
-                        background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '11px',
-                        fontWeight: 'bold'
-                      }}
-                    >
-                      {getInitials(comment.userName)}
-                    </div>
-                  )}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
-                    <div style={{ fontSize: '12.5px', lineHeight: '1.4' }}>
-                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', marginRight: '6px' }}>
-                        {comment.userName}
-                      </span>
-                      <span style={{ color: 'var(--text-primary)' }}>
-                        {comment.text}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                      {formatPostTime(comment.createdAt)}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ padding: '8px 0', textAlign: 'center' }}>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No comments yet. Be the first to comment!</span>
-            </div>
-          )}
-
-          {/* Comment Form */}
-          {user ? (
-            <form onSubmit={handleCommentSubmit} style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-              <input
-                type="text"
-                placeholder="Add a comment..."
-                value={newCommentText}
-                onChange={(e) => setNewCommentText(e.target.value)}
-                disabled={isPostingComment}
-                style={{
-                  flex: 1,
-                  background: 'var(--bg-app)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: '18px',
-                  padding: '6px 14px',
-                  fontSize: '12.5px',
-                  color: 'var(--text-primary)',
-                  outline: 'none'
-                }}
-              />
-              <button
-                type="submit"
-                disabled={isPostingComment || !newCommentText.trim()}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: newCommentText.trim() ? 'var(--accent-color)' : 'var(--text-muted)',
-                  fontWeight: 'bold',
-                  fontSize: '12.5px',
-                  cursor: newCommentText.trim() ? 'pointer' : 'default',
-                  padding: '0 8px'
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '15px' }}>Comments</span>
+              <button 
+                onClick={() => setShowComments(false)}
+                style={{ 
+                  color: 'var(--text-secondary)', 
+                  cursor: 'pointer', 
+                  fontSize: '20px', 
+                  padding: '4px' 
                 }}
               >
-                {isPostingComment ? 'Posting...' : 'Post'}
+                ×
               </button>
-            </form>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '6px 0', borderTop: '1px dashed var(--border-light)' }}>
-              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                Please log in to write a comment.
-              </span>
             </div>
-          )}
+
+            {/* Comments List */}
+            <div 
+              style={{ 
+                flex: 1, 
+                overflowY: 'auto', 
+                padding: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '14px'
+              }}
+            >
+              {comments.length > 0 ? (
+                comments.map((comment: any) => (
+                  <div key={comment._id || comment.createdAt} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                    {comment.userAvatar ? (
+                      <img 
+                        src={comment.userAvatar} 
+                        alt={comment.userName} 
+                        style={{ width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
+                      />
+                    ) : (
+                      <div 
+                        style={{ 
+                          width: '32px', 
+                          height: '32px', 
+                          borderRadius: '50%', 
+                          background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}
+                      >
+                        {getInitials(comment.userName)}
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                      <div style={{ fontSize: '13px', lineHeight: '1.4' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-primary)', marginRight: '6px' }}>
+                          {comment.userName}
+                        </span>
+                        <span style={{ color: 'var(--text-primary)' }}>
+                          {comment.text}
+                        </span>
+                      </div>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {formatPostTime(comment.createdAt)}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ padding: '40px 0', textAlign: 'center' }}>
+                  <span style={{ fontSize: '13.5px', color: 'var(--text-secondary)' }}>No comments yet. Be the first to comment!</span>
+                </div>
+              )}
+            </div>
+
+            {/* Comment Form */}
+            <div style={{ padding: '16px', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-app)' }}>
+              {user ? (
+                <form onSubmit={handleCommentSubmit} style={{ display: 'flex', gap: '10px' }}>
+                  <input
+                    type="text"
+                    placeholder="Add a comment..."
+                    value={newCommentText}
+                    onChange={(e) => setNewCommentText(e.target.value)}
+                    disabled={isPostingComment}
+                    style={{
+                      flex: 1,
+                      background: 'var(--bg-panel)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '20px',
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      color: 'var(--text-primary)',
+                      outline: 'none'
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    disabled={isPostingComment || !newCommentText.trim()}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: newCommentText.trim() ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      fontWeight: 'bold',
+                      fontSize: '13px',
+                      cursor: newCommentText.trim() ? 'pointer' : 'default',
+                      padding: '0 8px'
+                    }}
+                  >
+                    {isPostingComment ? 'Posting...' : 'Post'}
+                  </button>
+                </form>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Please log in to write a comment.
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

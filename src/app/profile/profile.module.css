@@ -87,8 +87,8 @@
 }
 
 .modalContent {
-  background-color: #161a1f;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   width: 90%;
   max-width: 320px;

@@ -67,9 +67,6 @@ export default function DoubleTapLikeImage({ src, alt, onLike }: DoubleTapLikeIm
           style={{
             width: '100%',
             height: 'auto',
-            maxHeight: '600px',
-            objectFit: 'contain',
-            backgroundColor: 'transparent',
             display: 'block',
           }}
         />
