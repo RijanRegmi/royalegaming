@@ -61,7 +61,7 @@ export async function DELETE(req: NextRequest) {
   try {
     const payload = getUserFromRequest(req);
     if (!payload) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'You must be logged in to delete comments.' }, { status: 401 });
     }
 
     const { searchParams } = new URL(req.url);
@@ -69,30 +69,32 @@ export async function DELETE(req: NextRequest) {
     const commentId = searchParams.get('commentId');
 
     if (!postId || !commentId) {
-      return NextResponse.json({ error: 'Post ID and Comment ID are required' }, { status: 400 });
+      return NextResponse.json({ error: 'Post ID and Comment ID are required.' }, { status: 400 });
     }
 
     await dbConnect();
 
     const post = await Post.findById(postId);
     if (!post) {
-      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Announcement post not found.' }, { status: 404 });
     }
 
     const commentIndex = post.comments.findIndex(
-      (c: any) => c._id.toString() === commentId || c.id === commentId
+      (c: any) => (c._id && c._id.toString() === commentId) || 
+                  (c.id && c.id.toString() === commentId)
     );
     if (commentIndex === -1) {
-      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Comment not found or already deleted.' }, { status: 404 });
     }
 
     const comment = post.comments[commentIndex];
 
+    const commentUserId = comment.userId ? comment.userId.toString() : '';
+    const isCommentOwner = commentUserId === payload.userId;
     const isAdmin = payload.role === 'admin' || payload.role === 'super_admin';
-    const isCommentOwner = comment.userId && comment.userId.toString() === payload.userId;
 
     if (!isAdmin && !isCommentOwner) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'You do not have permission to delete this comment.' }, { status: 403 });
     }
 
     post.comments.splice(commentIndex, 1);
@@ -104,6 +106,6 @@ export async function DELETE(req: NextRequest) {
     });
   } catch (error) {
     console.error('Delete comment error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to delete comment due to a server error.' }, { status: 500 });
   }
 }

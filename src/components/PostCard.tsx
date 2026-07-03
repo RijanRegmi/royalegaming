@@ -51,6 +51,8 @@ export default function PostCard({
   const [comments, setComments] = useState<any[]>(post.comments || []);
   const [newCommentText, setNewCommentText] = useState('');
   const [isPostingComment, setIsPostingComment] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     setLocalLikes(post.likes || []);
@@ -156,8 +158,14 @@ export default function PostCard({
     }
   };
 
-  const handleDeleteComment = async (commentId: string) => {
-    if (!window.confirm('Are you sure you want to delete this comment?')) return;
+  const handleDeleteComment = (commentId: string) => {
+    setCommentToDelete(commentId);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+    const commentId = commentToDelete;
+    setCommentToDelete(null);
     try {
       const response = await fetch(`/api/posts/comment?postId=${post._id}&commentId=${commentId}`, {
         method: 'DELETE',
@@ -166,11 +174,11 @@ export default function PostCard({
       if (data.success) {
         setComments(data.comments);
       } else {
-        alert(data.error || 'Failed to delete comment');
+        setDeleteError(data.error || 'Failed to delete comment.');
       }
     } catch (err) {
       console.error('Error deleting comment:', err);
-      alert('Error deleting comment');
+      setDeleteError('Failed to delete comment due to a network connection issue.');
     }
   };
 
@@ -623,6 +631,141 @@ export default function PostCard({
                   </span>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Comment Delete Confirmation Dialog */}
+      {commentToDelete && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '16px'
+          }}
+          onClick={() => setCommentToDelete(null)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'var(--bg-panel)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '320px',
+              textAlign: 'center',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-lg)',
+              animation: 'scaleIn 0.15s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '24px 16px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Delete Comment?</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                Are you sure you want to delete this comment? This action cannot be undone.
+              </p>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--border-color)' }}>
+              <button 
+                onClick={confirmDeleteComment}
+                style={{
+                  padding: '12px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: '1px solid var(--border-color)',
+                  color: '#ed4956',
+                  fontWeight: 700,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                Delete
+              </button>
+              <button 
+                onClick={() => setCommentToDelete(null)}
+                style={{
+                  padding: '12px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Comment Delete Error Dialog */}
+      {deleteError && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1200,
+            padding: '16px'
+          }}
+          onClick={() => setDeleteError(null)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'var(--bg-panel)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              width: '100%',
+              maxWidth: '320px',
+              textAlign: 'center',
+              overflow: 'hidden',
+              boxShadow: 'var(--shadow-lg)',
+              animation: 'scaleIn 0.15s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: '24px 16px' }}>
+              <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)' }}>Warning</h3>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {deleteError}
+              </p>
+            </div>
+            <div style={{ borderTop: '1px solid var(--border-color)' }}>
+              <button 
+                onClick={() => setDeleteError(null)}
+                style={{
+                  padding: '12px',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  width: '100%'
+                }}
+              >
+                OK
+              </button>
             </div>
           </div>
         </div>

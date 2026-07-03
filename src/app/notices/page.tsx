@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, Shield, ArrowLeft, Loader2, Check, CheckCheck, MessageSquare, LogIn, LogOut, User as UserIcon } from 'lucide-react';
+import { getUserAvatarColor } from '@/lib/avatar';
 
 interface NoticeItem {
   _id: string;
@@ -153,9 +154,9 @@ export default function NoticesPage() {
 
   if (verifyingAuth) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '16px', background: '#090d16' }}>
-        <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={40} />
-        <p style={{ fontSize: '14px', color: '#8fa0b5' }}>Verifying your credentials...</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', gap: '16px', background: 'var(--bg-app)' }}>
+        <Loader2 className="animate-spin" style={{ color: 'var(--accent-color)' }} size={40} />
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Verifying your credentials...</p>
       </div>
     );
   }
@@ -163,7 +164,7 @@ export default function NoticesPage() {
   const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
 
   return (
-    <div className="notices-page" style={{ minHeight: '100vh', background: 'radial-gradient(ellipse at top, #131a35 0%, #090d16 100%)', color: '#ffffff', fontFamily: 'Inter, sans-serif' }}>
+    <div className="notices-page" style={{ minHeight: '100vh', background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>
       
       {/* Header */}
       <header className="lobby-navbar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>
@@ -195,8 +196,8 @@ export default function NoticesPage() {
           {authenticated && (
             <>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', marginRight: '4px' }}>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#ffffff' }}>{user.name}</span>
-                <span style={{ fontSize: '10px', color: '#a855f7', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{user.name}</span>
+                <span style={{ fontSize: '10px', color: 'var(--accent-color)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.5px' }}>
                   {user.role === 'super_admin' ? 'Super Admin' : user.role === 'admin' ? 'Admin' : 'Member'}
                 </span>
               </div>
@@ -232,11 +233,11 @@ export default function NoticesPage() {
             display: 'inline-flex',
             alignItems: 'center',
             gap: '8px',
-            background: 'rgba(255, 255, 255, 0.03)',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            background: 'var(--bg-panel)',
+            border: '1px solid var(--border-color)',
             padding: '10px 16px',
             borderRadius: '10px',
-            color: '#a3b3c9',
+            color: 'var(--text-secondary)',
             fontSize: '13px',
             fontWeight: 600,
             cursor: 'pointer',
@@ -244,12 +245,12 @@ export default function NoticesPage() {
             transition: 'all 0.2s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-            e.currentTarget.style.color = '#ffffff';
+            e.currentTarget.style.background = 'var(--border-color)';
+            e.currentTarget.style.color = 'var(--text-primary)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)';
-            e.currentTarget.style.color = '#a3b3c9';
+            e.currentTarget.style.background = 'var(--bg-panel)';
+            e.currentTarget.style.color = 'var(--text-secondary)';
           }}
         >
           <ArrowLeft size={16} />
@@ -259,10 +260,10 @@ export default function NoticesPage() {
         {/* Title and Controls */}
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '20px', marginBottom: '32px' }}>
           <div>
-            <h1 style={{ fontSize: '28px', fontWeight: 900, letterSpacing: '-0.5px', margin: '0 0 6px 0', background: 'linear-gradient(to right, #ffffff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: 900, letterSpacing: '-0.5px', margin: '0 0 6px 0', color: 'var(--text-primary)' }}>
               Notifications & Notices
             </h1>
-            <p style={{ margin: 0, fontSize: '14px', color: '#94a3b8' }}>
+            <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)' }}>
               Stay updated with system broadcasts, announcements, and administrative logs.
             </p>
           </div>
@@ -301,16 +302,16 @@ export default function NoticesPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div style={{ display: 'flex', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid rgba(255, 255, 255, 0.05)', padding: '6px', borderRadius: '12px', marginBottom: '24px', maxWidth: '280px' }}>
+        <div style={{ display: 'flex', background: 'var(--bg-panel)', border: '1px solid var(--border-color)', padding: '6px', borderRadius: '12px', marginBottom: '24px', maxWidth: '280px' }}>
           <button
             onClick={() => setFilter('all')}
             style={{
               flex: 1,
-              background: filter === 'all' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+              background: filter === 'all' ? 'var(--border-color)' : 'transparent',
               border: 'none',
               padding: '8px 16px',
               borderRadius: '8px',
-              color: filter === 'all' ? '#ffffff' : '#94a3b8',
+              color: filter === 'all' ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontSize: '13px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -323,11 +324,11 @@ export default function NoticesPage() {
             onClick={() => setFilter('unread')}
             style={{
               flex: 1,
-              background: filter === 'unread' ? 'rgba(255, 255, 255, 0.08)' : 'transparent',
+              background: filter === 'unread' ? 'var(--border-color)' : 'transparent',
               border: 'none',
               padding: '8px 16px',
               borderRadius: '8px',
-              color: filter === 'unread' ? '#ffffff' : '#94a3b8',
+              color: filter === 'unread' ? 'var(--text-primary)' : 'var(--text-secondary)',
               fontSize: '13px',
               fontWeight: 700,
               cursor: 'pointer',
@@ -350,14 +351,14 @@ export default function NoticesPage() {
         {/* Notices Feed */}
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '100px 0', gap: '16px' }}>
-            <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={40} />
-            <p style={{ fontSize: '13px', color: '#8fa0b5' }}>Fetching official notices...</p>
+            <Loader2 className="animate-spin" style={{ color: 'var(--accent-color)' }} size={40} />
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Fetching official notices...</p>
           </div>
         ) : filteredNotices.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: 'rgba(18, 31, 69, 0.25)', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.03)', backdropFilter: 'blur(20px)' }}>
-            <Bell size={48} style={{ color: '#64748b', marginBottom: '20px', opacity: 0.4, margin: '0 auto 20px auto' }} />
-            <h3 style={{ fontSize: '20px', fontWeight: 800, color: '#ffffff', marginBottom: '8px' }}>All caught up!</h3>
-            <p style={{ fontSize: '13.5px', color: '#8fa0b5', maxWidth: '340px', margin: '0 auto', lineHeight: '1.6' }}>
+          <div style={{ textAlign: 'center', padding: '80px 20px', backgroundColor: 'var(--bg-panel)', borderRadius: '24px', border: '1px solid var(--border-color)', backdropFilter: 'blur(20px)' }}>
+            <Bell size={48} style={{ color: 'var(--text-secondary)', marginBottom: '20px', opacity: 0.4, margin: '0 auto 20px auto' }} />
+            <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>All caught up!</h3>
+            <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', maxWidth: '340px', margin: '0 auto', lineHeight: '1.6' }}>
               {filter === 'unread' 
                 ? 'You have read all notices! Toggle filters to view past announcements.' 
                 : 'No notices or broadcasts are currently active in the system.'}
@@ -420,7 +421,7 @@ export default function NoticesPage() {
                         <span style={{ fontSize: '10px', color: typeColor, background: `${typeColor}1a`, border: `1px solid ${typeColor}33`, padding: '2px 8px', borderRadius: '6px', fontWeight: 800, letterSpacing: '0.5px' }}>
                           {typeText}
                         </span>
-                        <span style={{ fontSize: '11px', color: '#64748b' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                           {new Date(notice.createdAt).toLocaleString('en-US', {
                             month: 'short',
                             day: 'numeric',
@@ -432,15 +433,15 @@ export default function NoticesPage() {
                         </span>
                       </div>
 
-                      <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', fontWeight: 800, color: '#ffffff' }}>
+                      <h3 style={{ margin: '0 0 8px 0', fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)' }}>
                         {notice.title}
                       </h3>
 
-                      <p style={{ margin: '0 0 16px 0', fontSize: '13.5px', color: '#cbd5e1', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
+                      <p style={{ margin: '0 0 16px 0', fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>
                         {notice.content}
                       </p>
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid rgba(255, 255, 255, 0.04)', paddingTop: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
                         {notice.createdBy && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             {notice.createdBy.avatar ? (
@@ -454,7 +455,7 @@ export default function NoticesPage() {
                                 width: '24px', 
                                 height: '24px', 
                                 borderRadius: '50%', 
-                                background: 'linear-gradient(135deg, #a855f7, #007c62)', 
+                                background: getUserAvatarColor(notice.createdBy.name), 
                                 color: 'white', 
                                 fontWeight: 700, 
                                 fontSize: '10px',
@@ -465,7 +466,7 @@ export default function NoticesPage() {
                                 {getInitials(notice.createdBy.name)}
                               </div>
                             )}
-                            <span style={{ fontSize: '12px', color: '#94a3b8', fontWeight: 600 }}>{notice.createdBy.name}</span>
+                            <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: 600 }}>{notice.createdBy.name}</span>
                           </div>
                         )}
 
@@ -476,11 +477,11 @@ export default function NoticesPage() {
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: '6px',
-                              background: 'rgba(255, 255, 255, 0.04)',
-                              border: '1px solid rgba(255, 255, 255, 0.08)',
+                              background: 'var(--bg-app)',
+                              border: '1px solid var(--border-color)',
                               borderRadius: '8px',
                               padding: '6px 12px',
-                              color: '#ffffff',
+                              color: 'var(--text-primary)',
                               fontSize: '11.5px',
                               fontWeight: 700,
                               cursor: 'pointer',
@@ -492,9 +493,9 @@ export default function NoticesPage() {
                               e.currentTarget.style.color = '#00a884';
                             }}
                             onMouseLeave={(e) => {
-                              e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                              e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
-                              e.currentTarget.style.color = '#ffffff';
+                              e.currentTarget.style.background = 'var(--bg-app)';
+                              e.currentTarget.style.borderColor = 'var(--border-color)';
+                              e.currentTarget.style.color = 'var(--text-primary)';
                             }}
                           >
                             <Check size={13} />

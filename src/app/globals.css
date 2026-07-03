@@ -12,6 +12,8 @@
   --bg-bubble-sent: #262626;
   --bg-bubble-received: #121212;
   --bg-bubble-admin-sent: #1c273a;
+  --text-bubble-sent: #ffffff;
+  --text-bubble-sent-sub: rgba(255, 255, 255, 0.6);
   
   --border-color: #262626;
   --border-light: #1c1c1c;
@@ -57,6 +59,8 @@ html.light {
   --bg-bubble-sent: #e0f2fe;
   --bg-bubble-received: #f1f5f9;
   --bg-bubble-admin-sent: #e0f2fe;
+  --text-bubble-sent: #0f172a;
+  --text-bubble-sent-sub: rgba(15, 23, 42, 0.6);
   
   --border-color: #dbdbdb;
   --border-light: #efefef;
@@ -841,7 +845,7 @@ select option {
 
 .message-bubble-row.sent .message-bubble {
   background-color: var(--bg-bubble-sent);
-  color: white;
+  color: var(--text-bubble-sent);
   border-bottom-right-radius: 2px;
 }
 
@@ -874,8 +878,16 @@ select option {
 
 .message-time {
   font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  color: var(--text-secondary);
   align-self: flex-end;
+}
+
+.message-bubble-row.sent .message-time {
+  color: var(--text-bubble-sent-sub);
+}
+
+.message-bubble-row.sent .message-sender-name {
+  color: var(--text-bubble-sent-sub);
 }
 
 .message-bubble-row.received .message-time {
@@ -2678,7 +2690,7 @@ select option {
   background-color: var(--bg-panel);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: none;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -3776,6 +3788,7 @@ select option {
     border-radius: 0 !important;
     border-left: none !important;
     border-right: none !important;
+    border-top: none !important;
     margin-bottom: 12px !important;
     background-color: var(--bg-panel) !important;
     border-color: var(--border-color) !important;
@@ -3789,6 +3802,7 @@ select option {
     border-radius: 0 !important;
     border-left: none !important;
     border-right: none !important;
+    border-top: none !important;
     margin-bottom: 12px !important;
   }
 

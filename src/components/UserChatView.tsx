@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUserAvatarColor } from '@/lib/avatar';
-import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft, UserPlus } from 'lucide-react';
+import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft, UserPlus, Search } from 'lucide-react';
 
 interface UserChatViewProps {
   currentUser: {
@@ -233,6 +233,43 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   };
 
   const [messages, setMessages] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [conversationsMeta, setConversationsMeta] = useState<Record<string, { lastMessage?: any, unreadCount: number }>>({});
+
+  useEffect(() => {
+    const initMeta = async () => {
+      const meta: Record<string, { lastMessage?: any, unreadCount: number }> = {};
+      await Promise.all(
+        linkedAdmins.map(async (admin: any) => {
+          const adminId = admin._id || admin.id;
+          try {
+            const res = await fetch(`/api/messages?adminId=${adminId}&markAsRead=false`);
+            const data = await res.json();
+            if (res.ok && data.success) {
+              const msgs = data.messages || [];
+              const lastMsg = msgs[msgs.length - 1] || null;
+              const incomingUnread = msgs.filter((m: any) => {
+                const sId = m.senderId?._id || m.senderId?.id || m.senderId;
+                return sId !== currentUser.id && !m.isRead;
+              });
+              meta[adminId] = {
+                lastMessage: lastMsg,
+                unreadCount: incomingUnread.length,
+              };
+            }
+          } catch (err) {
+            console.error('Error fetching meta for admin', adminId, err);
+          }
+        })
+      );
+      setConversationsMeta(meta);
+    };
+
+    if (linkedAdmins.length > 0) {
+      initMeta();
+    }
+  }, [linkedAdmins]);
+
   const [inputText, setInputText] = useState('');
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState<boolean>(true);
@@ -775,6 +812,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         // Only apply if we're still looking at the same admin
         if (res.ok && data.success && (selectedAdminRef.current?._id || selectedAdminRef.current?.id) === targetAdminId) {
           setMessages(data.messages);
+          setConversationsMeta((prev) => ({
+            ...prev,
+            [targetAdminId]: {
+              unreadCount: 0,
+              lastMessage: data.messages[data.messages.length - 1] || null,
+            },
+          }));
         } else if (!res.ok) {
           throw new Error(data.error || 'Failed to fetch messages');
         }
@@ -863,25 +907,48 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
 
         // Append or update message in-place
         if (data._id) {
-          const currentAdmin = selectedAdminRef.current;
-          const currentAdminId = currentAdmin ? (currentAdmin._id || currentAdmin.id)?.toString() : '';
           const msgAdminId = data.adminId?.toString();
           
-          if (msgAdminId && msgAdminId !== currentAdminId) {
-            return; // Ignore message for another admin
+          if (msgAdminId) {
+            setConversationsMeta((prev) => {
+              const currentMeta = prev[msgAdminId] || { unreadCount: 0 };
+              const currentAdmin = selectedAdminRef.current;
+              const currentAdminId = currentAdmin ? (currentAdmin._id || currentAdmin.id)?.toString() : '';
+              const senderIdStr = (data.senderId?._id || data.senderId?.id || data.senderId)?.toString();
+              const isFromMe = senderIdStr === currentUser.id;
+              const isCurrentlyViewing = msgAdminId === currentAdminId;
+              
+              let newUnread = currentMeta.unreadCount;
+              if (!isFromMe && !isCurrentlyViewing) {
+                newUnread += 1;
+              }
+              
+              return {
+                ...prev,
+                [msgAdminId]: {
+                  lastMessage: data,
+                  unreadCount: newUnread,
+                },
+              };
+            });
           }
 
-          if (data.isDeleted) {
-            setMessages((prev) => prev.filter((msg) => msg._id !== data._id));
-            return;
-          }
-          setMessages((prev) => {
-            const exists = prev.some((msg) => msg._id === data._id);
-            if (exists) {
-              return prev.map((msg) => (msg._id === data._id ? data : msg));
+          const currentAdmin = selectedAdminRef.current;
+          const currentAdminId = currentAdmin ? (currentAdmin._id || currentAdmin.id)?.toString() : '';
+          
+          if (msgAdminId === currentAdminId) {
+            if (data.isDeleted) {
+              setMessages((prev) => prev.filter((msg) => msg._id !== data._id));
+              return;
             }
-            return [...prev, data];
-          });
+            setMessages((prev) => {
+              const exists = prev.some((msg) => msg._id === data._id);
+              if (exists) {
+                return prev.map((msg) => (msg._id === data._id ? data : msg));
+              }
+              return [...prev, data];
+            });
+          }
         }
       } catch (err) {
         console.error('Error parsing SSE message:', err);
@@ -1148,6 +1215,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           }
           return [...prev, data.message];
         });
+        setConversationsMeta((prev) => ({
+          ...prev,
+          [adminId]: {
+            unreadCount: 0,
+            lastMessage: data.message,
+          },
+        }));
 
         handleCancelFile();
         setInputText('');
@@ -1174,6 +1248,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           }
           return [...prev, data.message];
         });
+        setConversationsMeta((prev) => ({
+          ...prev,
+          [adminId]: {
+            unreadCount: 0,
+            lastMessage: data.message,
+          },
+        }));
         setInputText('');
       }
       setReplyingToMessage(null);
@@ -1322,39 +1403,37 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     <div className={`dashboard-container ${selectedAdmin ? 'has-selected-user' : ''}`}>
       {/* Left Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="user-profile-badge" onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }} title="View Profile">
-            <div className="avatar-wrapper" style={{ background: getUserAvatarColor(currentUser.id || currentUser.name) }}>
-              {currentUser.avatar ? (
-                <img src={currentUser.avatar} alt={currentUser.name} className="avatar-image" />
-              ) : (
-                getInitials(currentUser.name)
-              )}
-            </div>
-            <div className="profile-info">
-              <span className="profile-name">{currentUser.name}</span>
-              <span className="role-badge user" style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#ffffff' }}>Player</span>
-            </div>
-          </div>
-          <div className="sidebar-actions">
-            <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
-              <Home size={18} />
-            </button>
-            <button className="icon-btn" title="Log Out" onClick={handleLogout}>
-              <LogOut size={18} />
+        <div className="sidebar-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px', padding: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '0.5px', color: 'var(--text-primary)' }}>SUPPORT CHAT</h2>
+            <button 
+              type="button" 
+              className="icon-btn" 
+              title="Invite / Refer Friend" 
+              onClick={() => setShowReferralModal(true)}
+              style={{ padding: '6px' }}
+            >
+              <UserPlus size={18} />
             </button>
           </div>
-        </div>
-
-        <div className="sidebar-title" style={{ padding: '16px 20px 8px 20px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-          Support Admins
+          <div className="search-input-wrapper" style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid var(--border-color)', margin: 0 }}>
+            <Search size={16} className="text-muted" style={{ color: 'var(--text-secondary)' }} />
+            <input
+              type="text"
+              placeholder="Search administrators..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%' }}
+            />
+          </div>
         </div>
 
         <div className="conversation-list">
-          {linkedAdmins.map((admin: any) => {
+          {linkedAdmins.filter((admin: any) => admin.name.toLowerCase().includes(searchQuery.toLowerCase())).map((admin: any) => {
             const adminId = admin._id || admin.id;
             const isSelected = selectedAdmin && (selectedAdmin._id === adminId || selectedAdmin.id === adminId);
             const isOnline = Object.entries(onlineUsers).some(([uId, uRole]) => uId === adminId && (uRole === 'admin' || uRole === 'super_admin'));
+            const meta = conversationsMeta[adminId];
             return (
               <div
                 key={adminId}
@@ -1371,12 +1450,59 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   </div>
                   {isOnline && <span className="sidebar-online-badge" />}
                 </div>
-                <div className="convo-details">
-                  <div className="convo-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{admin.name}</span>
-                    <span className="role-badge admin" style={{ fontSize: '8px', padding: '1px 4px', textTransform: 'uppercase', flexShrink: 0, marginTop: 0 }}>
-                      Admin
+                <div className="convo-details" style={{ flex: 1, minWidth: 0 }}>
+                  <div className="convo-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px', fontWeight: meta?.unreadCount > 0 ? 700 : 500 }}>
+                      {admin.name}
                     </span>
+                    {meta?.unreadCount > 0 && (
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        background: 'var(--accent-color)',
+                        flexShrink: 0
+                      }} />
+                    )}
+                  </div>
+                  <div className="convo-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: '2px' }}>
+                    {meta?.lastMessage ? (
+                      <span style={{
+                        fontSize: '12px',
+                        color: meta.unreadCount > 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
+                        fontWeight: meta.unreadCount > 0 ? 600 : 400,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '130px'
+                      }}>
+                        {(meta.lastMessage.senderId === currentUser.id || 
+                          meta.lastMessage.senderId?._id === currentUser.id || 
+                          meta.lastMessage.senderId?.id === currentUser.id) ? 'You: ' : ''}
+                        {meta.lastMessage.fileType === 'image' && '📷 Image'}
+                        {meta.lastMessage.fileType === 'voice' && '🎵 Voice message'}
+                        {meta.lastMessage.fileType === 'document' && '📄 Document'}
+                        {!meta.lastMessage.fileType && meta.lastMessage.content}
+                      </span>
+                    ) : (
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No messages yet</span>
+                    )}
+                    
+                    {meta?.unreadCount > 0 && (
+                      <span style={{
+                        background: 'var(--accent-color)',
+                        color: '#ffffff',
+                        fontSize: '10px',
+                        fontWeight: 700,
+                        padding: '1px 5px',
+                        borderRadius: '10px',
+                        minWidth: '16px',
+                        textAlign: 'center',
+                        lineHeight: '1.2'
+                      }}>
+                        {meta.unreadCount}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1416,40 +1542,22 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   )}
                 </div>
                 <div className="chat-user-details" style={{ minWidth: 0, overflow: 'hidden' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                    <span 
-                      className="chat-user-name" 
-                      style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        maxWidth: '120px',
-                        cursor: 'pointer'
-                      }}
-                      onClick={() => {
-                        const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
-                        window.location.href = `/profile/${adminSlug}`;
-                      }}
-                      title="View Admin Profile"
-                    >{selectedAdmin.name}</span>
-                    <span className="role-badge admin" style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0, flexShrink: 0 }}>
-                      Admin
-                    </span>
-                  </div>
-                  <div className="chat-user-status-row" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', rowGap: '2px', marginTop: '2px' }}>
-                    {Object.entries(onlineUsers).some(([uId, uRole]) => uId === (selectedAdmin._id || selectedAdmin.id) && (uRole === 'admin' || uRole === 'super_admin')) ? (
-                      <span className="chat-user-status" style={{ color: 'var(--success-color)', fontSize: '11px' }}>
-                        ● Online & Ready to Help
-                      </span>
-                    ) : (
-                      <span className="chat-user-status" style={{ color: 'var(--text-muted)', fontSize: '11px' }}>
-                        ○ Offline (Replies may be delayed)
-                      </span>
-                    )}
-                    <span className="chat-logged-in-as" style={{ fontSize: '11px', color: 'rgba(255, 255, 255, 0.4)', borderLeft: '1px solid rgba(255, 255, 255, 0.15)', paddingLeft: '8px', whiteSpace: 'nowrap' }}>
-                      Logged in as: <strong style={{ color: '#ffffff' }}>{currentUser.name}</strong>
-                    </span>
-                  </div>
+                  <span 
+                    className="chat-user-name" 
+                    style={{
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      fontSize: '15px',
+                      fontWeight: 600
+                    }}
+                    onClick={() => {
+                      const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
+                      window.location.href = `/profile/${adminSlug}`;
+                    }}
+                    title="View Admin Profile"
+                  >{selectedAdmin.name}</span>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
@@ -1461,9 +1569,6 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 >
                   <UserPlus size={20} />
                 </button>
-                <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
-                  <Home size={20} />
-                </button>
                 <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
                   <Trash2 size={20} />
                 </button>
@@ -1472,9 +1577,6 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                     <Shield size={20} />
                   </button>
                 )}
-                <button className="icon-btn" title="Log Out" onClick={handleLogout}>
-                  <LogOut size={20} />
-                </button>
               </div>
             </header>
 
