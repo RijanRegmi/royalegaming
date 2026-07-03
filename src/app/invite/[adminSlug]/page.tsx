@@ -27,6 +27,7 @@ export default function InvitePage() {
   const [error, setError] = useState<string | null>(null);
   const [authenticated, setAuthenticated] = useState<boolean>(false);
   const [accepting, setAccepting] = useState<boolean>(false);
+  const [alreadyJoined, setAlreadyJoined] = useState<boolean>(false);
 
   useEffect(() => {
     if (!adminSlug) return;
@@ -34,17 +35,28 @@ export default function InvitePage() {
     const checkAuthAndFetchAdmin = async () => {
       try {
         // 1. Verify if user is logged in
+        let currentUserLinkedAdmins: any[] = [];
         const authRes = await fetch('/api/auth/me');
         const authData = await authRes.json();
         if (authRes.ok && authData.authenticated) {
           setAuthenticated(true);
+          currentUserLinkedAdmins = authData.user?.linkedAdmins || [];
         }
 
         // 2. Fetch admin details and resolve referrerName if referredBy query is present
         const adminRes = await fetch(`/api/auth/link-admin?slug=${adminSlug}&referredBy=${referredBy}`);
         const adminData = await adminRes.json();
         if (adminRes.ok && adminData.success) {
-          setAdmin(adminData.admin);
+          const fetchedAdmin = adminData.admin;
+          setAdmin(fetchedAdmin);
+
+          // Check if already linked
+          const fetchedAdminId = fetchedAdmin.id || fetchedAdmin._id;
+          const isLinked = currentUserLinkedAdmins.some((la: any) => la.id === fetchedAdminId || la._id === fetchedAdminId);
+          if (isLinked) {
+            setAlreadyJoined(true);
+          }
+
           if (adminData.referrerName) {
             setReferrerName(adminData.referrerName);
           }
@@ -177,44 +189,59 @@ export default function InvitePage() {
               </Link>
 
               {/* Text Context */}
-              <h2 className={styles.title}>Join {admin.name}&apos;s Community</h2>
-              {referrerName ? (
+              <h2 className={styles.title}>
+                {alreadyJoined ? `Connected to ${admin.name}` : `Join ${admin.name}'s Community`}
+              </h2>
+              {alreadyJoined ? (
+                <p className={styles.subtitle}>You are already a member of <strong>{admin.name}</strong>&apos;s community. You can open your support chat panel below.</p>
+              ) : referrerName ? (
                 <p className={styles.subtitle}>You have been invited by <strong>{referrerName}</strong> to connect with <strong>{admin.name}</strong> for direct game credentials, private support chat, and custom checkout options.</p>
               ) : (
                 <p className={styles.subtitle}>You have been invited to connect with <strong>{admin.name}</strong> for direct game credentials, private support chat, and custom checkout options.</p>
               )}
 
               {/* Accept Trigger Button */}
-              <button
-                type="button"
-                className={styles.btnPrimary}
-                onClick={handleAcceptInvite}
-                disabled={accepting}
-              >
-                {accepting ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} />
-                    Processing...
-                  </>
-                ) : authenticated ? (
-                  <>
-                    <Check size={18} />
-                    Accept Invite & Chat
-                  </>
-                ) : (
-                  <>
-                    <LogIn size={18} />
-                    Sign In / Register to Accept
-                  </>
-                )}
-              </button>
+              {alreadyJoined ? (
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={() => router.push(`/chat?adminId=${admin.id}`)}
+                >
+                  <Check size={18} />
+                  Go to Support Chat
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.btnPrimary}
+                  onClick={handleAcceptInvite}
+                  disabled={accepting}
+                >
+                  {accepting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} />
+                      Processing...
+                    </>
+                  ) : authenticated ? (
+                    <>
+                      <Check size={18} />
+                      Accept Invite & Chat
+                    </>
+                  ) : (
+                    <>
+                      <LogIn size={18} />
+                      Sign In / Register to Accept
+                    </>
+                  )}
+                </button>
+              )}
 
               <button
                 type="button"
                 className={styles.btnGuest}
                 onClick={() => router.push('/')}
               >
-                Decline & Exit
+                {alreadyJoined ? 'Go to Lobby' : 'Decline & Exit'}
               </button>
 
             </div>
