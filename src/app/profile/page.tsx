@@ -10,6 +10,7 @@ import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
 import PostCard from '@/components/PostCard';
 
 interface User {
+  id?: string;
   _id: string;
   name: string;
   email: string;
@@ -230,7 +231,7 @@ export default function ProfilePage() {
           const isAdmin = data.user.role === 'admin' || data.user.role === 'super_admin';
           setShowEditForm(!isAdmin);
           if (isAdmin) {
-            loadMyPosts(data.user._id);
+            loadMyPosts(data.user.id || data.user._id);
           }
         } else {
           router.push('/login?redirect=/profile');
@@ -963,7 +964,7 @@ export default function ProfilePage() {
                 </div>
               ) : (
                 myPosts.map((post, index) => {
-                  const hasLiked = user && post.likes.includes(user._id);
+                  const hasLiked = user && post.likes.includes(user.id || user._id);
                   const isEditing = editingPostId === post._id;
 
                   return (

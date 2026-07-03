@@ -549,7 +549,7 @@ export default function Home() {
     return (
       <div style={{
         minHeight: '100dvh',
-        background: 'radial-gradient(circle at center, #0f172a 0%, #020617 100%)',
+        backgroundColor: 'var(--bg-app)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -576,7 +576,7 @@ export default function Home() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 30px rgba(168, 85, 247, 0.4)',
+            boxShadow: '0 0 30px rgba(168, 85, 247, 0.15)',
             background: 'transparent',
             position: 'relative'
           }}>
@@ -592,8 +592,8 @@ export default function Home() {
             width: '36px',
             height: '36px',
             borderRadius: '50%',
-            border: '3px solid rgba(168,85,247,0.15)',
-            borderTop: '3px solid #a855f7',
+            border: '3px solid var(--border-color)',
+            borderTop: '3px solid var(--accent-color)',
             animation: 'spin 0.8s linear infinite',
           }} />
           <style dangerouslySetInnerHTML={{ __html: `@keyframes spin { to { transform: rotate(360deg); } }` }} />
@@ -610,7 +610,8 @@ export default function Home() {
         }}>
           <span style={{
             fontSize: '12px',
-            color: 'rgba(255, 255, 255, 0.35)',
+            color: 'var(--text-secondary)',
+            opacity: 0.5,
             fontWeight: 400,
             letterSpacing: '1px',
             marginBottom: '8px',
@@ -622,9 +623,9 @@ export default function Home() {
             alt="RJN Logo" 
             style={{ 
               width: '36px', 
-              height: '36px', 
+               height: '36px', 
               borderRadius: '50%', 
-              border: '2px solid rgba(255, 255, 255, 0.1)',
+              border: '2px solid var(--border-color)',
               objectFit: 'cover' 
             }}
           />

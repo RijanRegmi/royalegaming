@@ -3296,7 +3296,7 @@ select option {
 
 .post-card {
   background-color: var(--bg-panel);
-  border: 1px solid var(--border-color);
+  border: none;
   border-radius: 16px;
   padding: 20px;
   box-shadow: var(--shadow-md);
@@ -3476,7 +3476,7 @@ select option {
 /* Post Creator Styles */
 .post-creator-card {
   background-color: var(--bg-panel);
-  border: 1px solid var(--border-color);
+  border: none;
   border-radius: 16px;
   padding: 20px;
   box-shadow: var(--shadow-md);
@@ -3816,12 +3816,9 @@ select option {
   
   .post-card {
     border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-top: none !important;
+    border: none !important;
     margin-bottom: 12px !important;
     background-color: var(--bg-panel) !important;
-    border-color: var(--border-color) !important;
   }
   
   .feed-container {
@@ -3830,9 +3827,7 @@ select option {
   
   .post-creator-card {
     border-radius: 0 !important;
-    border-left: none !important;
-    border-right: none !important;
-    border-top: none !important;
+    border: none !important;
     margin-bottom: 12px !important;
   }
 

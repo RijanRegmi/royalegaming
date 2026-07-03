@@ -17,6 +17,7 @@ interface AdminInfo {
 }
 
 interface CurrentUser {
+  id?: string;
   _id: string;
   name: string;
   email: string;
@@ -76,7 +77,7 @@ export default function AdminProfilePublicPage() {
         setAdmin(adminInfo);
 
         // 3. Security Check: Only allow if isMe, isStaff, or isLinked
-        const isMe = activeUser._id === adminInfo.id;
+        const isMe = activeUser.id === adminInfo.id || activeUser._id === adminInfo.id;
         const isStaff = activeUser.role === 'admin' || activeUser.role === 'super_admin';
         const isLinked = activeUser.linkedAdmins?.some((la) => la._id === adminInfo.id || la.id === adminInfo.id);
 
@@ -312,7 +313,7 @@ export default function AdminProfilePublicPage() {
                 </div>
               ) : (
                 posts.map((post, index) => {
-                  const hasLiked = currentUser && post.likes.includes(currentUser._id);
+                  const hasLiked = currentUser && post.likes.includes(currentUser.id || currentUser._id);
 
                   return (
                     <Fragment key={post._id}>
