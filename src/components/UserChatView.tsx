@@ -1403,8 +1403,34 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
     <div className={`dashboard-container ${selectedAdmin ? 'has-selected-user' : ''}`}>
       {/* Left Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px', padding: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="sidebar-header has-search" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px', padding: '16px' }}>
+          {/* Desktop Only: User Profile Badge & Actions (Lobby, LogOut) */}
+          <div className="desktop-only-flex" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+            <div className="user-profile-badge" onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }} title="View Profile">
+              <div className="avatar-wrapper" style={{ background: getUserAvatarColor(currentUser.id || currentUser.name) }}>
+                {currentUser.avatar ? (
+                  <img src={currentUser.avatar} alt={currentUser.name} className="avatar-image" />
+                ) : (
+                  getInitials(currentUser.name)
+                )}
+              </div>
+              <div className="profile-info">
+                <span className="profile-name">{currentUser.name}</span>
+                <span className="role-badge user" style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#ffffff' }}>Player</span>
+              </div>
+            </div>
+            <div className="sidebar-actions">
+              <button className="icon-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
+                <Home size={18} />
+              </button>
+              <button className="icon-btn" title="Log Out" onClick={handleLogout}>
+                <LogOut size={18} />
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Only: Support Chat Title & Invite Button */}
+          <div className="mobile-only-flex" style={{ display: 'none', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
             <h2 style={{ fontSize: '18px', fontWeight: 800, margin: 0, letterSpacing: '0.5px', color: 'var(--text-primary)' }}>SUPPORT CHAT</h2>
             <button 
               type="button" 
@@ -1416,6 +1442,8 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               <UserPlus size={18} />
             </button>
           </div>
+
+          {/* Search bar is shown on both desktop and mobile */}
           <div className="search-input-wrapper" style={{ background: 'rgba(255, 255, 255, 0.04)', border: '1px solid var(--border-color)', margin: 0 }}>
             <Search size={16} className="text-muted" style={{ color: 'var(--text-secondary)' }} />
             <input
@@ -1569,6 +1597,9 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 >
                   <UserPlus size={20} />
                 </button>
+                <button className="icon-btn desktop-only-btn" title="Go to Lobby Front" onClick={() => window.location.href = '/'}>
+                  <Home size={20} />
+                </button>
                 <button className="icon-btn delete-chat-btn" title="Delete Chat History" onClick={handleDeleteWholeChat}>
                   <Trash2 size={20} />
                 </button>
@@ -1577,6 +1608,9 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                     <Shield size={20} />
                   </button>
                 )}
+                <button className="icon-btn desktop-only-btn" title="Log Out" onClick={handleLogout}>
+                  <LogOut size={20} />
+                </button>
               </div>
             </header>
 

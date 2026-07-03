@@ -350,8 +350,6 @@ export default function PostCard({
             marginLeft: '-16px', 
             marginRight: '-16px', 
             width: 'calc(100% + 32px)', 
-            borderTop: '1px solid var(--border-color)',
-            borderBottom: '1px solid var(--border-color)',
             backgroundColor: 'var(--bg-app)',
             marginBottom: '12px',
             position: 'relative',
@@ -374,8 +372,7 @@ export default function PostCard({
           alignItems: 'center',
           width: '100%',
           marginTop: '4px',
-          paddingTop: '6px',
-          borderTop: '1px solid var(--border-color)'
+          paddingTop: '6px'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>

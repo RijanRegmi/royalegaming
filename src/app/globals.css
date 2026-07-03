@@ -1295,8 +1295,38 @@ select option {
   background: rgba(255, 255, 255, 0.01);
 }
 
+/* Sidebar Header Custom height override for Search sidebar */
+.sidebar-header.has-search {
+  height: auto !important;
+  padding: 16px 20px !important;
+}
+
+.desktop-only-flex {
+  display: flex !important;
+}
+
+.mobile-only-flex {
+  display: none !important;
+}
+
+.desktop-only-btn {
+  display: inline-flex !important;
+}
+
 /* Mobile Responsive Media Queries */
 @media (max-width: 768px) {
+  .desktop-only-flex {
+    display: none !important;
+  }
+
+  .mobile-only-flex {
+    display: flex !important;
+  }
+
+  .desktop-only-btn {
+    display: none !important;
+  }
+
   /* Auth / Login Page */
   .auth-page {
     padding: 16px;

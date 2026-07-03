@@ -1553,7 +1553,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     <div className={`dashboard-container ${selectedUser ? 'has-selected-user' : ''}`}>
       {/* Left Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-header">
+        <div className="sidebar-header desktop-only-flex">
           <div className="user-profile-badge" onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }} title="View Profile">
             <div className="avatar-wrapper" style={{ background: getUserAvatarColor(currentUser.id || currentUser.name) }}>
               {currentUser.avatar ? (
