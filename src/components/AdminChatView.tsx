@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { getUserAvatarColor } from '@/lib/avatar';
 import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, UserPlus } from 'lucide-react';
 
 interface AdminChatViewProps {
@@ -125,7 +126,7 @@ function CustomAudioPlayer({ src, duration, senderName, senderAvatar }: CustomAu
       <audio ref={audioRef} src={src} preload="metadata" />
       
       {/* Avatar indicator */}
-      <div className="voice-avatar-wrapper">
+      <div className="voice-avatar-wrapper" style={{ background: getUserAvatarColor(senderName || '') }}>
         {senderAvatar ? (
           <img src={senderAvatar} alt={senderName || 'Avatar'} className="voice-avatar-img" />
         ) : (
@@ -1554,7 +1555,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="user-profile-badge" onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }} title="View Profile">
-            <div className="avatar-wrapper">
+            <div className="avatar-wrapper" style={{ background: getUserAvatarColor(currentUser.id || currentUser.name) }}>
               {currentUser.avatar ? (
                 <img src={currentUser.avatar} alt={currentUser.name} className="avatar-image" />
               ) : (
@@ -1627,7 +1628,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 onTouchMove={handleTouchEndConvo}
               >
                 <div className="sidebar-avatar-container">
-                  <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px' }}>
+                  <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px', background: getUserAvatarColor(u.id || u.name) }}>
                     {u.avatar ? (
                       <img src={u.avatar} alt={u.name} className="avatar-image" />
                     ) : (
@@ -1687,7 +1688,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 >
                   <ArrowLeft size={20} />
                 </button>
-                <div className="avatar-wrapper" style={{ flexShrink: 0 }}>
+                <div className="avatar-wrapper" style={{ flexShrink: 0, background: getUserAvatarColor(selectedUser.id || selectedUser.name) }}>
                   {selectedUser.avatar ? (
                     <img src={selectedUser.avatar} alt={selectedUser.name} className="avatar-image" />
                   ) : (
@@ -2270,7 +2271,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             <X size={18} />
           </button>
 
-          <div className="details-avatar-large">
+          <div className="details-avatar-large" style={{ background: getUserAvatarColor(selectedUser.id || selectedUser.name) }}>
             {selectedUser.avatar ? (
               <img src={selectedUser.avatar} alt={selectedUser.name} className="avatar-image" />
             ) : (

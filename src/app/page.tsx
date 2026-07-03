@@ -7,6 +7,7 @@ import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
 import PostCard from '@/components/PostCard';
+import { getUserAvatarColor } from '@/lib/avatar';
 
 interface PostItem {
   _id: string;
@@ -1151,7 +1152,7 @@ export default function Home() {
                   borderRadius: '50%',
                   overflow: 'hidden',
                   border: '2px solid rgba(168, 85, 247, 0.3)',
-                  background: 'rgba(255, 255, 255, 0.05)',
+                  background: user.avatar ? 'rgba(255, 255, 255, 0.05)' : getUserAvatarColor(user.id || user._id || user.name),
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1280,7 +1281,7 @@ export default function Home() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                        background: getUserAvatarColor(user.id || user._id || user.name),
                         color: 'white',
                         fontWeight: 600,
                         fontSize: '14px'
@@ -1378,7 +1379,7 @@ export default function Home() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                                background: getUserAvatarColor(post.adminId._id || post.adminId.name),
                                 color: 'white',
                                 fontWeight: 600,
                                 fontSize: '14px'
@@ -1562,7 +1563,7 @@ export default function Home() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: viewingAdmin.avatar ? 'none' : 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
+                background: viewingAdmin.avatar ? 'none' : getUserAvatarColor(viewingAdmin.id || viewingAdmin._id || viewingAdmin.name),
                 color: 'white',
                 fontSize: '36px',
                 fontWeight: 700

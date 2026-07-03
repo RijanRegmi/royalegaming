@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Heart, MessageCircle, Bookmark, Pencil, Trash2 } from 'lucide-react';
 import DoubleTapLikeImage from './DoubleTapLikeImage';
+import { getUserAvatarColor } from '@/lib/avatar';
 
 interface PostCardProps {
   post: any;
@@ -193,19 +194,19 @@ export default function PostCard({
             />
           ) : (
             <div 
-              className="post-avatar" 
-              style={{
-                width: '38px',
-                height: '38px',
-                borderRadius: '50%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
-                color: 'white',
-                fontWeight: 600,
-                fontSize: '13px',
-                border: '2px solid rgba(168, 85, 247, 0.4)'
+              className="post-avatar"
+              style={{ 
+                width: '38px', 
+                height: '38px', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                background: getUserAvatarColor(post.adminId?.id || post.adminId?._id || authorName), 
+                color: 'white', 
+                fontWeight: 600, 
+                fontSize: '13px', 
+                border: '2px solid rgba(168, 85, 247, 0.4)' 
               }}
             >
               {getInitials(authorName)}
@@ -503,13 +504,13 @@ export default function PostCard({
                           width: '32px', 
                           height: '32px', 
                           borderRadius: '50%', 
-                          background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
-                          color: 'white',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '12px',
-                          fontWeight: 'bold'
+                          background: getUserAvatarColor(comment.userId || comment.userName), 
+                          color: 'white', 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center', 
+                          fontSize: '12px', 
+                          fontWeight: 'bold' 
                         }}
                       >
                         {getInitials(comment.userName)}

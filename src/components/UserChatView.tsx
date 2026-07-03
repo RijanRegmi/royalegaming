@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getUserAvatarColor } from '@/lib/avatar';
 import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft, UserPlus } from 'lucide-react';
 
 interface UserChatViewProps {
@@ -125,7 +126,7 @@ function CustomAudioPlayer({ src, duration, senderName, senderAvatar }: CustomAu
       <audio ref={audioRef} src={src} preload="metadata" />
       
       {/* Avatar indicator */}
-      <div className="voice-avatar-wrapper">
+      <div className="voice-avatar-wrapper" style={{ background: getUserAvatarColor(senderName || '') }}>
         {senderAvatar ? (
           <img src={senderAvatar} alt={senderName || 'Avatar'} className="voice-avatar-img" />
         ) : (
@@ -1323,7 +1324,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       <aside className="sidebar">
         <div className="sidebar-header">
           <div className="user-profile-badge" onClick={() => router.push('/profile')} style={{ cursor: 'pointer' }} title="View Profile">
-            <div className="avatar-wrapper">
+            <div className="avatar-wrapper" style={{ background: getUserAvatarColor(currentUser.id || currentUser.name) }}>
               {currentUser.avatar ? (
                 <img src={currentUser.avatar} alt={currentUser.name} className="avatar-image" />
               ) : (
@@ -1361,7 +1362,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 onClick={() => setSelectedAdmin(admin)}
               >
                 <div className="sidebar-avatar-container">
-                  <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px' }}>
+                  <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px', background: getUserAvatarColor(adminId || admin.name) }}>
                     {admin.avatar ? (
                       <img src={admin.avatar} alt={admin.name} className="avatar-image" />
                     ) : (
@@ -1401,7 +1402,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 </button>
                  <div 
                   className="avatar-wrapper" 
-                  style={{ flexShrink: 0, cursor: 'pointer' }}
+                  style={{ flexShrink: 0, cursor: 'pointer', background: getUserAvatarColor(selectedAdmin._id || selectedAdmin.id || selectedAdmin.name) }}
                   onClick={() => {
                     const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
                     window.location.href = `/profile/${adminSlug}`;

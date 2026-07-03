@@ -189,7 +189,7 @@ export default function MobileNavigation() {
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                border: pathname.startsWith('/profile') ? '2px solid var(--super-admin-color)' : '1px solid var(--border-color)',
+                border: pathname.startsWith('/profile') ? '2px solid var(--text-primary)' : '1px solid var(--border-color)',
                 objectFit: 'cover'
               }} 
             />
