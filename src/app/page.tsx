@@ -6,6 +6,7 @@ import { MessageSquare, LogOut, LogIn, Shield, Bell, ArrowRight, Loader2, User a
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
+import PostCard from '@/components/PostCard';
 
 interface PostItem {
   _id: string;
@@ -1380,183 +1381,108 @@ export default function Home() {
 
                 return (
                   <Fragment key={post._id}>
-                    <div className="post-card">
-                      {isEditing ? (
-                        <>
-                          {/* Post Header (Editing) */}
-                          <div className="post-header">
-                            <div className="post-author-info">
-                              {post.adminId.avatar ? (
-                                <img
-                                  src={post.adminId.avatar}
-                                  alt={post.adminId.name}
-                                  className="post-avatar"
-                                />
-                              ) : (
-                                <div className="post-avatar" style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
-                                  color: 'white',
-                                  fontWeight: 600,
-                                  fontSize: '14px'
-                                }}>
-                                  {getInitials(post.adminId.name)}
-                                </div>
-                              )}
-                              <div className="post-author-details">
-                                <span className="post-author-name">{post.adminId.name}</span>
-                                <span className="post-time">{formatPostTime(post.createdAt)} (Editing)</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Edit Form */}
-                          <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: '12px 0 0 0' }}>
-                            <textarea
-                              value={editContent}
-                              onChange={(e) => setEditContent(e.target.value)}
-                              placeholder="Update announcement..."
-                              className="post-textarea"
-                              style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
-                              required
-                            />
-
-                            {editImagePreview && (
-                              <div className="post-creator-preview" style={{ marginTop: '10px' }}>
-                                <img src={editImagePreview} alt="Edit Attachment" />
-                                <button
-                                  type="button"
-                                  onClick={handleRemoveEditImage}
-                                  className="post-creator-preview-remove"
-                                  title="Remove Image"
-                                >
-                                  ×
-                                </button>
+                    {isEditing ? (
+                      <div className="post-card">
+                        {/* Post Header (Editing) */}
+                        <div className="post-header">
+                          <div className="post-author-info">
+                            {post.adminId.avatar ? (
+                              <img
+                                src={post.adminId.avatar}
+                                alt={post.adminId.name}
+                                className="post-avatar"
+                              />
+                            ) : (
+                              <div className="post-avatar" style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                                color: 'white',
+                                fontWeight: 600,
+                                fontSize: '14px'
+                              }}>
+                                {getInitials(post.adminId.name)}
                               </div>
                             )}
-
-                            <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                                  <ImageIcon size={16} />
-                                  <span>Change Photo</span>
-                                  <input
-                                    type="file"
-                                    ref={editFileInputRef}
-                                    accept="image/*"
-                                    onChange={handleEditFileChange}
-                                    style={{ display: 'none' }}
-                                  />
-                                </label>
-                              </div>
-
-                              <div style={{ display: 'flex', gap: '8px' }}>
-                                <button
-                                  type="button"
-                                  onClick={() => setEditingPostId(null)}
-                                  className="lobby-btn-secondary"
-                                  style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
-                                >
-                                  Cancel
-                                </button>
-                                <button
-                                  type="submit"
-                                  disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
-                                  className="post-create-btn"
-                                  style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
-                                >
-                                  {editSubmitting ? 'Saving...' : 'Save'}
-                                </button>
-                              </div>
+                            <div className="post-author-details">
+                              <span className="post-author-name">{post.adminId.name}</span>
+                              <span className="post-time">{formatPostTime(post.createdAt)} (Editing)</span>
                             </div>
-                          </form>
-                        </>
-                      ) : (
-                        <>
-                          {/* Post Header */}
-                          <div className="post-header">
-                            <div className="post-author-info" onClick={() => handleViewAdminProfile(post.adminId?._id, post.adminId)} style={{ cursor: 'pointer' }} title="View Profile">
-                              {post.adminId.avatar ? (
-                                <img
-                                  src={post.adminId.avatar}
-                                  alt={post.adminId.name}
-                                  className="post-avatar"
+                          </div>
+                        </div>
+
+                        {/* Edit Form */}
+                        <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: '12px 0 0 0' }}>
+                          <textarea
+                            value={editContent}
+                            onChange={(e) => setEditContent(e.target.value)}
+                            placeholder="Update announcement..."
+                            className="post-textarea"
+                            style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
+                            required
+                          />
+
+                          {editImagePreview && (
+                            <div className="post-creator-preview" style={{ marginTop: '10px' }}>
+                              <img src={editImagePreview} alt="Edit Attachment" />
+                              <button
+                                type="button"
+                                onClick={handleRemoveEditImage}
+                                className="post-creator-preview-remove"
+                                title="Remove Image"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )}
+
+                          <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                                <ImageIcon size={16} />
+                                <span>Change Photo</span>
+                                <input
+                                  type="file"
+                                  ref={editFileInputRef}
+                                  accept="image/*"
+                                  onChange={handleEditFileChange}
+                                  style={{ display: 'none' }}
                                 />
-                              ) : (
-                                <div className="post-avatar" style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
-                                  color: 'white',
-                                  fontWeight: 600,
-                                  fontSize: '14px'
-                                }}>
-                                  {getInitials(post.adminId.name)}
-                                </div>
-                              )}
-                              <div className="post-author-details">
-                                <span className="post-author-name">{post.adminId.name}</span>
-                                <span className="post-time">{formatPostTime(post.createdAt)}</span>
-                              </div>
+                              </label>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              {(isMyPost || (user && user.role === 'super_admin')) && (
-                                <>
-                                  <button
-                                    onClick={() => startEditPost(post)}
-                                    className="post-edit-btn"
-                                    style={{ background: 'none', border: 'none', color: '#8fa0b5', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                                    title="Edit Announcement"
-                                  >
-                                    <Pencil size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeletePost(post._id)}
-                                    className="post-delete-btn"
-                                    title="Delete Announcement"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </>
-                              )}
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                type="button"
+                                onClick={() => setEditingPostId(null)}
+                                className="lobby-btn-secondary"
+                                style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
+                                className="post-create-btn"
+                                style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
+                              >
+                                {editSubmitting ? 'Saving...' : 'Save'}
+                              </button>
                             </div>
                           </div>
-
-                          {/* Post Content */}
-                          {post.content && (
-                            <div className="post-content">{post.content}</div>
-                          )}
-
-                          {/* Post Image */}
-                          {post.image && (
-                            <DoubleTapLikeImage
-                              src={post.image}
-                              alt="Announcement Media"
-                              onLike={() => {
-                                if (!hasLiked) {
-                                  handleLikePost(post._id);
-                                }
-                              }}
-                            />
-                          )}
-
-                          {/* Post Actions (Likes) */}
-                          <div className="post-actions">
-                            <button
-                              onClick={() => handleLikePost(post._id)}
-                              className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
-                            >
-                              <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
-                              <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </div>
+                        </form>
+                      </div>
+                    ) : (
+                      <PostCard
+                        post={post}
+                        user={user}
+                        onLike={handleLikePost}
+                        onEdit={startEditPost}
+                        onDelete={handleDeletePost}
+                        onViewProfile={handleViewAdminProfile}
+                      />
+                    )}
 
                     {/* Inline sponsored ad block */}
                     {(index + 1) % 3 === 0 && (
@@ -1715,147 +1641,82 @@ export default function Home() {
                   const isEditing = editingPostId === post._id;
 
                   return (
-                    <div key={post._id} className="post-card" style={{ width: '100%' }}>
+                    <Fragment key={post._id}>
                       {isEditing ? (
-                        <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}>
-                          <textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            placeholder="Update announcement..."
-                            className="post-textarea"
-                            style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
-                            required
-                          />
+                        <div className="post-card" style={{ width: '100%' }}>
+                          <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}>
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              placeholder="Update announcement..."
+                              className="post-textarea"
+                              style={{ minHeight: '80px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.08)' }}
+                              required
+                            />
 
-                          {editImagePreview && (
-                            <div className="post-creator-preview" style={{ marginTop: '10px' }}>
-                              <img src={editImagePreview} alt="Edit Attachment" />
-                              <button
-                                type="button"
-                                onClick={handleRemoveEditImage}
-                                className="post-creator-preview-remove"
-                                title="Remove Image"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
+                            {editImagePreview && (
+                              <div className="post-creator-preview" style={{ marginTop: '10px' }}>
+                                <img src={editImagePreview} alt="Edit Attachment" />
+                                <button
+                                  type="button"
+                                  onClick={handleRemoveEditImage}
+                                  className="post-creator-preview-remove"
+                                  title="Remove Image"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            )}
 
-                          <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
-                                <ImageIcon size={16} />
-                                <span>Change Photo</span>
-                                <input
-                                  type="file"
-                                  ref={editFileInputRef}
-                                  accept="image/*"
-                                  onChange={handleEditFileChange}
-                                  style={{ display: 'none' }}
-                                />
-                              </label>
-                            </div>
+                            <div className="post-creator-actions" style={{ padding: '8px 0 0 0', borderTop: 'none' }}>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <label className="post-attach-btn" style={{ padding: '6px 12px', fontSize: '12px' }}>
+                                  <ImageIcon size={16} />
+                                  <span>Change Photo</span>
+                                  <input
+                                    type="file"
+                                    ref={editFileInputRef}
+                                    accept="image/*"
+                                    onChange={handleEditFileChange}
+                                    style={{ display: 'none' }}
+                                  />
+                                </label>
+                              </div>
 
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button
-                                type="button"
-                                onClick={() => setEditingPostId(null)}
-                                className="lobby-btn-secondary"
-                                style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                type="submit"
-                                disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
-                                className="post-create-btn"
-                                style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
-                              >
-                                {editSubmitting ? 'Saving...' : 'Save'}
-                              </button>
-                            </div>
-                          </div>
-                        </form>
-                      ) : (
-                        <>
-                          <div className="post-header">
-                            <div className="post-author-info">
-                              {viewingAdmin.avatar ? (
-                                <img
-                                  src={viewingAdmin.avatar}
-                                  alt={viewingAdmin.name}
-                                  className="post-avatar"
-                                />
-                              ) : (
-                                <div className="post-avatar" style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
-                                  color: 'white',
-                                  fontWeight: 600,
-                                  fontSize: '14px'
-                                }}>
-                                  {getInitials(viewingAdmin.name)}
-                                </div>
-                              )}
-                              <div className="post-author-details">
-                                <span className="post-author-name">{viewingAdmin.name}</span>
-                                <span className="post-time">{formatPostTime(post.createdAt)}</span>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingPostId(null)}
+                                  className="lobby-btn-secondary"
+                                  style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0 }}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  type="submit"
+                                  disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
+                                  className="post-create-btn"
+                                  style={{ padding: '6px 16px', fontSize: '12px', height: 'auto' }}
+                                >
+                                  {editSubmitting ? 'Saving...' : 'Save'}
+                                </button>
                               </div>
                             </div>
-
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              {(isMyPost || (user && user.role === 'super_admin')) && (
-                                <>
-                                  <button
-                                    onClick={() => startEditPost(post)}
-                                    className="post-edit-btn"
-                                    style={{ background: 'none', border: 'none', color: '#8fa0b5', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                                    title="Edit Announcement"
-                                  >
-                                    <Pencil size={16} />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeletePost(post._id)}
-                                    className="post-delete-btn"
-                                    title="Delete Announcement"
-                                  >
-                                    <Trash2 size={16} />
-                                  </button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-
-                          {post.content && (
-                            <div className="post-content">{post.content}</div>
-                          )}
-
-                          {post.image && (
-                            <DoubleTapLikeImage
-                              src={post.image}
-                              alt="Announcement Media"
-                              onLike={() => {
-                                if (!hasLiked) {
-                                  handleLikePost(post._id);
-                                }
-                              }}
-                            />
-                          )}
-
-                          <div className="post-actions">
-                            <button
-                              onClick={() => handleLikePost(post._id)}
-                              className={`post-like-btn ${hasLiked ? 'liked' : ''}`}
-                            >
-                              <Heart size={18} fill={hasLiked ? '#ff4b6b' : 'none'} />
-                              <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
-                            </button>
-                          </div>
-                        </>
+                          </form>
+                        </div>
+                      ) : (
+                        <PostCard
+                          post={post}
+                          user={user}
+                          onLike={handleLikePost}
+                          onEdit={startEditPost}
+                          onDelete={handleDeletePost}
+                          fallbackName={viewingAdmin.name}
+                          fallbackAvatar={viewingAdmin.avatar}
+                          fallbackUsername={viewingAdmin.username}
+                        />
                       )}
-                    </div>
+                    </Fragment>
                   );
                 })
               )}

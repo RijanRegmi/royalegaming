@@ -7,6 +7,7 @@ import styles from '../profile.module.css';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
+import PostCard from '@/components/PostCard';
 
 interface AdminInfo {
   id: string;
@@ -329,70 +330,20 @@ export default function AdminProfilePublicPage() {
 
                   return (
                     <Fragment key={post._id}>
-                      <div className="post-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
-                      <div className="post-header" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-                        {admin.avatar ? (
-                          <img 
-                            src={admin.avatar} 
-                            alt={admin.name} 
-                            className="post-avatar"
-                            style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          <div className="post-avatar" style={{ 
-                            width: '36px',
-                            height: '36px',
-                            borderRadius: '50%',
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'center', 
-                            background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
-                            color: 'white', 
-                            fontWeight: 600, 
-                            fontSize: '13px' 
-                          }}>
-                            {getInitials(admin.name)}
-                          </div>
-                        )}
-                        <div className="post-author-details" style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span className="post-author-name" style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>{admin.name}</span>
-                          <span className="post-time" style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>{formatPostTime(post.createdAt)}</span>
-                        </div>
-                      </div>
+                      <PostCard
+                        post={post}
+                        user={currentUser}
+                        onLike={handleLikePost}
+                        fallbackName={admin.name}
+                        fallbackAvatar={admin.avatar}
+                        fallbackUsername={admin.username}
+                      />
 
-                      {post.content && (
-                        <div className="post-content" style={{ color: '#e2e8f0', fontSize: '14.5px', lineHeight: '1.5', marginBottom: '12px', whiteSpace: 'pre-wrap' }}>{post.content}</div>
+                      {/* Inline sponsored ad block */}
+                      {(index + 1) % 3 === 0 && (
+                        <SponsoredPostCard style={{ marginTop: '20px', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-color)' }} />
                       )}
-
-                      {post.image && (
-                        <DoubleTapLikeImage
-                          src={post.image}
-                          alt="Announcement Media"
-                          onLike={() => {
-                            if (!hasLiked) {
-                              handleLikePost(post._id);
-                            }
-                          }}
-                        />
-                      )}
-
-                      <div className="post-actions" style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
-                        <button 
-                          onClick={() => handleLikePost(post._id)}
-                          className={`post-action-btn like-btn ${hasLiked ? 'liked' : ''}`}
-                          style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: hasLiked ? '#ff4b6b' : 'var(--text-secondary)', fontSize: '13px' }}
-                        >
-                          <Heart size={16} fill={hasLiked ? 'currentColor' : 'none'} />
-                          <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Inline sponsored ad block */}
-                    {(index + 1) % 3 === 0 && (
-                      <SponsoredPostCard style={{ marginTop: '20px', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-color)' }} />
-                    )}
-                  </Fragment>
+                    </Fragment>
                 );
               })
             )}

@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import styles from './profile.module.css';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X } from 'lucide-react';
+import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X, Sun, Moon } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
+import PostCard from '@/components/PostCard';
 
 interface User {
   _id: string;
@@ -21,6 +22,15 @@ interface User {
 
 export default function ProfilePage() {
   const router = useRouter();
+
+  // Theme state
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>('dark');
+
+  // Initialize theme mode from DOM class on mount
+  useEffect(() => {
+    const isLight = document.documentElement.classList.contains('light');
+    setThemeMode(isLight ? 'light' : 'dark');
+  }, []);
 
   // Auth & loading states
   const [user, setUser] = useState<User | null>(null);
@@ -764,29 +774,41 @@ export default function ProfilePage() {
               <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Theme Settings
               </h2>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '14px', color: 'var(--text-primary)' }}>Theme Mode</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Switch between Dark Mode (Pure Black) and Light Mode (Pure White)</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Choose your preferred interface style</div>
                 </div>
-                <button
-                  onClick={() => {
-                    const html = document.documentElement;
-                    const isLight = html.classList.contains('light');
-                    if (isLight) {
-                      html.classList.remove('light');
-                      localStorage.setItem('theme', 'dark');
-                    } else {
-                      html.classList.add('light');
+                
+                {/* 2-Option Segmented Control */}
+                <div className={styles.themeSwitcher}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.documentElement.classList.add('light');
                       localStorage.setItem('theme', 'light');
-                    }
-                    window.dispatchEvent(new Event('theme-changed'));
-                  }}
-                  className="lobby-btn-chat"
-                  style={{ width: 'auto', padding: '8px 16px', fontSize: '13px' }}
-                >
-                  Toggle Theme
-                </button>
+                      setThemeMode('light');
+                      window.dispatchEvent(new Event('theme-changed'));
+                    }}
+                    className={`${styles.themeBtn} ${themeMode === 'light' ? styles.themeBtnActive : ''}`}
+                  >
+                    <Sun size={15} />
+                    Light Mode
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.documentElement.classList.remove('light');
+                      localStorage.setItem('theme', 'dark');
+                      setThemeMode('dark');
+                      window.dispatchEvent(new Event('theme-changed'));
+                    }}
+                    className={`${styles.themeBtn} ${themeMode === 'dark' ? styles.themeBtnActive : ''}`}
+                  >
+                    <Moon size={15} />
+                    Dark Mode
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -960,155 +982,86 @@ export default function ProfilePage() {
 
                   return (
                     <Fragment key={post._id}>
-                      <div className="post-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
                       {isEditing ? (
-                        <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}>
-                          <textarea
-                            value={editContent}
-                            onChange={(e) => setEditContent(e.target.value)}
-                            placeholder="Update announcement..."
-                            className="post-textarea"
-                            style={{ minHeight: '80px', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)' }}
-                            required
-                          />
+                        <div className="post-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
+                          <form onSubmit={handleEditPost} className="post-creator-card" style={{ background: 'none', border: 'none', padding: 0, margin: 0 }}>
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              placeholder="Update announcement..."
+                              className="post-textarea"
+                              style={{ minHeight: '80px', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)' }}
+                              required
+                            />
 
-                          {editImagePreview && (
-                            <div className="post-creator-preview" style={{ marginTop: '12px', position: 'relative' }}>
-                              <img src={editImagePreview} alt="Edit Attachment" style={{ borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }} />
-                              <button 
-                                type="button" 
-                                onClick={handleRemoveEditImage}
-                                className="post-creator-preview-remove"
-                                style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', width: '24px', height: '24px', borderRadius: '50%' }}
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
+                            {editImagePreview && (
+                              <div className="post-creator-preview" style={{ marginTop: '12px', position: 'relative' }}>
+                                <img src={editImagePreview} alt="Edit Attachment" style={{ borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }} />
+                                <button 
+                                  type="button" 
+                                  onClick={handleRemoveEditImage}
+                                  className="post-creator-preview-remove"
+                                  style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', width: '24px', height: '24px', borderRadius: '50%' }}
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            )}
 
-                          <div className="post-creator-actions" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <label className="post-attach-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                                <ImageIcon size={16} />
-                                <span>Change Photo</span>
-                                <input
-                                  type="file"
-                                  ref={editFileInputRef}
-                                  accept="image/*"
-                                  onChange={handleEditFileChange}
-                                  style={{ display: 'none' }}
-                                />
-                              </label>
-                            </div>
+                            <div className="post-creator-actions" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <label className="post-attach-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                                  <ImageIcon size={16} />
+                                  <span>Change Photo</span>
+                                  <input
+                                    type="file"
+                                    ref={editFileInputRef}
+                                    accept="image/*"
+                                    onChange={handleEditFileChange}
+                                    style={{ display: 'none' }}
+                                  />
+                                </label>
+                              </div>
 
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                              <button 
-                                type="button" 
-                                onClick={() => setEditingPostId(null)}
-                                className="lobby-btn-secondary"
-                                style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0, height: '32px' }}
-                              >
-                                Cancel
-                              </button>
-                              <button 
-                                type="submit" 
-                                disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
-                                className="post-create-btn"
-                                style={{ padding: '6px 16px', fontSize: '12px', height: '32px' }}
-                              >
-                                {editSubmitting ? 'Saving...' : 'Save'}
-                              </button>
-                            </div>
-                          </div>
-                        </form>
-                      ) : (
-                        <>
-                          <div className="post-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                            <div className="post-author-info" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              {avatar ? (
-                                <img 
-                                  src={avatar} 
-                                  alt={name} 
-                                  className="post-avatar"
-                                  style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }}
-                                />
-                              ) : (
-                                <div className="post-avatar" style={{ 
-                                  width: '36px',
-                                  height: '36px',
-                                  borderRadius: '50%',
-                                  display: 'flex', 
-                                  alignItems: 'center', 
-                                  justifyContent: 'center', 
-                                  background: 'linear-gradient(135deg, var(--accent-color), #007c62)', 
-                                  color: 'white', 
-                                  fontWeight: 600, 
-                                  fontSize: '13px' 
-                                }}>
-                                  {getInitials(name)}
-                                </div>
-                              )}
-                              <div className="post-author-details" style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span className="post-author-name" style={{ color: 'white', fontWeight: 600, fontSize: '14px' }}>{name}</span>
-                                <span className="post-time" style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>{formatPostTime(post.createdAt)}</span>
+                              <div style={{ display: 'flex', gap: '8px' }}>
+                                <button 
+                                  type="button" 
+                                  onClick={() => setEditingPostId(null)}
+                                  className="lobby-btn-secondary"
+                                  style={{ padding: '6px 12px', fontSize: '12px', width: 'auto', margin: 0, height: '32px' }}
+                                >
+                                  Cancel
+                                </button>
+                                <button 
+                                  type="submit" 
+                                  disabled={editSubmitting || (!editContent.trim() && !editImagePreview)}
+                                  className="post-create-btn"
+                                  style={{ padding: '6px 16px', fontSize: '12px', height: '32px' }}
+                                >
+                                  {editSubmitting ? 'Saving...' : 'Save'}
+                                </button>
                               </div>
                             </div>
-
-                            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                              <button 
-                                onClick={() => startEditPost(post)}
-                                className="post-edit-btn"
-                                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                                title="Edit Announcement"
-                              >
-                                <Pencil size={15} />
-                              </button>
-                              <button 
-                                onClick={() => handleDeletePost(post._id)}
-                                className="post-delete-btn"
-                                style={{ background: 'none', border: 'none', color: 'rgba(234, 0, 56, 0.7)', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center' }}
-                                title="Delete Announcement"
-                              >
-                                <Trash2 size={15} />
-                              </button>
-                            </div>
-                          </div>
-
-                          {post.content && (
-                            <div className="post-content" style={{ color: '#e2e8f0', fontSize: '14.5px', lineHeight: '1.5', marginBottom: '12px', whiteSpace: 'pre-wrap' }}>{post.content}</div>
-                          )}
-
-                          {post.image && (
-                            <DoubleTapLikeImage
-                              src={post.image}
-                              alt="Announcement Media"
-                              onLike={() => {
-                                if (!hasLiked) {
-                                  handleLikePost(post._id);
-                                }
-                              }}
-                            />
-                          )}
-
-                          <div className="post-actions" style={{ display: 'flex', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
-                            <button 
-                              onClick={() => handleLikePost(post._id)}
-                              className={`post-action-btn like-btn ${hasLiked ? 'liked' : ''}`}
-                              style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', cursor: 'pointer', color: hasLiked ? '#ff4b6b' : 'var(--text-secondary)', fontSize: '13px' }}
-                            >
-                              <Heart size={16} fill={hasLiked ? 'currentColor' : 'none'} />
-                              <span>{post.likes.length} {post.likes.length === 1 ? 'Like' : 'Likes'}</span>
-                            </button>
-                          </div>
-                        </>
+                          </form>
+                        </div>
+                      ) : (
+                        <PostCard
+                          post={post}
+                          user={user}
+                          onLike={handleLikePost}
+                          onEdit={startEditPost}
+                          onDelete={handleDeletePost}
+                          fallbackName={name}
+                          fallbackAvatar={avatar}
+                          fallbackUsername={user?.username}
+                        />
                       )}
-                    </div>
 
-                    {/* Inline sponsored ad block */}
-                    {(index + 1) % 3 === 0 && (
-                      <SponsoredPostCard style={{ marginTop: '20px', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-color)' }} />
-                    )}
-                  </Fragment>
+                      {/* Inline sponsored ad block */}
+                      {(index + 1) % 3 === 0 && (
+                        <SponsoredPostCard style={{ marginTop: '20px', background: 'rgba(255, 255, 255, 0.01)', border: '1px solid var(--border-color)' }} />
+                      )}
+                    </Fragment>
                 );
               })
             )}
