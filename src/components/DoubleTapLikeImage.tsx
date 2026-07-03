@@ -52,12 +52,11 @@ export default function DoubleTapLikeImage({ src, alt, onLike }: DoubleTapLikeIm
   return (
     <>
       <div
-        className="post-image-container"
         style={{
           overflow: 'hidden',
           cursor: 'zoom-in',
           position: 'relative',
-          width: 'calc(100% + 40px)',
+          width: '100%',
           display: 'block',
         }}
         onClick={handleClick}
@@ -65,13 +64,12 @@ export default function DoubleTapLikeImage({ src, alt, onLike }: DoubleTapLikeIm
         <img
           src={src}
           alt={alt}
-          className="post-image"
           style={{
             width: '100%',
             height: 'auto',
             maxHeight: '600px',
             objectFit: 'contain',
-            backgroundColor: '#080f24',
+            backgroundColor: 'transparent',
             display: 'block',
           }}
         />

@@ -3295,14 +3295,14 @@ select option {
 
 .post-author-name {
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text-primary);
   font-size: 15px;
   line-height: 1.2;
 }
 
 .post-time {
   font-size: 11px;
-  color: #8fa0b5;
+  color: var(--text-secondary);
   margin-top: 4px;
 }
 
@@ -3327,7 +3327,7 @@ select option {
 .post-content {
   font-size: 14.5px;
   line-height: 1.6;
-  color: #e9edef;
+  color: var(--text-primary);
   margin-top: 16px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -3341,9 +3341,9 @@ select option {
   border-left: none;
   border-right: none;
   overflow: hidden;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background-color: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--bg-app);
   width: calc(100% + 40px);
 }
 
@@ -3352,7 +3352,7 @@ select option {
   height: auto;
   max-height: 600px;
   object-fit: contain;
-  background-color: #080f24;
+  background-color: transparent;
   display: block;
 }
 
@@ -3396,7 +3396,7 @@ select option {
 
 
 .post-actions {
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-color);
   padding-top: 14px;
   margin-top: 16px;
   display: flex;
@@ -3406,7 +3406,7 @@ select option {
 .post-like-btn {
   background: transparent;
   border: none;
-  color: #8fa0b5;
+  color: var(--text-secondary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -3419,8 +3419,8 @@ select option {
 }
 
 .post-like-btn:hover {
-  background: rgba(255, 255, 255, 0.04);
-  color: #ffffff;
+  background: var(--border-light);
+  color: var(--text-primary);
 }
 
 .post-like-btn.liked {
@@ -3434,11 +3434,11 @@ select option {
 
 /* Post Creator Styles */
 .post-creator-card {
-  background-color: #121f45;
-  border: 1px solid rgba(168, 85, 247, 0.15);
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -3454,17 +3454,17 @@ select option {
 .post-creator-title {
   font-size: 16px;
   font-weight: 750;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .post-textarea {
   width: 100%;
   min-height: 100px;
-  background-color: #080f24;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background-color: var(--bg-app);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 14px;
-  color: #ffffff;
+  color: var(--text-primary);
   font-family: inherit;
   font-size: 14.5px;
   resize: none;
@@ -3487,10 +3487,10 @@ select option {
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
-  color: #8fa0b5;
+  color: var(--text-secondary);
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--border-light);
+  border: 1px solid var(--border-color);
   padding: 8px 16px;
   border-radius: 10px;
   transition: all 0.2s ease;
@@ -3498,9 +3498,9 @@ select option {
 }
 
 .post-attach-btn:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: var(--bg-panel-hover);
+  color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
 .post-create-btn {

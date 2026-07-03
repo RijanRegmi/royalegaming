@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Heart, MessageCircle, Repeat, Send, Bookmark, Pencil, Trash2 } from 'lucide-react';
+import { Heart, MessageCircle, Bookmark, Pencil, Trash2 } from 'lucide-react';
 import DoubleTapLikeImage from './DoubleTapLikeImage';
 
 interface PostCardProps {
@@ -17,7 +17,18 @@ interface PostCardProps {
 }
 
 const VerifiedBadge = () => (
-  <svg viewBox="0 0 24 24" width="14" height="14" style={{ fill: '#0095f6', display: 'inline-block', verticalAlign: 'middle', marginLeft: '4px', flexShrink: 0 }}>
+  <svg 
+    viewBox="0 0 24 24" 
+    width="14" 
+    height="14" 
+    style={{ 
+      fill: '#0095f6', 
+      display: 'inline-block', 
+      marginLeft: '4px',
+      verticalAlign: 'middle',
+      flexShrink: 0 
+    }}
+  >
     <title>Verified</title>
     <path d="M12.003 21.13c-.12 0-.24-.04-.34-.12l-2.07-1.62a.43.43 0 0 0-.27-.09H6.68c-.24 0-.44-.2-.44-.44v-2.64c0-.1.03-.2.09-.27l1.62-2.07c.17-.22.17-.53 0-.75l-1.62-2.07a.43.43 0 0 1-.09-.27V5.16c0-.24.2-.44.44-.44h2.64c.1 0 .2-.03.27-.09l2.07-1.62c.19-.15.46-.15.65 0l2.07 1.62c.07.06.17.09.27.09h2.64c.24 0 .44.2.44.44v2.64c0 .1-.03.2-.09.27l-1.62 2.07c-.17.22-.17.53 0 .75l1.62 2.07c.06.07.09.17.09.27v2.64c0 .24-.2.44-.44.44h-2.64c-.1 0-.2.03-.27.09l-2.07 1.62c-.1.08-.22.12-.34.12zm-2.92-8.5l-1.65-1.65a.55.55 0 0 0-.78.78l2.04 2.04c.2.2.53.2.73 0l4.77-4.77a.55.55 0 0 0-.78-.78l-4.33 4.38z" />
   </svg>
@@ -36,10 +47,18 @@ export default function PostCard({
 }: PostCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [localLikes, setLocalLikes] = useState<string[]>(post.likes || []);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState<any[]>(post.comments || []);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [isPostingComment, setIsPostingComment] = useState(false);
 
   useEffect(() => {
     setLocalLikes(post.likes || []);
   }, [post.likes]);
+
+  useEffect(() => {
+    setComments(post.comments || []);
+  }, [post.comments]);
 
   const authorName = post.adminId?.name || fallbackName || 'Administrator';
   const authorUsername = post.adminId?.username || fallbackUsername || authorName.toLowerCase().replace(/\s+/g, '');
@@ -89,22 +108,7 @@ export default function PostCard({
     return num.toString();
   };
 
-  // Generate deterministic comment and repost counts
   const likesCount = localLikes.length;
-  const getDeterministicCounts = (id: string, lCount: number) => {
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-      hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    hash = Math.abs(hash);
-    const commentSeed = (hash % 15) + 3;
-    const repostSeed = (hash % 10) + 1;
-    const comments = Math.floor(lCount * 1.3) + commentSeed;
-    const reposts = Math.floor(lCount * 0.7) + repostSeed;
-    return { comments, reposts };
-  };
-
-  const { comments: commentCount, reposts: repostCount } = getDeterministicCounts(post._id, likesCount);
 
   const handleLikeClick = () => {
     onLike(post._id);
@@ -117,6 +121,38 @@ export default function PostCard({
       } else {
         setLocalLikes(prev => [...prev, userId]);
       }
+    }
+  };
+
+  const handleCommentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCommentText.trim() || isPostingComment) return;
+
+    setIsPostingComment(true);
+    try {
+      const response = await fetch('/api/posts/comment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          postId: post._id,
+          text: newCommentText.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setComments(data.comments);
+        setNewCommentText('');
+      } else {
+        alert(data.error || 'Failed to post comment');
+      }
+    } catch (err) {
+      console.error('Error posting comment:', err);
+      alert('Error posting comment');
+    } finally {
+      setIsPostingComment(false);
     }
   };
 
@@ -249,31 +285,53 @@ export default function PostCard({
           className="post-content" 
           style={{ 
             color: 'var(--text-primary)', 
-            fontSize: '13.5px', 
+            fontSize: '14.5px', 
             lineHeight: '1.5', 
             margin: '0 0 14px 0', 
             whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word'
+            wordBreak: 'break-word',
+            display: 'block'
           }}
         >
           <span 
-            onClick={() => onViewProfile && onViewProfile(post.adminId?._id || post.adminId, post.adminId)}
             style={{ 
-              fontWeight: 700, 
-              color: 'var(--text-primary)', 
+              display: 'inline-flex',
+              alignItems: 'center',
               marginRight: '6px',
-              cursor: onViewProfile ? 'pointer' : 'default' 
+              verticalAlign: 'middle'
             }}
           >
-            {authorUsername}
+            <span 
+              onClick={() => onViewProfile && onViewProfile(post.adminId?._id || post.adminId, post.adminId)}
+              style={{ 
+                fontWeight: 700, 
+                color: 'var(--text-primary)', 
+                cursor: onViewProfile ? 'pointer' : 'default' 
+              }}
+            >
+              {authorUsername}
+            </span>
+            <VerifiedBadge />
           </span>
           {post.content}
         </div>
       )}
 
-      {/* 3. Post Image (Using existing DoubleTapLikeImage component) */}
+      {/* 3. Post Image (Using updated DoubleTapLikeImage component) */}
       {post.image && (
-        <div style={{ marginLeft: '-16px', marginRight: '-16px', marginBottom: '12px' }}>
+        <div 
+          style={{ 
+            marginLeft: '-16px', 
+            marginRight: '-16px', 
+            width: 'calc(100% + 32px)', 
+            borderTop: '1px solid var(--border-color)',
+            borderBottom: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-app)',
+            marginBottom: '12px',
+            position: 'relative',
+            overflow: 'hidden'
+          }}
+        >
           <DoubleTapLikeImage
             src={post.image}
             alt="Announcement Media"
@@ -282,7 +340,7 @@ export default function PostCard({
         </div>
       )}
 
-      {/* 4. Action Bar (Instagram / Twitter style) */}
+      {/* 4. Action Bar (Instagram style but only Like, Comment, Bookmark) */}
       <div 
         style={{ 
           display: 'flex', 
@@ -320,55 +378,22 @@ export default function PostCard({
 
           {/* Comment Action */}
           <button
+            onClick={() => setShowComments(prev => !prev)}
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               background: 'none',
               border: 'none',
-              cursor: 'default',
-              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              color: showComments ? 'var(--accent-color)' : 'var(--text-secondary)',
               fontSize: '12px',
               fontWeight: 600,
               padding: '4px 0'
             }}
           >
             <MessageCircle size={19} />
-            <span>{formatCount(commentCount)}</span>
-          </button>
-
-          {/* Repost Action */}
-          <button
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              background: 'none',
-              border: 'none',
-              cursor: 'default',
-              color: 'var(--text-secondary)',
-              fontSize: '12px',
-              fontWeight: 600,
-              padding: '4px 0'
-            }}
-          >
-            <Repeat size={18} />
-            <span>{formatCount(repostCount)}</span>
-          </button>
-
-          {/* Send DM / Share Action */}
-          <button
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: 'none',
-              border: 'none',
-              cursor: 'default',
-              color: 'var(--text-secondary)',
-              padding: '4px 0'
-            }}
-          >
-            <Send size={18} style={{ transform: 'rotate(-25deg) translateY(-1px)' }} />
+            <span>{formatCount(comments.length)}</span>
           </button>
         </div>
 
@@ -391,6 +416,124 @@ export default function PostCard({
           <Bookmark size={19} fill={isBookmarked ? '#a855f7' : 'none'} />
         </button>
       </div>
+
+      {/* 5. Comments Section */}
+      {showComments && (
+        <div 
+          style={{ 
+            marginTop: '12px', 
+            borderTop: '1px solid var(--border-light)',
+            paddingTop: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}
+        >
+          {/* Comments List */}
+          {comments.length > 0 ? (
+            <div 
+              style={{ 
+                maxHeight: '200px', 
+                overflowY: 'auto', 
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                paddingRight: '4px'
+              }}
+            >
+              {comments.map((comment: any) => (
+                <div key={comment._id || comment.createdAt} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  {comment.userAvatar ? (
+                    <img 
+                      src={comment.userAvatar} 
+                      alt={comment.userName} 
+                      style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }} 
+                    />
+                  ) : (
+                    <div 
+                      style={{ 
+                        width: '28px', 
+                        height: '28px', 
+                        borderRadius: '50%', 
+                        background: 'linear-gradient(135deg, var(--accent-color), #007c62)',
+                        color: 'white',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '11px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      {getInitials(comment.userName)}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                    <div style={{ fontSize: '12.5px', lineHeight: '1.4' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--text-primary)', marginRight: '6px' }}>
+                        {comment.userName}
+                      </span>
+                      <span style={{ color: 'var(--text-primary)' }}>
+                        {comment.text}
+                      </span>
+                    </div>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                      {formatPostTime(comment.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ padding: '8px 0', textAlign: 'center' }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>No comments yet. Be the first to comment!</span>
+            </div>
+          )}
+
+          {/* Comment Form */}
+          {user ? (
+            <form onSubmit={handleCommentSubmit} style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+              <input
+                type="text"
+                placeholder="Add a comment..."
+                value={newCommentText}
+                onChange={(e) => setNewCommentText(e.target.value)}
+                disabled={isPostingComment}
+                style={{
+                  flex: 1,
+                  background: 'var(--bg-app)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '18px',
+                  padding: '6px 14px',
+                  fontSize: '12.5px',
+                  color: 'var(--text-primary)',
+                  outline: 'none'
+                }}
+              />
+              <button
+                type="submit"
+                disabled={isPostingComment || !newCommentText.trim()}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: newCommentText.trim() ? 'var(--accent-color)' : 'var(--text-muted)',
+                  fontWeight: 'bold',
+                  fontSize: '12.5px',
+                  cursor: newCommentText.trim() ? 'pointer' : 'default',
+                  padding: '0 8px'
+                }}
+              >
+                {isPostingComment ? 'Posting...' : 'Post'}
+              </button>
+            </form>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '6px 0', borderTop: '1px dashed var(--border-light)' }}>
+              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                Please log in to write a comment.
+              </span>
+            </div>
+          )}
+        </div>
+      )}
 
     </div>
   );
