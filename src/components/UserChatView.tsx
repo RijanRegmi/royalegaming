@@ -1025,7 +1025,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   // Scroll to bottom only when a new message is added
   useEffect(() => {
     if (messages.length > prevMessagesLengthRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.parentElement?.scrollTo({ top: 0, behavior: 'smooth' });
     }
     prevMessagesLengthRef.current = messages.length;
   }, [messages]);
@@ -1671,7 +1671,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
             <p>Type a message below to contact the administration team. An admin will get back to you shortly.</p>
           </div>
         ) : (
-          messages.map((msg, index) => {
+          [...messages].reverse().map((msg, index) => {
             if (msg.isSystem) {
               return (
                 <div key={msg._id} className="system-message-row">

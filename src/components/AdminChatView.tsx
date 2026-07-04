@@ -1142,7 +1142,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
   useEffect(() => {
     const hasUserChanged = selectedUser?.id !== prevSelectedUserIdRef.current;
     if (hasUserChanged || messages.length > prevMessagesLengthRef.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.parentElement?.scrollTo({ top: 0, behavior: 'smooth' });
     }
     prevMessagesLengthRef.current = messages.length;
     prevSelectedUserIdRef.current = selectedUser?.id || null;
@@ -1788,7 +1788,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                   <p>Loading messages...</p>
                 </div>
               ) : (
-                messages.map((msg, index) => {
+                [...messages].reverse().map((msg, index) => {
                   if (msg.isSystem) {
                     return (
                       <div key={msg._id} className="system-message-row">
