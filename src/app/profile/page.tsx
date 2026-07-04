@@ -19,6 +19,7 @@ interface User {
   avatar?: string;
   username?: string;
   createdAt?: string;
+  isFrozen?: boolean;
 }
 
 export default function ProfilePage() {
@@ -608,6 +609,61 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {user?.isFrozen && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.08) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '16px',
+            padding: '20px',
+            marginBottom: '24px',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 4px 30px rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '16px',
+          }}>
+            <div style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '10px',
+              background: 'rgba(239, 68, 68, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ef4444',
+              flexShrink: 0
+            }}>
+              <Shield size={18} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 800, color: '#f87171' }}>
+                Account Frozen
+              </h3>
+              <p style={{ margin: 0, fontSize: '13px', color: '#fca5a5', lineHeight: '1.5' }}>
+                Your account is frozen. Please contact support chat or check your payment due.
+              </p>
+              <button 
+                onClick={() => router.push('/chat')}
+                className="lobby-btn-chat"
+                style={{
+                  marginTop: '10px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  width: 'auto'
+                }}
+              >
+                Go to Support Chat
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* PROFILE HEADER SUMMARY */}
         <div className={styles.avatarContainer}>
           <div className={styles.avatarWrapper} onClick={showEditForm ? handleAvatarEdit : () => setLightboxImage(avatar)}>
@@ -899,54 +955,90 @@ export default function ProfilePage() {
             <div style={{ width: '100%', height: '1px', background: 'var(--border-color)', margin: '4px 0' }} />
 
             {/* Post Creator inside Profile Page */}
-            <form onSubmit={handleCreatePost} className="post-creator-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Publish New Announcement</h3>
-              <textarea
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                placeholder="What credentials or updates do you want to announce?"
-                className="post-textarea"
-                style={{ minHeight: '80px', borderRadius: '8px', background: 'rgba(0, 0, 0, 0.2)', border: '1px solid var(--border-color)' }}
-                required
-              />
+            {user?.isFrozen ? (
+              <div className="post-creator-card" style={{
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(0, 0, 0, 0.2) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                padding: '24px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '12px',
+                borderRadius: '12px',
+              }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ef4444',
+                }}>
+                  <Shield size={24} />
+                </div>
+                <div>
+                  <h3 style={{ margin: '0 0 6px 0', fontSize: '15px', fontWeight: 700, color: '#ffffff' }}>
+                    Administrative Actions Suspended
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5' }}>
+                    Your administrator account is frozen. Announcement creation is temporarily locked.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleCreatePost} className="post-creator-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
+                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Publish New Announcement</h3>
+                <textarea
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="What credentials or updates do you want to announce?"
+                  className="post-textarea"
+                  style={{ minHeight: '80px', borderRadius: '8px', background: 'rgba(0, 0, 0, 0.2)', border: '1px solid var(--border-color)' }}
+                  required
+                />
 
-              {imagePreview && (
-                <div className="post-creator-preview" style={{ marginTop: '12px', position: 'relative' }}>
-                  <img src={imagePreview} alt="Upload Preview" style={{ borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }} />
+                {imagePreview && (
+                  <div className="post-creator-preview" style={{ marginTop: '12px', position: 'relative' }}>
+                    <img src={imagePreview} alt="Upload Preview" style={{ borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }} />
+                    <button 
+                      type="button" 
+                      onClick={handleRemoveCreateImage}
+                      className="post-creator-preview-remove"
+                      style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', width: '24px', height: '24px', borderRadius: '50%' }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+
+                <div className="post-creator-actions" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
+                  <label className="post-attach-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                    <ImageIcon size={16} />
+                    <span>Attach Image</span>
+                    <input
+                      type="file"
+                      ref={createFileInputRef}
+                      accept="image/*"
+                      onChange={handleCreateFileChange}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+
                   <button 
-                    type="button" 
-                    onClick={handleRemoveCreateImage}
-                    className="post-creator-preview-remove"
-                    style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', width: '24px', height: '24px', borderRadius: '50%' }}
+                    type="submit" 
+                    disabled={submitting || (!content.trim() && !file)}
+                    className="post-create-btn"
+                    style={{ height: '36px', padding: '0 20px', borderRadius: '8px', fontSize: '13px' }}
                   >
-                    ×
+                    {submitting ? 'Publishing...' : 'Publish'}
                   </button>
                 </div>
-              )}
-
-              <div className="post-creator-actions" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                <label className="post-attach-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                  <ImageIcon size={16} />
-                  <span>Attach Image</span>
-                  <input
-                    type="file"
-                    ref={createFileInputRef}
-                    accept="image/*"
-                    onChange={handleCreateFileChange}
-                    style={{ display: 'none' }}
-                  />
-                </label>
-
-                <button 
-                  type="submit" 
-                  disabled={submitting || (!content.trim() && !file)}
-                  className="post-create-btn"
-                  style={{ height: '36px', padding: '0 20px', borderRadius: '8px', fontSize: '13px' }}
-                >
-                  {submitting ? 'Publishing...' : 'Publish'}
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
 
             {/* Announcement Feed Title */}
             <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'white', margin: '8px 0 0 0' }}>Announcements Feed</h3>

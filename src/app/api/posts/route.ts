@@ -90,6 +90,11 @@ export async function POST(req: NextRequest) {
 
     await dbConnect();
 
+    const user = await User.findById(payload.userId);
+    if (user?.isFrozen) {
+      return NextResponse.json({ error: 'Your account is frozen. You cannot create posts.' }, { status: 403 });
+    }
+
     const formData = await req.formData();
     const content = formData.get('content') as string | null;
     const file = formData.get('file') as File | null;

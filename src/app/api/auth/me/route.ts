@@ -38,6 +38,11 @@ export async function GET(req: NextRequest) {
       }
     }
 
+    // If the account is frozen, only show the Super Admin support chat
+    if (user.isFrozen) {
+      filteredAdmins = filteredAdmins.filter((admin: any) => admin.role === 'super_admin');
+    }
+
     // Disguise any super_admin in the adminsList as "Support Chat"
     const disguisedAdminsList = filteredAdmins.map((admin: any) => {
       const adminObj = admin.toObject ? admin.toObject() : admin;

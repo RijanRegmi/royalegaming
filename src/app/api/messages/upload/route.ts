@@ -116,6 +116,15 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Check if the current user is frozen
+    const currentUserObj = await User.findById(payload.userId);
+    if (currentUserObj?.isFrozen) {
+      const recipientUser = await User.findById(recipientId);
+      if (!recipientUser || recipientUser.role !== 'super_admin') {
+        return NextResponse.json({ error: 'Your account is frozen. You can only message the Super Admin.' }, { status: 403 });
+      }
+    }
+
     const originalName = file.name || 'upload';
     const buffer = Buffer.from(await file.arrayBuffer());
     const duration = durationStr ? parseFloat(durationStr) : undefined;

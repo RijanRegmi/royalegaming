@@ -363,6 +363,20 @@ export async function PUT(req: NextRequest) {
       if (isFrozen === true && userToUpdate.role === 'super_admin') {
         return NextResponse.json({ error: 'Super Admin accounts cannot be frozen' }, { status: 400 });
       }
+      if (isFrozen === false && userToUpdate.role === 'admin') {
+        // Validate cycle has not ended
+        const billingStart = userToUpdate.billingStartDate ? new Date(userToUpdate.billingStartDate) : new Date(userToUpdate.createdAt);
+        const deadline = new Date(billingStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+        let effectiveDeadline = deadline;
+        if (userToUpdate.extendedUntil && new Date(userToUpdate.extendedUntil) > deadline) {
+          effectiveDeadline = new Date(userToUpdate.extendedUntil);
+        }
+        if (new Date() > effectiveDeadline) {
+          return NextResponse.json({ 
+            error: 'Cannot unfreeze: The billing cycle has ended. Please extend the subscription cycle period instead.' 
+          }, { status: 400 });
+        }
+      }
       hasFrozenChanged = true;
       if (isFrozen === true) {
         try {

@@ -348,6 +348,61 @@ export default function NoticesPage() {
           </button>
         </div>
 
+        {/* Frozen Alert Banner */}
+        {user?.isFrozen && (
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(245, 158, 11, 0.08) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '16px',
+            padding: '24px',
+            marginBottom: '24px',
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 4px 30px rgba(239, 68, 68, 0.1)',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '16px',
+          }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              background: 'rgba(239, 68, 68, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ef4444',
+              flexShrink: 0
+            }}>
+              <Shield size={20} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800, color: '#f87171' }}>
+                Account Frozen
+              </h3>
+              <p style={{ margin: 0, fontSize: '13.5px', color: '#fca5a5', lineHeight: '1.6' }}>
+                Your account is frozen. Please contact support chat or check your payment due.
+              </p>
+              <button 
+                onClick={() => router.push('/chat')}
+                style={{
+                  marginTop: '12px',
+                  background: '#ef4444',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.25)',
+                }}
+              >
+                Go to Support Chat
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Notices Feed */}
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '100px 0', gap: '16px' }}>

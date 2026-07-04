@@ -27,17 +27,11 @@ export async function checkAndApplyFreeze(user: any) {
     effectiveDeadline = new Date(user.extendedUntil);
   }
   
-  // 3 days grace period
-  const graceDeadline = new Date(effectiveDeadline.getTime() + 3 * 24 * 60 * 60 * 1000);
-
   let isFrozen = false;
   let warningMessage: string | null = null;
 
-  if (now > graceDeadline) {
+  if (now > effectiveDeadline) {
     isFrozen = true;
-  } else if (now > effectiveDeadline) {
-    const daysRemaining = Math.max(0, Math.ceil((graceDeadline.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)));
-    warningMessage = `Your billing cycle has ended. You are in a grace period. Your account will be frozen in ${daysRemaining} day(s). Please check your due payments.`;
   } else {
     const msToDeadline = effectiveDeadline.getTime() - now.getTime();
     const daysToDeadline = Math.ceil(msToDeadline / (24 * 60 * 60 * 1000));
@@ -47,58 +41,52 @@ export async function checkAndApplyFreeze(user: any) {
   }
 
   // Detect state change or if we need to update
-  if (isFrozen !== user.isFrozen) {
-    await User.findByIdAndUpdate(user._id, { $set: { isFrozen } });
-    user.isFrozen = isFrozen;
+  // We only automatically FREEZE (isFrozen = true) when cycle ends.
+  // We NEVER automatically UNFREEZE (isFrozen = false) here. Unfreezing is a manual action.
+  if (isFrozen && !user.isFrozen) {
+    await User.findByIdAndUpdate(user._id, { $set: { isFrozen: true } });
+    user.isFrozen = true;
 
     // Emit live event for real-time UI updates
     chatEmitter.emit('user_freeze', { 
       userId: user._id.toString(), 
-      isFrozen 
+      isFrozen: true 
     });
 
-    if (isFrozen) {
-      // 1. Create a persistent target notice for account freeze
-      await Notice.findOneAndUpdate(
-        { targetUserId: user._id, type: 'admin_warning', title: 'Account Frozen' },
-        {
-          title: 'Account Frozen',
-          content: 'Your account is frozen. Please check your due payments.',
-          type: 'admin_warning',
-          targetUserId: user._id,
-          targetRole: 'admin',
-          isActive: true,
-        },
-        { upsert: true, new: true }
-      );
+    // 1. Create a persistent target notice for account freeze
+    await Notice.findOneAndUpdate(
+      { targetUserId: user._id, type: 'admin_warning', title: 'Account Frozen' },
+      {
+        title: 'Account Frozen',
+        content: 'Your account is frozen. Please contact support chat or check your payment due.',
+        type: 'admin_warning',
+        targetUserId: user._id,
+        targetRole: 'admin',
+        isActive: true,
+      },
+      { upsert: true, new: true }
+    );
 
-      // Deactivate any active billing warnings since they are now frozen
-      await Notice.updateMany(
-        { targetUserId: user._id, type: 'admin_warning', title: 'Billing Warning' },
-        { $set: { isActive: false } }
-      );
+    // Deactivate any active billing warnings since they are now frozen
+    await Notice.updateMany(
+      { targetUserId: user._id, type: 'admin_warning', title: 'Billing Warning' },
+      { $set: { isActive: false } }
+    );
 
-      // 2. Trigger push notification for FCM
-      try {
-        await sendPushNotification(user._id.toString(), 'System Billing', {
-          content: 'Your account is frozen. Please check your due payments.',
-          isSystem: true,
-          chatUserId: user._id.toString(),
-        });
-      } catch (err) {
-        console.error('Failed to send push notification on auto-freeze:', err);
-      }
-    } else {
-      // If unfreezing, deactivate the freeze notice
-      await Notice.updateMany(
-        { targetUserId: user._id, type: 'admin_warning', title: 'Account Frozen' },
-        { $set: { isActive: false } }
-      );
+    // 2. Trigger push notification for FCM
+    try {
+      await sendPushNotification(user._id.toString(), 'System Billing', {
+        content: 'Your account is frozen. Please contact support chat or check your payment due.',
+        isSystem: true,
+        chatUserId: user._id.toString(),
+      });
+    } catch (err) {
+      console.error('Failed to send push notification on auto-freeze:', err);
     }
   }
 
-  // Handle billing warning notices
-  if (warningMessage) {
+  // Handle billing warning notices (only if the user is NOT frozen)
+  if (warningMessage && !user.isFrozen) {
     // Upsert the warning notice
     const existingWarning = await Notice.findOne({ targetUserId: user._id, type: 'admin_warning', title: 'Billing Warning', isActive: true });
     
@@ -128,7 +116,7 @@ export async function checkAndApplyFreeze(user: any) {
       }
     }
   } else {
-    // If no warnings are active, deactivate them
+    // If no warnings are active or user is already frozen, deactivate warnings
     await Notice.updateMany(
       { targetUserId: user._id, type: 'admin_warning', title: 'Billing Warning' },
       { $set: { isActive: false } }

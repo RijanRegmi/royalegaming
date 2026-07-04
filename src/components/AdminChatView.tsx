@@ -1456,6 +1456,10 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase());
       
+    if (currentUser.isFrozen) {
+      return (searchQuery.trim() === '' ? true : matchesSearch) && u.role === 'super_admin';
+    }
+      
     if (searchQuery.trim() === '') {
       // Show only users with a valid last message when search is empty, or if the user is a super admin (disguised support chat)
       return !!u.lastMessage || u.role === 'super_admin';
@@ -1603,6 +1607,30 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             />
           </div>
         </div>
+
+        {currentUser.isFrozen && (
+          <div style={{
+            margin: '0 16px 12px 16px',
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.05) 100%)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            padding: '12px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            color: '#fca5a5',
+            lineHeight: '1.4',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#f87171' }}>
+              <Shield size={14} />
+              <span>Account Frozen</span>
+            </div>
+            <div>
+              Your account is frozen. Please contact support chat or check your payment due.
+            </div>
+          </div>
+        )}
 
         <div className="conversation-list">
           {filteredUsers.length === 0 ? (

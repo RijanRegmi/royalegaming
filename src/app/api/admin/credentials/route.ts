@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
+import User from '@/models/User';
 import GameCredential from '@/models/GameCredential';
 import { getUserFromRequest } from '@/lib/auth';
 
@@ -14,7 +15,13 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
-    const credentials = await GameCredential.find({ adminId: payload.userId }).sort({ createdAt: -1 });
+
+    // Route Super Admins to the unified primary Super Admin account
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
+
+    const credentials = await GameCredential.find({ adminId: targetAdminId }).sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, credentials });
   } catch (error) {
@@ -39,8 +46,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Game Name, Game ID, and Password are required' }, { status: 400 });
     }
 
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
+
     const newCredential = new GameCredential({
-      adminId: payload.userId,
+      adminId: targetAdminId,
       gameName: gameName.trim(),
       gameId: gameId.trim(),
       password: password.trim()
@@ -71,7 +82,11 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Credential ID is required' }, { status: 400 });
     }
 
-    const credentialToUpdate = await GameCredential.findOne({ _id: id, adminId: payload.userId });
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
+
+    const credentialToUpdate = await GameCredential.findOne({ _id: id, adminId: targetAdminId });
     if (!credentialToUpdate) {
       return NextResponse.json({ error: 'Credential not found' }, { status: 404 });
     }
@@ -105,7 +120,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Credential ID is required' }, { status: 400 });
     }
 
-    const deleted = await GameCredential.findOneAndDelete({ _id: id, adminId: payload.userId });
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
+
+    const deleted = await GameCredential.findOneAndDelete({ _id: id, adminId: targetAdminId });
     if (!deleted) {
       return NextResponse.json({ error: 'Credential not found' }, { status: 404 });
     }

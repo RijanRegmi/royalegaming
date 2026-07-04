@@ -51,8 +51,13 @@ export async function GET(req: NextRequest) {
     }
 
     await dbConnect();
+
+    // Route Super Admins to the unified primary Super Admin account
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
     
-    const payments = await Payment.find({ adminId: payload.userId }).sort({ createdAt: 1 });
+    const payments = await Payment.find({ adminId: targetAdminId }).sort({ createdAt: 1 });
     return NextResponse.json({ success: true, payments });
   } catch (error) {
     console.error('Fetch payments error:', error);
@@ -92,7 +97,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Payment QR image file or URL is required' }, { status: 400 });
     }
 
-    const targetAdminId = payload.userId;
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
 
     const newPayment = new Payment({
       adminId: targetAdminId,
@@ -126,12 +133,15 @@ export async function PUT(req: NextRequest) {
     const file = formData.get('file') as File | null;
     const qrImageUrl = formData.get('qrImageUrl') as string | null;
     const isActiveStr = formData.get('isActive') as string | null;
-
     if (!id) {
       return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
     }
 
-    const paymentToUpdate = await Payment.findOne({ _id: id, adminId: payload.userId });
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
+
+    const paymentToUpdate = await Payment.findOne({ _id: id, adminId: targetAdminId });
     if (!paymentToUpdate) {
       return NextResponse.json({ error: 'Payment method not found' }, { status: 404 });
     }
@@ -174,7 +184,11 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Payment ID is required' }, { status: 400 });
     }
 
-    const deleted = await Payment.findOneAndDelete({ _id: id, adminId: payload.userId });
+    const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+    const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id.toString() : payload.userId;
+    const targetAdminId = payload.role === 'super_admin' ? primarySuperAdminId : payload.userId;
+
+    const deleted = await Payment.findOneAndDelete({ _id: id, adminId: targetAdminId });
     if (!deleted) {
       return NextResponse.json({ error: 'Payment method not found' }, { status: 404 });
     }

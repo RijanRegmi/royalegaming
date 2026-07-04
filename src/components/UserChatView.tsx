@@ -15,7 +15,8 @@ interface UserChatViewProps {
     role: string;
     avatar?: string;
     username?: string;
-    linkedAdmins?: Array<{ _id: string; name: string; username: string; avatar?: string }>;
+    linkedAdmins?: Array<{ _id: string; name: string; username: string; avatar?: string; role?: string }>;
+    isFrozen?: boolean;
   };
 }
 
@@ -209,6 +210,14 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       if (targetAdminId) {
         const matched = linkedAdmins.find((admin: any) => (admin._id || admin.id) === targetAdminId);
         if (matched) {
+          // Block selecting non-super admin if frozen
+          if (currentUser.isFrozen && matched.role !== 'super_admin') {
+            const superAdminObj = linkedAdmins.find((admin: any) => admin.role === 'super_admin');
+            if (superAdminObj) {
+              setSelectedAdmin(superAdminObj);
+            }
+            return;
+          }
           const currentSelectedId = selectedAdmin ? (selectedAdmin._id || selectedAdmin.id) : null;
           if (currentSelectedId !== targetAdminId) {
             setSelectedAdmin(matched);
@@ -217,10 +226,15 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         }
       }
       if (!selectedAdmin) {
-        setSelectedAdmin(linkedAdmins[0]);
+        if (currentUser.isFrozen) {
+          const superAdminObj = linkedAdmins.find((admin: any) => admin.role === 'super_admin');
+          setSelectedAdmin(superAdminObj || null);
+        } else {
+          setSelectedAdmin(linkedAdmins[0]);
+        }
       }
     }
-  }, [linkedAdmins, targetAdminId]);
+  }, [linkedAdmins, targetAdminId, currentUser.isFrozen]);
 
   const getInitials = (nameStr?: string) => {
     if (!nameStr) return 'U';
@@ -1454,10 +1468,42 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-primary)', width: '100%' }}
             />
           </div>
+
+          {currentUser.isFrozen && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.05) 100%)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
+              padding: '12px',
+              borderRadius: '8px',
+              fontSize: '12px',
+              color: '#fca5a5',
+              lineHeight: '1.4',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              margin: '8px 0 0 0'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#f87171' }}>
+                <Shield size={14} />
+                <span>Account Frozen</span>
+              </div>
+              <div>
+                Your account is frozen. Please contact support chat or check your payment due.
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="conversation-list">
-          {linkedAdmins.filter((admin: any) => admin.name.toLowerCase().includes(searchQuery.toLowerCase())).map((admin: any) => {
+          {linkedAdmins
+            .filter((admin: any) => {
+              const matchesSearch = admin.name.toLowerCase().includes(searchQuery.toLowerCase());
+              if (currentUser.isFrozen) {
+                return matchesSearch && admin.role === 'super_admin';
+              }
+              return matchesSearch;
+            })
+            .map((admin: any) => {
             const adminId = admin._id || admin.id;
             const isSelected = selectedAdmin && (selectedAdmin._id === adminId || selectedAdmin.id === adminId);
             const isOnline = Object.entries(onlineUsers).some(([uId, uRole]) => uId === adminId && (uRole === 'admin' || uRole === 'super_admin'));

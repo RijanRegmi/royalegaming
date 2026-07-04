@@ -1668,6 +1668,32 @@ export default function AdminSettingsPage() {
                                   className="icon-btn" 
                                   title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
                                   onClick={() => {
+                                    const billingStart = (profile as any).billingStartDate ? new Date((profile as any).billingStartDate) : new Date(profile.createdAt);
+                                    const deadline = new Date(billingStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+                                    let effectiveDeadline = deadline;
+                                    if ((profile as any).extendedUntil && new Date((profile as any).extendedUntil) > deadline) {
+                                      effectiveDeadline = new Date((profile as any).extendedUntil);
+                                    }
+                                    const now = new Date();
+                                    const isCycleEnded = now > effectiveDeadline;
+
+                                    if (profile.isFrozen && isCycleEnded && profile.role === 'admin') {
+                                      showConfirm({
+                                        title: 'Extend Cycle Required',
+                                        message: `The billing cycle for ${profile.name} has ended. You must extend their subscription cycle to unfreeze this account. Would you like to extend it now?`,
+                                        confirmText: 'Extend Cycle',
+                                        isDanger: false,
+                                        onConfirm: () => {
+                                          setExtendUserId(profileId);
+                                          setExtendUserName(profile.name);
+                                          setExtendDays('30');
+                                          setCustomDate('');
+                                          setShowExtendModal(true);
+                                        }
+                                      });
+                                      return;
+                                    }
+
                                     const action = profile.isFrozen ? 'unlock' : 'lock';
                                     showConfirm({
                                       title: `${profile.isFrozen ? 'Unlock' : 'Lock'} Account`,
@@ -3460,10 +3486,12 @@ export default function AdminSettingsPage() {
                     }}
                     style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
                   >
-                    <option value="30">30 Fresh Days (Standard Cycle)</option>
+                    <option value="30">1 Month (Standard Cycle)</option>
                     <option value="7">7 Days (Short Extension)</option>
                     <option value="14">14 Days (Medium Extension)</option>
-                    <option value="90">90 Days (Quarterly cycle)</option>
+                    <option value="90">3 Month (Quarterly Cycle)</option>
+                    <option value="180">6 Month (Half Year Cycle)</option>
+                    <option value="360">12 Month (Full Year Cycle)</option>
                   </select>
                 </div>
 
