@@ -135,10 +135,9 @@ export async function GET(req: NextRequest) {
         ]
       };
     } else {
-      // User support chat thread query: scoped to chatUserId and adminIdStr
+      // User support chat thread query: scoped to chatUserId to retain full history
       query = {
         chatUserId,
-        adminId: adminIdStr,
         deletedFor: { $ne: payload.userId },
         $or: [
           { systemMessageFor: { $exists: false } },
