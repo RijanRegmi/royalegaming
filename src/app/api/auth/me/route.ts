@@ -14,11 +14,17 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
     let user = await User.findById(payload.userId)
-      .select('-password')
       .populate('linkedAdmins', 'name username avatar role');
       
     if (!user) {
       return NextResponse.json({ authenticated: false }, { status: 404 });
+    }
+
+    const tokenPasswordHash = payload.passwordHash;
+    const dbPasswordHash = user.password ? user.password.substring(user.password.length - 10) : '';
+
+    if (payload.role !== user.role || (tokenPasswordHash && tokenPasswordHash !== dbPasswordHash)) {
+      return NextResponse.json({ authenticated: false, error: 'Session expired' }, { status: 401 });
     }
 
     // Run dynamic billing freeze check

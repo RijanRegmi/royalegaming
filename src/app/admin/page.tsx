@@ -289,7 +289,7 @@ export default function AdminSettingsPage() {
       const authData = await authRes.json();
       
       if (!authRes.ok || !authData.authenticated) {
-        router.push('/login');
+        router.push('/login?expired=true');
         return;
       }
       
@@ -743,7 +743,7 @@ export default function AdminSettingsPage() {
       const res = await fetch('/api/admin/users', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, newRole }),
+        body: JSON.stringify({ userId, role: newRole }),
       });
 
       const data = await res.json();
@@ -776,7 +776,7 @@ export default function AdminSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           userId: promoteUserId, 
-          newRole: 'admin',
+          role: 'admin',
           username: promoteUsernameSlug,
           cyclePeriod: promoteCyclePeriod
         }),

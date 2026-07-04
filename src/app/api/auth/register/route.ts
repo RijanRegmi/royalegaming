@@ -121,8 +121,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create session token
-    const token = signToken({ userId: newUser._id.toString(), role: newUser.role });
+    const token = signToken({ 
+      userId: newUser._id.toString(), 
+      role: newUser.role,
+      passwordHash: newUser.password ? newUser.password.substring(newUser.password.length - 10) : undefined
+    });
 
     const response = NextResponse.json({
       success: true,

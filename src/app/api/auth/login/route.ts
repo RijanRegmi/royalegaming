@@ -110,8 +110,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Create session token
-    const token = signToken({ userId: user._id.toString(), role: user.role });
+    const token = signToken({ 
+      userId: user._id.toString(), 
+      role: user.role,
+      passwordHash: user.password ? user.password.substring(user.password.length - 10) : undefined
+    });
 
     const inviteCode = (user.role === 'admin' || user.role === 'super_admin')
       ? encryptSlug(user.username || user._id.toString())

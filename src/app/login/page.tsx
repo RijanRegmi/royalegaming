@@ -52,6 +52,10 @@ export default function LoginPage() {
       if (tabParam === 'register' || tabParam === 'signup') {
         setActiveTab('register');
       }
+      const expiredParam = params.get('expired');
+      if (expiredParam === 'true') {
+        setError('Session expired. Please login again.');
+      }
     }
   }, []);
 

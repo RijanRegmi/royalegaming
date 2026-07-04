@@ -87,8 +87,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Sign the token
-    const token = signToken({ userId: guestUser._id.toString(), role: guestUser.role });
+    const token = signToken({ 
+      userId: guestUser._id.toString(), 
+      role: guestUser.role,
+      passwordHash: guestUser.password ? guestUser.password.substring(guestUser.password.length - 10) : undefined
+    });
 
     const response = NextResponse.json({
       success: true,

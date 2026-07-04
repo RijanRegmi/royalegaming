@@ -41,14 +41,14 @@ export default function ChatPage() {
         const data = await res.json();
         
         if (!res.ok || !data.authenticated) {
-          router.push('/login');
+          router.push('/login?expired=true');
           return;
         }
         
         setUser(data.user);
       } catch (err) {
         console.error('Auth verification error:', err);
-        router.push('/login');
+        router.push('/login?expired=true');
       } finally {
         setLoading(false);
       }

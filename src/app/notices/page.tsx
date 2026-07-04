@@ -39,7 +39,7 @@ export default function NoticesPage() {
         setAuthenticated(true);
         return data.user;
       } else {
-        router.push('/login?redirect=/notices');
+        router.push(res.status === 401 ? '/login?redirect=/notices&expired=true' : '/login?redirect=/notices');
       }
     } catch (err) {
       console.error('Auth check error:', err);

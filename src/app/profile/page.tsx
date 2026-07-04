@@ -235,7 +235,7 @@ export default function ProfilePage() {
             loadMyPosts(data.user.id || data.user._id);
           }
         } else {
-          router.push('/login?redirect=/profile');
+          router.push(res.status === 401 ? '/login?redirect=/profile&expired=true' : '/login?redirect=/profile');
         }
       } catch (err) {
         console.error('Error fetching user:', err);

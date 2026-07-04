@@ -6,6 +6,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'fallback_secret_key_123';
 export interface TokenPayload {
   userId: string;
   role: 'super_admin' | 'admin' | 'user';
+  passwordHash?: string;
 }
 
 export function signToken(payload: TokenPayload): string {
