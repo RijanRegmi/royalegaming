@@ -92,6 +92,7 @@ export async function PUT(req: NextRequest) {
         content: `Your account subscription has been extended until ${newExtendedUntil.toLocaleDateString()}. Thank you!`,
         isSystem: true,
         chatUserId: userId,
+        type: 'notice',
       });
     } catch (err) {
       console.error('Failed to send push notification on extension:', err);

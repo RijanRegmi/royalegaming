@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { MessageSquare, LogOut, LogIn, Shield, Bell, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X, Gamepad2, Sparkles } from 'lucide-react';
+import { MessageSquare, LogOut, LogIn, Shield, Bell, ArrowRight, Loader2, User as UserIcon, Heart, Trash2, Image as ImageIcon, ThumbsUp, Pencil, X, Gamepad2, Sparkles, Plus } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
@@ -128,6 +128,7 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Post Edit State
@@ -375,6 +376,7 @@ export default function Home() {
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
+        setIsCreatePostOpen(false);
       } else {
         showAlert('Error', data.error || 'Failed to create post');
       }
@@ -1269,73 +1271,106 @@ export default function Home() {
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleCreatePost} className="post-creator-card">
-                  <div className="post-creator-header">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="post-avatar"
-                      />
-                    ) : (
-                      <div className="post-avatar" style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: getUserAvatarColor(user.id || user._id || user.name),
-                        color: 'white',
-                        fontWeight: 600,
-                        fontSize: '14px'
-                      }}>
-                        {getInitials(user.name)}
-                      </div>
-                    )}
-                    <span className="post-creator-title">Create Official Announcement</span>
-                  </div>
+                <>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsCreatePostOpen(true)} 
+                    className="write-announcement-trigger-btn"
+                  >
+                    <Plus size={18} />
+                    <span>Write New Announcement</span>
+                  </button>
 
-                  <textarea
-                    value={content}
-                    onChange={(e) => setContent(e.target.value)}
-                    placeholder="What announcements do you want to share with the community today?"
-                    className="post-textarea"
-                  />
-
-                  {imagePreview && (
-                    <div className="post-creator-preview">
-                      <img src={imagePreview} alt="Attached Preview" />
-                      <button
-                        type="button"
-                        onClick={handleRemoveAttachedImage}
-                        className="post-creator-preview-remove"
-                        title="Remove Image"
+                  {isCreatePostOpen && (
+                    <div className="announcement-modal-backdrop" onClick={() => setIsCreatePostOpen(false)}>
+                      <form 
+                        onSubmit={handleCreatePost} 
+                        className="announcement-modal-card" 
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        ×
-                      </button>
+                        <div className="announcement-modal-header">
+                          <h3 className="announcement-modal-title">Publish Announcement</h3>
+                          <button 
+                            type="button" 
+                            onClick={() => setIsCreatePostOpen(false)} 
+                            className="announcement-modal-close-btn"
+                          >
+                            <X size={20} />
+                          </button>
+                        </div>
+
+                        <div className="announcement-user-row">
+                          <div className="announcement-user-avatar">
+                            {user.avatar ? (
+                              <img
+                                src={user.avatar}
+                                alt={user.name}
+                                className="announcement-user-avatar"
+                                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              user.name ? user.name[0].toUpperCase() : 'A'
+                            )}
+                          </div>
+                          <div className="announcement-user-info">
+                            <h4>{user.name}</h4>
+                            <span>{user.role.replace('_', ' ')}</span>
+                          </div>
+                        </div>
+
+                        <textarea
+                          value={content}
+                          onChange={(e) => setContent(e.target.value)}
+                          placeholder="What updates do you want to announce today?"
+                          className="announcement-textarea"
+                          required
+                        />
+
+                        {imagePreview && (
+                          <div className="announcement-image-preview">
+                            <img src={imagePreview} alt="Upload Preview" />
+                            <button 
+                              type="button" 
+                              onClick={handleRemoveAttachedImage}
+                              className="announcement-image-preview-remove"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
+
+                        <div className="announcement-modal-actions">
+                          <label className="announcement-attach-btn">
+                            <ImageIcon size={18} />
+                            <span>{file ? 'Image Attached' : 'Attach Photo'}</span>
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              accept="image/*"
+                              onChange={handleFileChange}
+                              style={{ display: 'none' }}
+                            />
+                          </label>
+
+                          <button 
+                            type="submit" 
+                            disabled={submitting || (!content.trim() && !file)}
+                            className="announcement-publish-btn"
+                          >
+                            {submitting ? (
+                              <>
+                                <Loader2 className="animate-spin" size={16} />
+                                <span>Publishing...</span>
+                              </>
+                            ) : (
+                              <span>Publish</span>
+                            )}
+                          </button>
+                        </div>
+                      </form>
                     </div>
                   )}
-
-                  <div className="post-creator-actions">
-                    <label className="post-attach-btn">
-                      <ImageIcon size={18} />
-                      <span>Attach Photo</span>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*"
-                        onChange={handleFileChange}
-                        style={{ display: 'none' }}
-                      />
-                    </label>
-
-                    <button
-                      type="submit"
-                      disabled={submitting || (!content.trim() && !file)}
-                      className="post-create-btn"
-                    >
-                      {submitting ? 'Posting...' : 'Post'}
-                    </button>
-                  </div>
-                </form>
+                </>
               )
             )}
 

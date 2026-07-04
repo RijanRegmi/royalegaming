@@ -79,6 +79,7 @@ export async function checkAndApplyFreeze(user: any) {
         content: 'Your account is frozen. Please contact support chat or check your payment due.',
         isSystem: true,
         chatUserId: user._id.toString(),
+        type: 'notice',
       });
     } catch (err) {
       console.error('Failed to send push notification on auto-freeze:', err);

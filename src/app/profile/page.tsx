@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import styles from './profile.module.css';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X, Sun, Moon } from 'lucide-react';
+import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X, Sun, Moon, Plus } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
@@ -125,6 +125,7 @@ export default function ProfilePage() {
   const [file, setFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [isCreatePostOpen, setIsCreatePostOpen] = useState<boolean>(false);
 
   const createFileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
@@ -406,6 +407,7 @@ export default function ProfilePage() {
           createFileInputRef.current.value = '';
         }
         setMyPosts((prev) => [data.post, ...prev]);
+        setIsCreatePostOpen(false);
       } else {
         showAlert('Error', data.error || 'Failed to publish announcement');
       }
@@ -990,54 +992,97 @@ export default function ProfilePage() {
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleCreatePost} className="post-creator-card" style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '20px' }}>
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'white', marginBottom: '12px' }}>Publish New Announcement</h3>
-                <textarea
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="What credentials or updates do you want to announce?"
-                  className="post-textarea"
-                  style={{ minHeight: '80px', borderRadius: '8px', background: 'rgba(0, 0, 0, 0.2)', border: '1px solid var(--border-color)' }}
-                  required
-                />
+              <>
+                <button 
+                  type="button" 
+                  onClick={() => setIsCreatePostOpen(true)} 
+                  className="write-announcement-trigger-btn"
+                >
+                  <Plus size={18} />
+                  <span>Write New Announcement</span>
+                </button>
 
-                {imagePreview && (
-                  <div className="post-creator-preview" style={{ marginTop: '12px', position: 'relative' }}>
-                    <img src={imagePreview} alt="Upload Preview" style={{ borderRadius: '8px', maxHeight: '180px', objectFit: 'cover' }} />
-                    <button 
-                      type="button" 
-                      onClick={handleRemoveCreateImage}
-                      className="post-creator-preview-remove"
-                      style={{ position: 'absolute', top: '8px', right: '8px', background: 'rgba(0,0,0,0.6)', border: 'none', color: 'white', cursor: 'pointer', width: '24px', height: '24px', borderRadius: '50%' }}
+                {isCreatePostOpen && (
+                  <div className="announcement-modal-backdrop" onClick={() => setIsCreatePostOpen(false)}>
+                    <form 
+                      onSubmit={handleCreatePost} 
+                      className="announcement-modal-card" 
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      ×
-                    </button>
+                      <div className="announcement-modal-header">
+                        <h3 className="announcement-modal-title">Publish Announcement</h3>
+                        <button 
+                          type="button" 
+                          onClick={() => setIsCreatePostOpen(false)} 
+                          className="announcement-modal-close-btn"
+                        >
+                          <X size={20} />
+                        </button>
+                      </div>
+
+                      <div className="announcement-user-row">
+                        <div className="announcement-user-avatar">
+                          {user?.name ? user.name[0].toUpperCase() : 'A'}
+                        </div>
+                        <div className="announcement-user-info">
+                          <h4>{user?.name}</h4>
+                          <span>{user?.role.replace('_', ' ')}</span>
+                        </div>
+                      </div>
+
+                      <textarea
+                        value={content}
+                        onChange={(e) => setContent(e.target.value)}
+                        placeholder="What updates do you want to announce today?"
+                        className="announcement-textarea"
+                        required
+                      />
+
+                      {imagePreview && (
+                        <div className="announcement-image-preview">
+                          <img src={imagePreview} alt="Upload Preview" />
+                          <button 
+                            type="button" 
+                            onClick={handleRemoveCreateImage}
+                            className="announcement-image-preview-remove"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+
+                      <div className="announcement-modal-actions">
+                        <label className="announcement-attach-btn">
+                          <ImageIcon size={18} />
+                          <span>{file ? 'Image Attached' : 'Attach Photo'}</span>
+                          <input
+                            type="file"
+                            ref={createFileInputRef}
+                            accept="image/*"
+                            onChange={handleCreateFileChange}
+                            style={{ display: 'none' }}
+                          />
+                        </label>
+
+                        <button 
+                          type="submit" 
+                          disabled={submitting || (!content.trim() && !file)}
+                          className="announcement-publish-btn"
+                        >
+                          {submitting ? (
+                            <>
+                              <Loader2 className="animate-spin" size={16} />
+                              <span>Publishing...</span>
+                            </>
+                          ) : (
+                            <span>Publish</span>
+                          )}
+                        </button>
+                      </div>
+                    </form>
                   </div>
                 )}
-
-                <div className="post-creator-actions" style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '12px' }}>
-                  <label className="post-attach-btn" style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                    <ImageIcon size={16} />
-                    <span>Attach Image</span>
-                    <input
-                      type="file"
-                      ref={createFileInputRef}
-                      accept="image/*"
-                      onChange={handleCreateFileChange}
-                      style={{ display: 'none' }}
-                    />
-                  </label>
-
-                  <button 
-                    type="submit" 
-                    disabled={submitting || (!content.trim() && !file)}
-                    className="post-create-btn"
-                    style={{ height: '36px', padding: '0 20px', borderRadius: '8px', fontSize: '13px' }}
-                  >
-                    {submitting ? 'Publishing...' : 'Publish'}
-                  </button>
-                </div>
-              </form>
+              </>
             )}
 
             {/* Announcement Feed Title */}

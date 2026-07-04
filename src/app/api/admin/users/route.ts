@@ -418,29 +418,7 @@ export async function PUT(req: NextRequest) {
       hasFrozenChanged = true;
       if (isFrozen === true) {
         try {
-          // 1. Send support chat message
-          const notificationContent = "Your account is frozen. Please check your due payments.";
-          const newMsg = new Message({
-            senderId: payload.userId, // Super Admin
-            recipientId: userId, // Frozen Admin
-            chatUserId: userId,
-            adminId: payload.userId, // Super Admin ID
-            content: notificationContent,
-            isRead: false,
-          });
-          await newMsg.save();
-
-          // Broadcast the message to active listeners
-          const populatedMessage = await Message.findById(newMsg._id)
-            .populate('senderId', 'name email role avatar')
-            .populate('recipientId', 'name email role avatar');
-
-          chatEmitter.emit('message', populatedMessage);
-          
-          // Send push notification
-          await sendPushNotification(userId, 'Control Room', populatedMessage);
-
-          // 2. Create persistent targeted Notice for account freeze
+          // 1. Create persistent targeted Notice for account freeze
           await Notice.findOneAndUpdate(
             { targetUserId: userId, type: 'admin_warning', title: 'Account Frozen' },
             {
@@ -454,6 +432,14 @@ export async function PUT(req: NextRequest) {
             { upsert: true, new: true }
           );
 
+          // 2. Send push notification for the Notice
+          await sendPushNotification(userId, 'Account Frozen', {
+            content: 'Your account has been frozen by the Super Admin due to outstanding payments. Please contact support.',
+            isSystem: true,
+            chatUserId: userId,
+            type: 'notice',
+          });
+
           // Deactivate any active unfreeze notices to avoid clutter
           await Notice.updateMany(
             { targetUserId: userId, title: 'Account Unfrozen' },
@@ -464,35 +450,13 @@ export async function PUT(req: NextRequest) {
         }
       } else {
         try {
-          // 1. Send support chat message
-          const notificationContent = "Your account has been successfully unfrozen. Welcome back!";
-          const newMsg = new Message({
-            senderId: payload.userId, // Super Admin
-            recipientId: userId, // Unfrozen Admin
-            chatUserId: userId,
-            adminId: payload.userId, // Super Admin ID
-            content: notificationContent,
-            isRead: false,
-          });
-          await newMsg.save();
-
-          // Broadcast the message to active listeners
-          const populatedMessage = await Message.findById(newMsg._id)
-            .populate('senderId', 'name email role avatar')
-            .populate('recipientId', 'name email role avatar');
-
-          chatEmitter.emit('message', populatedMessage);
-          
-          // Send push notification
-          await sendPushNotification(userId, 'Control Room', populatedMessage);
-
-          // 2. Deactivate outstanding billing freeze or warning notices
+          // 1. Deactivate outstanding billing freeze or warning notices
           await Notice.updateMany(
             { targetUserId: userId, type: 'admin_warning', title: 'Account Frozen' },
             { $set: { isActive: false } }
           );
 
-          // 3. Create a system notification confirming the unfreeze
+          // 2. Create a system notification confirming the unfreeze
           const unfreezeNotice = new Notice({
             title: 'Account Unfrozen',
             content: 'Your account has been successfully unfrozen by the Super Admin. Welcome back!',
@@ -502,6 +466,14 @@ export async function PUT(req: NextRequest) {
             isActive: true,
           });
           await unfreezeNotice.save();
+
+          // 3. Send push notification for the Notice
+          await sendPushNotification(userId, 'Account Unfrozen', {
+            content: 'Your account has been successfully unfrozen by the Super Admin. Welcome back!',
+            isSystem: true,
+            chatUserId: userId,
+            type: 'notice',
+          });
         } catch (msgError) {
           console.error('Error auto-sending unfreeze notification message:', msgError);
         }

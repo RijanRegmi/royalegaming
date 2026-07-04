@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
           content: content.trim(),
           isSystem: true,
           chatUserId: targetUserId,
+          type: 'notice',
         });
       } catch (err) {
         console.error('Push notification error for target user:', err);
@@ -134,6 +135,7 @@ export async function POST(req: NextRequest) {
             content: content.trim(),
             isSystem: true,
             chatUserId: userId,
+            type: 'notice',
           });
         } catch (err) {
           console.error(`Failed broadcast push to user ${userId}:`, err);

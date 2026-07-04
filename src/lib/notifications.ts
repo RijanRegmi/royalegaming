@@ -27,6 +27,7 @@ interface MessageNotificationPayload {
   chatUserId?: { toString(): string } | string | null;
   isUnsent?: boolean;
   isSystem?: boolean;
+  type?: string | null;
   senderId?: {
     avatar?: string | null;
     name?: string | null;
@@ -103,6 +104,7 @@ export async function sendPushNotification(
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
           chatUserId: message.chatUserId?.toString() || '',
           messageId: message._id?.toString() || '',
+          type: message.type || '',
           senderAvatar: (senderUser && senderUser.role === 'super_admin' && recipientUser?.role !== 'super_admin')
             ? ''
             : (senderUser?.avatar || ''),
@@ -141,9 +143,11 @@ export async function sendPushNotification(
     // Determine if the recipient is an admin or super_admin using the user record
     const isRecipientAdmin = recipientUser && (recipientUser.role === 'admin' || recipientUser.role === 'super_admin');
 
-    const redirectUrl = isRecipientAdmin
-      ? `/chat?userId=${message.chatUserId}`
-      : '/chat';
+    const redirectUrl = message.type === 'notice'
+      ? '/notices'
+      : isRecipientAdmin
+        ? `/chat?userId=${message.chatUserId}`
+        : '/chat';
 
     // Construct the push payload
     const payload = JSON.stringify({
