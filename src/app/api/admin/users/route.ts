@@ -333,6 +333,7 @@ export async function PUT(req: NextRequest) {
     }
 
     let hasFrozenChanged = false;
+    let hasRoleChanged = false;
 
     // Update role if provided
     if (role !== undefined) {
@@ -342,6 +343,9 @@ export async function PUT(req: NextRequest) {
       // Prevent changing own role (super admin demoting self)
       if (userId === payload.userId && role !== userToUpdate.role) {
         return NextResponse.json({ error: 'Cannot modify your own role' }, { status: 400 });
+      }
+      if (role !== userToUpdate.role) {
+        hasRoleChanged = true;
       }
 
       // If promoting to admin, require username slug and cyclePeriod
@@ -557,6 +561,13 @@ export async function PUT(req: NextRequest) {
       chatEmitter.emit('user_freeze', { 
         userId: userToUpdate._id.toString(), 
         isFrozen: userToUpdate.isFrozen || false 
+      });
+    }
+
+    if (hasRoleChanged) {
+      chatEmitter.emit('user_role', { 
+        userId: userToUpdate._id.toString(), 
+        role: userToUpdate.role 
       });
     }
 

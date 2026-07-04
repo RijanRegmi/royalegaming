@@ -97,6 +97,16 @@ export default function AdminSettingsPage() {
   const [newAdminCyclePeriod, setNewAdminCyclePeriod] = useState<string>('30');
   const [creatingAdmin, setCreatingAdmin] = useState(false);
 
+  // Real-time username availability checks
+  const [newAdminUsernameChecked, setNewAdminUsernameChecked] = useState(false);
+  const [newAdminUsernameAvailable, setNewAdminUsernameAvailable] = useState<boolean | null>(null);
+
+  const [promoteUsernameChecked, setPromoteUsernameChecked] = useState(false);
+  const [promoteUsernameAvailable, setPromoteUsernameAvailable] = useState<boolean | null>(null);
+
+  const [editUserUsernameChecked, setEditUserUsernameChecked] = useState(false);
+  const [editUserUsernameAvailable, setEditUserUsernameAvailable] = useState<boolean | null>(null);
+
   // --- Promote to admin modal states ---
   const [showPromoteModal, setShowPromoteModal] = useState<boolean>(false);
   const [promoteUserId, setPromoteUserId] = useState<string>('');
@@ -629,6 +639,84 @@ export default function AdminSettingsPage() {
       document.documentElement.style.overflow = originalHtmlOverflow;
     };
   }, [fetchDashboardData, fetchGames, fetchCredentials, fetchPayments, fetchNotices]);
+
+  // Check newAdminUsername availability
+  useEffect(() => {
+    if (!newAdminUsername) {
+      setNewAdminUsernameChecked(false);
+      setNewAdminUsernameAvailable(null);
+      return;
+    }
+    if (!/^[a-z0-9_-]+$/.test(newAdminUsername)) {
+      setNewAdminUsernameChecked(true);
+      setNewAdminUsernameAvailable(false);
+      return;
+    }
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/users/check-username?username=${encodeURIComponent(newAdminUsername)}`);
+        const data = await res.json();
+        setNewAdminUsernameChecked(true);
+        setNewAdminUsernameAvailable(data.available === true);
+      } catch (err) {
+        console.error('Username check error:', err);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [newAdminUsername]);
+
+  // Check promoteUsernameSlug availability
+  useEffect(() => {
+    if (!promoteUsernameSlug) {
+      setPromoteUsernameChecked(false);
+      setPromoteUsernameAvailable(null);
+      return;
+    }
+    if (!/^[a-z0-9_-]+$/.test(promoteUsernameSlug)) {
+      setPromoteUsernameChecked(true);
+      setPromoteUsernameAvailable(false);
+      return;
+    }
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/users/check-username?username=${encodeURIComponent(promoteUsernameSlug)}&userId=${promoteUserId}`);
+        const data = await res.json();
+        setPromoteUsernameChecked(true);
+        setPromoteUsernameAvailable(data.available === true);
+      } catch (err) {
+        console.error('Username check error:', err);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [promoteUsernameSlug, promoteUserId]);
+
+  // Check editUserUsername availability
+  useEffect(() => {
+    if (!editUserUsername) {
+      setEditUserUsernameChecked(false);
+      setEditUserUsernameAvailable(null);
+      return;
+    }
+    if (!/^[a-z0-9_-]+$/.test(editUserUsername)) {
+      setEditUserUsernameChecked(true);
+      setEditUserUsernameAvailable(false);
+      return;
+    }
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/admin/users/check-username?username=${encodeURIComponent(editUserUsername)}&userId=${editingUserProfile?._id || editingUserProfile?.id}`);
+        const data = await res.json();
+        setEditUserUsernameChecked(true);
+        setEditUserUsernameAvailable(data.available === true);
+      } catch (err) {
+        console.error('Username check error:', err);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [editUserUsername, editingUserProfile]);
 
   // Handle user roles changes (users tab)
   const handleRoleChange = async (userId: string, newRole: string) => {
@@ -2585,7 +2673,7 @@ export default function AdminSettingsPage() {
                 {newAdminRole === 'admin' && (
                   <div className="form-group">
                     <label>Admin Slug / Username (e.g. admin1) *</label>
-                    <div className="input-wrapper">
+                    <div className="input-wrapper" style={{ position: 'relative' }}>
                       <Globe size={16} className="input-icon" />
                       <input
                         type="text"
@@ -2598,7 +2686,26 @@ export default function AdminSettingsPage() {
                         pattern="^[a-z0-9_-]+$"
                         title="Only lowercase letters, numbers, hyphens, and underscores are allowed"
                         autoComplete="off"
+                        style={{ paddingRight: '36px' }}
                       />
+                      {newAdminUsernameChecked && (
+                        <div style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 2,
+                        }}>
+                          {newAdminUsernameAvailable ? (
+                            <Check size={16} style={{ color: '#25d366', filter: 'drop-shadow(0 0 4px rgba(37, 211, 102, 0.4))' }} />
+                          ) : (
+                            <X size={16} style={{ color: '#ff4b6b', filter: 'drop-shadow(0 0 4px rgba(255, 75, 107, 0.4))' }} />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -3211,7 +3318,7 @@ export default function AdminSettingsPage() {
                 {editUserRole === 'admin' && (
                   <div className="form-group">
                     <label>Admin Slug / Username (e.g. admin1) *</label>
-                    <div className="input-wrapper">
+                    <div className="input-wrapper" style={{ position: 'relative' }}>
                       <Globe size={16} className="input-icon" />
                       <input
                         type="text"
@@ -3223,7 +3330,26 @@ export default function AdminSettingsPage() {
                         required
                         pattern="^[a-z0-9_-]+$"
                         title="Only lowercase letters, numbers, hyphens, and underscores are allowed"
+                        style={{ paddingRight: '36px' }}
                       />
+                      {editUserUsernameChecked && (
+                        <div style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          zIndex: 2,
+                        }}>
+                          {editUserUsernameAvailable ? (
+                            <Check size={16} style={{ color: '#25d366', filter: 'drop-shadow(0 0 4px rgba(37, 211, 102, 0.4))' }} />
+                          ) : (
+                            <X size={16} style={{ color: '#ff4b6b', filter: 'drop-shadow(0 0 4px rgba(255, 75, 107, 0.4))' }} />
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -3619,7 +3745,7 @@ export default function AdminSettingsPage() {
 
                 <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '13px', fontWeight: 600 }}>Admin Slug / Username (e.g. admin1) *</label>
-                  <div className="input-wrapper">
+                  <div className="input-wrapper" style={{ position: 'relative' }}>
                     <Globe size={16} className="input-icon" />
                     <input
                       type="text"
@@ -3632,7 +3758,26 @@ export default function AdminSettingsPage() {
                       pattern="^[a-z0-9_-]+$"
                       title="Only lowercase letters, numbers, hyphens, and underscores are allowed"
                       autoComplete="off"
+                      style={{ paddingRight: '36px' }}
                     />
+                    {promoteUsernameChecked && (
+                      <div style={{
+                        position: 'absolute',
+                        right: '12px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 2,
+                      }}>
+                        {promoteUsernameAvailable ? (
+                          <Check size={16} style={{ color: '#25d366', filter: 'drop-shadow(0 0 4px rgba(37, 211, 102, 0.4))' }} />
+                        ) : (
+                          <X size={16} style={{ color: '#ff4b6b', filter: 'drop-shadow(0 0 4px rgba(255, 75, 107, 0.4))' }} />
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 

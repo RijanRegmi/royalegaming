@@ -20,6 +20,7 @@ export async function GET(req: NextRequest) {
   let onMessageUpdate: ((message: any) => void) | undefined;
   let onPresence: ((presence: any) => void) | undefined;
   let onUserFreeze: ((data: any) => void) | undefined;
+  let onUserRole: ((data: any) => void) | undefined;
   let cleaned = false;
 
   const cleanup = () => {
@@ -33,6 +34,7 @@ export async function GET(req: NextRequest) {
     if (onMessageUpdate) chatEmitter.off('message_update', onMessageUpdate);
     if (onPresence) chatEmitter.off('presence', onPresence);
     if (onUserFreeze) chatEmitter.off('user_freeze', onUserFreeze);
+    if (onUserRole) chatEmitter.off('user_role', onUserRole);
 
     // Decrement connection count for this user
     const onlineUsers = (global as any).onlineUsers;
@@ -180,10 +182,18 @@ export async function GET(req: NextRequest) {
         } catch (e) {}
       };
 
+      // Listen for user role change notifications
+      onUserRole = (data: any) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'user_role', ...data })}\n\n`));
+        } catch (e) {}
+      };
+
       chatEmitter.on('message', onMessage);
       chatEmitter.on('message_update', onMessageUpdate);
       chatEmitter.on('presence', onPresence);
       chatEmitter.on('user_freeze', onUserFreeze);
+      chatEmitter.on('user_role', onUserRole);
     },
     cancel() {
       cleanup();
