@@ -3832,10 +3832,10 @@ select option {
   }
 
   /* Hide headers and footers on active chat view on mobile */
-  body:has(.dashboard-container.has-selected-user) .mobile-bottom-navbar {
+  body:has(.dashboard-container.has-selected-user:not(.is-frozen)) .mobile-bottom-navbar {
     display: none !important;
   }
-  body:has(.dashboard-container.has-selected-user) .mobile-top-header {
+  body:has(.dashboard-container.has-selected-user:not(.is-frozen)) .mobile-top-header {
     display: none !important;
   }
   body:has(.dashboard-container.has-selected-user) .app-container {

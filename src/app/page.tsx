@@ -970,10 +970,10 @@ export default function Home() {
           </div>
           <h1 className="landing-title">
             The Ultimate Realm of{' '}
-            <span className="landing-highlight">Premium Gaming</span>
+            <span className="landing-highlight">Secure Chat</span>
           </h1>
           <p className="landing-subtitle">
-            Jump into the most thrilling community platform. Play your favorite games, unlock official rewards, and connect with live support managers 24/7.
+            Jump into the most thrilling community platform. Share encrypted messages, access official channels, and connect with live support managers 24/7.
           </p>
         </div>
 
@@ -1035,7 +1035,7 @@ export default function Home() {
               className="landing-btn-playing"
               onClick={() => router.push('/login?tab=register')}
             >
-              <Gamepad2 size={18} /> Sign Up to Play
+              <MessageSquare size={18} /> Sign Up & Join
             </button>
             <button
               type="button"

@@ -164,7 +164,7 @@ export default function NoticesPage() {
   const isAdmin = user && (user.role === 'admin' || user.role === 'super_admin');
 
   return (
-    <div className="notices-page" style={{ minHeight: '100vh', background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>
+    <div className="notices-page" style={{ height: '100vh', overflowY: 'auto', background: 'var(--bg-app)', color: 'var(--text-primary)', fontFamily: 'Inter, sans-serif' }}>
       
       {/* Header */}
       <header className="lobby-navbar" style={{ position: 'sticky', top: 0, zIndex: 100 }}>

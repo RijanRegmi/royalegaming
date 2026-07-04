@@ -274,7 +274,7 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { userId, name, email, phone, role, password, username, isFrozen, linkedAdmins } = await req.json();
+    const { userId, name, email, phone, role, password, username, isFrozen, linkedAdmins, cyclePeriod } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -343,6 +343,40 @@ export async function PUT(req: NextRequest) {
       if (userId === payload.userId && role !== userToUpdate.role) {
         return NextResponse.json({ error: 'Cannot modify your own role' }, { status: 400 });
       }
+
+      // If promoting to admin, require username slug and cyclePeriod
+      if (role === 'admin' && userToUpdate.role !== 'admin') {
+        if (!username) {
+          return NextResponse.json({ error: 'Username slug is required when promoting a user to Admin' }, { status: 400 });
+        }
+        if (!cyclePeriod) {
+          return NextResponse.json({ error: 'Billing cycle period is required when promoting a user to Admin' }, { status: 400 });
+        }
+
+        const cleanUsername = username.trim().toLowerCase();
+        if (!/^[a-z0-9_-]+$/.test(cleanUsername)) {
+          return NextResponse.json({ error: 'Username must contain only letters, numbers, hyphens, and underscores' }, { status: 400 });
+        }
+        const existingUsername = await User.findOne({ username: cleanUsername });
+        if (existingUsername && existingUsername._id.toString() !== userId) {
+          return NextResponse.json({ error: 'Username slug is already taken' }, { status: 409 });
+        }
+
+        const days = parseInt(cyclePeriod, 10);
+        if (isNaN(days) || days <= 0) {
+          return NextResponse.json({ error: 'Invalid cycle period' }, { status: 400 });
+        }
+
+        userToUpdate.username = cleanUsername;
+        userToUpdate.billingStartDate = new Date();
+        userToUpdate.extendedUntil = new Date(new Date().getTime() + days * 24 * 60 * 60 * 1000);
+        
+        if (userToUpdate.isFrozen) {
+          userToUpdate.isFrozen = false;
+          hasFrozenChanged = true;
+        }
+      }
+
       userToUpdate.role = role;
       if (role === 'super_admin' && userToUpdate.isFrozen) {
         userToUpdate.isFrozen = false;
@@ -555,10 +589,22 @@ export async function POST(req: NextRequest) {
     }
 
     await dbConnect();
-    const { name, email, phone, password, role, username } = await req.json();
+    const { name, email, phone, password, role, username, cyclePeriod } = await req.json();
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Name, email, and password are required' }, { status: 400 });
+    }
+
+    // Determine target role (default to admin)
+    const targetRole = role && ['admin', 'super_admin', 'user'].includes(role) ? role : 'admin';
+
+    if (targetRole === 'admin') {
+      if (!username) {
+        return NextResponse.json({ error: 'Username slug is required for admin accounts' }, { status: 400 });
+      }
+      if (!cyclePeriod) {
+        return NextResponse.json({ error: 'Billing cycle period is required for admin accounts' }, { status: 400 });
+      }
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -582,11 +628,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Determine target role (default to admin)
-    const targetRole = role && ['admin', 'super_admin', 'user'].includes(role) ? role : 'admin';
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Determine cycle end date if admin
+    let billingStart = undefined;
+    let extendedUntil = undefined;
+    if (targetRole === 'admin') {
+      const days = parseInt(cyclePeriod, 10);
+      if (isNaN(days) || days <= 0) {
+        return NextResponse.json({ error: 'Invalid cycle period' }, { status: 400 });
+      }
+      billingStart = new Date();
+      extendedUntil = new Date(billingStart.getTime() + days * 24 * 60 * 60 * 1000);
+    }
 
     const newUser = new User({
       name: name.trim(),
@@ -595,6 +650,9 @@ export async function POST(req: NextRequest) {
       phone: phone ? phone.trim() : '',
       password: hashedPassword,
       role: targetRole,
+      billingStartDate: billingStart,
+      extendedUntil: extendedUntil,
+      isFrozen: false,
     });
 
     await newUser.save();

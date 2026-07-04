@@ -180,6 +180,10 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   const targetAdminId = searchParams ? searchParams.get('adminId') : null;
   const linkedAdmins = currentUser.linkedAdmins || [];
   const [selectedAdmin, setSelectedAdmin] = useState<any>(() => {
+    if (currentUser.isFrozen) {
+      const superAdminObj = linkedAdmins.find((admin: any) => admin.role === 'super_admin');
+      if (superAdminObj) return superAdminObj;
+    }
     if (targetAdminId && linkedAdmins.length > 0) {
       const matched = linkedAdmins.find((admin: any) => (admin._id || admin.id) === targetAdminId);
       if (matched) return matched;
@@ -207,17 +211,18 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   // Keep selectedAdmin in sync with targetAdminId from URL (on load or back/forward navigation)
   useEffect(() => {
     if (linkedAdmins.length > 0) {
+      if (currentUser.isFrozen) {
+        const superAdminObj = linkedAdmins.find((admin: any) => admin.role === 'super_admin');
+        const currentSelectedId = selectedAdmin ? (selectedAdmin._id || selectedAdmin.id) : null;
+        const superAdminId = superAdminObj ? superAdminObj._id : null;
+        if (superAdminId && currentSelectedId !== superAdminId) {
+          setSelectedAdmin(superAdminObj);
+        }
+        return;
+      }
       if (targetAdminId) {
         const matched = linkedAdmins.find((admin: any) => (admin._id || admin.id) === targetAdminId);
         if (matched) {
-          // Block selecting non-super admin if frozen
-          if (currentUser.isFrozen && matched.role !== 'super_admin') {
-            const superAdminObj = linkedAdmins.find((admin: any) => admin.role === 'super_admin');
-            if (superAdminObj) {
-              setSelectedAdmin(superAdminObj);
-            }
-            return;
-          }
           const currentSelectedId = selectedAdmin ? (selectedAdmin._id || selectedAdmin.id) : null;
           if (currentSelectedId !== targetAdminId) {
             setSelectedAdmin(matched);
@@ -226,15 +231,10 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
         }
       }
       if (!selectedAdmin) {
-        if (currentUser.isFrozen) {
-          const superAdminObj = linkedAdmins.find((admin: any) => admin.role === 'super_admin');
-          setSelectedAdmin(superAdminObj || null);
-        } else {
-          setSelectedAdmin(linkedAdmins[0]);
-        }
+        setSelectedAdmin(linkedAdmins[0]);
       }
     }
-  }, [linkedAdmins, targetAdminId, currentUser.isFrozen]);
+  }, [linkedAdmins, targetAdminId, currentUser.isFrozen, selectedAdmin]);
 
   const getInitials = (nameStr?: string) => {
     if (!nameStr) return 'U';
@@ -1414,7 +1414,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
   }
 
   return (
-    <div className={`dashboard-container ${selectedAdmin ? 'has-selected-user' : ''}`}>
+    <div className={`dashboard-container ${selectedAdmin ? 'has-selected-user' : ''} ${currentUser.isFrozen ? 'is-frozen' : ''}`}>
       {/* Left Sidebar */}
       <aside className="sidebar">
         <div className="sidebar-header has-search" style={{ flexDirection: 'column', alignItems: 'stretch', gap: '12px', padding: '16px' }}>

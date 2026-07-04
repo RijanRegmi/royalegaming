@@ -94,7 +94,16 @@ export default function AdminSettingsPage() {
   const [newAdminPhone, setNewAdminPhone] = useState('');
   const [newAdminPassword, setNewAdminPassword] = useState('');
   const [newAdminRole, setNewAdminRole] = useState('admin');
+  const [newAdminCyclePeriod, setNewAdminCyclePeriod] = useState<string>('30');
   const [creatingAdmin, setCreatingAdmin] = useState(false);
+
+  // --- Promote to admin modal states ---
+  const [showPromoteModal, setShowPromoteModal] = useState<boolean>(false);
+  const [promoteUserId, setPromoteUserId] = useState<string>('');
+  const [promoteUserName, setPromoteUserName] = useState<string>('');
+  const [promoteUsernameSlug, setPromoteUsernameSlug] = useState<string>('');
+  const [promoteCyclePeriod, setPromoteCyclePeriod] = useState<string>('30');
+  const [promotingRole, setPromotingRole] = useState<boolean>(false);
 
   // --- Edit/Delete user states ---
   const [showEditUserModal, setShowEditUserModal] = useState<boolean>(false);
@@ -627,6 +636,18 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: 'Forbidden: Only super admins can change user roles' });
       return;
     }
+
+    if (newRole === 'admin') {
+      const userToPromote = profiles.find((p) => (p._id || p.id) === userId);
+      setPromoteUserId(userId);
+      setPromoteUserName(userToPromote?.name || 'User');
+      setPromoteUsernameSlug(userToPromote?.username || '');
+      setPromoteCyclePeriod('30');
+      setShowPromoteModal(true);
+      setFeedback(null);
+      return;
+    }
+
     setUpdatingId(userId);
     setFeedback(null);
 
@@ -651,6 +672,48 @@ export default function AdminSettingsPage() {
       setFeedback({ type: 'error', message: (err as Error).message });
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  // Submit handler for Promote to Admin
+  const handleConfirmPromoteToAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoteUserId || !promoteUsernameSlug || !promoteCyclePeriod) return;
+
+    setPromotingRole(true);
+    setFeedback(null);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: promoteUserId, 
+          newRole: 'admin',
+          username: promoteUsernameSlug,
+          cyclePeriod: promoteCyclePeriod
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to promote user to Admin');
+      }
+
+      setProfiles((prev) =>
+        prev.map((p) => ((p._id || p.id) === promoteUserId ? { 
+          ...p, 
+          role: 'admin', 
+          username: promoteUsernameSlug,
+          isFrozen: false
+        } : p))
+      );
+
+      setShowPromoteModal(false);
+      setFeedback({ type: 'success', message: `Successfully promoted ${promoteUserName} to Admin!` });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
+    } finally {
+      setPromotingRole(false);
     }
   };
 
@@ -716,6 +779,7 @@ export default function AdminSettingsPage() {
           phone: newAdminPhone,
           password: newAdminPassword,
           role: newAdminRole,
+          cyclePeriod: newAdminRole === 'admin' ? newAdminCyclePeriod : undefined,
         }),
       });
 
@@ -915,11 +979,11 @@ export default function AdminSettingsPage() {
   const handleSaveGame = async (e: React.FormEvent) => {
     e.preventDefault();
     if (currentUser?.role !== 'super_admin') {
-      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can save game platforms' });
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can save platforms' });
       return;
     }
-    if (!gameName || !gameLink) {
-      setFeedback({ type: 'error', message: 'Name and play link are required' });
+    if (!gameName) {
+      setFeedback({ type: 'error', message: 'Name is required' });
       return;
     }
 
@@ -929,8 +993,8 @@ export default function AdminSettingsPage() {
     try {
       const formData = new FormData();
       formData.append('name', gameName);
-      formData.append('link', gameLink);
-      formData.append('agentLink', gameAgentLink);
+      formData.append('link', 'https://placeholder.com');
+      formData.append('agentLink', 'https://placeholder.com');
 
       if (gameImageFile) {
         formData.append('file', gameImageFile);
@@ -1076,7 +1140,7 @@ export default function AdminSettingsPage() {
             </span>
           </div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
-            Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser.name}</strong> • Manage game lobby platforms, user support routing, and administrator roles
+            Logged in as <strong style={{ color: 'var(--text-primary)' }}>{currentUser.name}</strong> • Manage showcase platforms, user support routing, and administrator roles
           </p>
         </div>
         <button className="btn-secondary" onClick={() => window.location.href = '/'}>
@@ -1161,7 +1225,7 @@ export default function AdminSettingsPage() {
               whiteSpace: 'nowrap'
             }}
           >
-            <Gamepad2 size={16} /> Manage Games
+            <ImageIcon size={16} /> Manage Landing Page
           </button>
         )}
 
@@ -1216,7 +1280,7 @@ export default function AdminSettingsPage() {
               whiteSpace: 'nowrap'
             }}
           >
-            <Key size={16} /> Game Accounts (Secure)
+            <Key size={16} /> Secure Credentials
           </button>
         )}
         {(currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
@@ -2354,9 +2418,9 @@ export default function AdminSettingsPage() {
             }}
           >
             <div>
-              <span style={{ fontWeight: 600, display: 'block' }}>Game Platforms Configuration</span>
+              <span style={{ fontWeight: 600, display: 'block' }}>Showcase Platform Configuration</span>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Add, edit, or delete game lobby platforms and modify their display promotional images
+                Add, edit, or delete showcase platforms and modify their display images
               </span>
             </div>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
@@ -2374,7 +2438,7 @@ export default function AdminSettingsPage() {
                 }}
                 onClick={openCreateModal}
               >
-                <Plus size={16} /> Add Game
+                <Plus size={16} /> Add Platform
               </button>
               <button className="icon-btn" title="Refresh data" onClick={fetchGames}>
                 <RefreshCw size={16} />
@@ -2388,16 +2452,14 @@ export default function AdminSettingsPage() {
             </div>
           ) : games.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              No games found. Click &quot;Add Game&quot; to register your first platform.
+              No platforms found. Click &quot;Add Platform&quot; to register your first showcase.
             </div>
           ) : (
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Game Platform Name</th>
+                  <th>Platform Name</th>
                   <th>Image File / URL</th>
-                  <th>Lobby Link</th>
-                  <th>Agent / Admin Link</th>
                   <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
@@ -2444,36 +2506,12 @@ export default function AdminSettingsPage() {
                         {game.image}
                       </span>
                     </td>
-                    <td>
-                      <a 
-                        href={game.link} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        style={{ fontSize: '12px', color: 'var(--accent-color)', textDecoration: 'underline' }}
-                      >
-                        {game.link}
-                      </a>
-                    </td>
-                    <td>
-                      {game.agentLink ? (
-                        <a 
-                          href={game.agentLink} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          style={{ fontSize: '12px', color: 'var(--accent-color)', textDecoration: 'underline' }}
-                        >
-                          {game.agentLink}
-                        </a>
-                      ) : (
-                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
-                      )}
-                    </td>
                     <td style={{ textAlign: 'right' }}>
                       <div style={{ display: 'inline-flex', gap: '8px' }}>
                         <button 
                           type="button"
                           className="icon-btn" 
-                          title="Edit Game" 
+                          title="Edit Platform" 
                           onClick={() => openEditModal(game)}
                           style={{ color: 'var(--accent-color)' }}
                         >
@@ -2482,7 +2520,7 @@ export default function AdminSettingsPage() {
                         <button 
                           type="button"
                           className="icon-btn" 
-                          title="Delete Game Platform" 
+                          title="Delete Platform" 
                           onClick={() => handleDeleteGame(game._id)}
                           style={{ color: 'var(--error-color)' }}
                         >
@@ -2611,6 +2649,25 @@ export default function AdminSettingsPage() {
                     <option value="user">User</option>
                   </select>
                 </div>
+
+                {newAdminRole === 'admin' && (
+                  <div className="form-group">
+                    <label>Billing Cycle Period *</label>
+                    <select
+                      className="role-select"
+                      style={{ width: '100%', padding: '12px 14px', borderRadius: 'var(--radius-md)', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', color: '#fff' }}
+                      value={newAdminCyclePeriod}
+                      onChange={(e) => setNewAdminCyclePeriod(e.target.value)}
+                      disabled={creatingAdmin}
+                      required
+                    >
+                      <option value="30">1 Month (Standard Cycle)</option>
+                      <option value="90">3 Month (Quarterly Cycle)</option>
+                      <option value="180">6 Month (Half Year Cycle)</option>
+                      <option value="360">12 Month (Full Year Cycle)</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="modal-footer">
                 <button
@@ -2641,7 +2698,7 @@ export default function AdminSettingsPage() {
         <div className="modal-overlay" onClick={() => setShowGameModal(false)}>
           <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
             <div className="modal-header">
-              <h2>{editingGame ? 'Edit Game Platform' : 'Add New Game Platform'}</h2>
+              <h2>{editingGame ? 'Edit Showcase Platform' : 'Add New Showcase Platform'}</h2>
               <button className="icon-btn" onClick={() => setShowGameModal(false)}>
                 <X size={18} />
               </button>
@@ -2700,48 +2757,17 @@ export default function AdminSettingsPage() {
                 </div>
 
                 <div className="form-group">
-                  <label>Game Name *</label>
+                  <label>Platform Name *</label>
                   <div className="input-wrapper">
-                    <Gamepad2 size={16} className="input-icon" />
+                    <ImageIcon size={16} className="input-icon" />
                     <input
                       type="text"
-                      placeholder="e.g. FireKirin, OrionStar, Juwa"
+                      placeholder="e.g. Support Channel 1, Help Desk"
                       className="form-input"
                       value={gameName}
                       onChange={(e) => setGameName(e.target.value)}
                       disabled={savingGame}
                       required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Play Link URL *</label>
-                  <div className="input-wrapper">
-                    <Globe size={16} className="input-icon" />
-                    <input
-                      type="url"
-                      placeholder="https://firekirin.xyz/ (or game link)"
-                      className="form-input"
-                      value={gameLink}
-                      onChange={(e) => setGameLink(e.target.value)}
-                      disabled={savingGame}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Agent Link URL</label>
-                  <div className="input-wrapper">
-                    <Globe size={16} className="input-icon" />
-                    <input
-                      type="url"
-                      placeholder="https://agent.firekirin.xyz/ (or admin/agent link)"
-                      className="form-input"
-                      value={gameAgentLink}
-                      onChange={(e) => setGameAgentLink(e.target.value)}
-                      disabled={savingGame}
                     />
                   </div>
                 </div>
@@ -3571,6 +3597,69 @@ export default function AdminSettingsPage() {
                 {confirmModal.confirmText || 'Confirm'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+      {/* Promote to Admin Modal */}
+      {showPromoteModal && (
+        <div className="modal-overlay" onClick={() => setShowPromoteModal(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <h2>Promote User to Admin</h2>
+              <button className="icon-btn" onClick={() => setShowPromoteModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleConfirmPromoteToAdmin}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  Set up username slug and billing cycle period for promoting <strong style={{ color: '#fff' }}>{promoteUserName}</strong> to administrator.
+                </p>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Admin Slug / Username (e.g. admin1) *</label>
+                  <div className="input-wrapper">
+                    <Globe size={16} className="input-icon" />
+                    <input
+                      type="text"
+                      placeholder="admin1"
+                      className="form-input"
+                      value={promoteUsernameSlug}
+                      onChange={(e) => setPromoteUsernameSlug(e.target.value)}
+                      disabled={promotingRole}
+                      required
+                      pattern="^[a-z0-9_-]+$"
+                      title="Only lowercase letters, numbers, hyphens, and underscores are allowed"
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Billing Cycle Period *</label>
+                  <select 
+                    value={promoteCyclePeriod} 
+                    onChange={(e) => setPromoteCyclePeriod(e.target.value)}
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
+                    disabled={promotingRole}
+                    required
+                  >
+                    <option value="30">1 Month (Standard Cycle)</option>
+                    <option value="90">3 Month (Quarterly Cycle)</option>
+                    <option value="180">6 Month (Half Year Cycle)</option>
+                    <option value="360">12 Month (Full Year Cycle)</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button type="button" className="btn-secondary" style={{ width: 'auto', margin: 0, padding: '8px 16px' }} onClick={() => setShowPromoteModal(false)} disabled={promotingRole}>Cancel</button>
+                <button type="submit" className="btn-primary" style={{ width: 'auto', margin: 0, padding: '8px 20px' }} disabled={promotingRole}>
+                  {promotingRole ? 'Promoting...' : 'Confirm Promotion'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
