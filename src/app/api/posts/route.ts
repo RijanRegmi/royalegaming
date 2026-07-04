@@ -178,6 +178,11 @@ export async function PUT(req: NextRequest) {
 
     await dbConnect();
 
+    const user = await User.findById(payload.userId);
+    if (user?.isFrozen) {
+      return NextResponse.json({ error: 'Your account is frozen. You cannot update posts.' }, { status: 403 });
+    }
+
     const formData = await req.formData();
     const postId = formData.get('postId') as string | null;
     const content = formData.get('content') as string | null;
@@ -253,6 +258,11 @@ export async function DELETE(req: NextRequest) {
     }
 
     await dbConnect();
+
+    const user = await User.findById(payload.userId);
+    if (user?.isFrozen) {
+      return NextResponse.json({ error: 'Your account is frozen. You cannot delete posts.' }, { status: 403 });
+    }
 
     const post = await Post.findById(postId);
     if (!post) {
