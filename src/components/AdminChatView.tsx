@@ -1024,9 +1024,23 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
         const msgChatUserId = data.chatUserId?.toString();
         if (!msgChatUserId) return;
         const msgSenderId = data.senderId?._id || data.senderId;
+        const msgAdminId = data.adminId?.toString();
+
+        const getExpectedAdminIdForUser = (u: any) => {
+          if (!u) return null;
+          if (currentUser.role === 'super_admin') {
+            return currentUser.id;
+          }
+          if (u.role === 'super_admin') {
+            return u.id || u._id;
+          }
+          return currentUser.id;
+        };
+
+        const expectedAdminId = currentSelected ? getExpectedAdminIdForUser(currentSelected)?.toString() : null;
 
         // 1. If message belongs to the currently active conversation, append it
-        if (currentSelected && msgChatUserId === currentSelected.id) {
+        if (currentSelected && msgChatUserId === currentSelected.id && msgAdminId === expectedAdminId) {
           setMessages((prev) => {
             const exists = prev.some((msg) => msg._id === data._id);
             if (exists) {
@@ -1042,25 +1056,30 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
 
         // 2. Refresh the sidebar users to bubble latest messages and counts
         setUsers((prevUsers) => {
-          const isSenderActive = currentSelected && msgChatUserId === currentSelected.id;
+          const isSenderActive = currentSelected && msgChatUserId === currentSelected.id && msgAdminId === expectedAdminId;
           const userIdx = prevUsers.findIndex((u) => u.id === msgChatUserId);
 
           const updatedUserObj = userIdx !== -1 ? { ...prevUsers[userIdx] } : null;
           
           if (updatedUserObj) {
-            updatedUserObj.lastMessage = {
-              content: data.content,
-              createdAt: data.createdAt,
-              senderName: data.senderId.name,
-              senderRole: data.senderId.role,
-              fileType: data.fileType || null,
-            };
-            if (!isSenderActive && msgSenderId === msgChatUserId) {
-              updatedUserObj.unreadCount += 1;
+            const expectedAdminIdForUser = getExpectedAdminIdForUser(updatedUserObj)?.toString();
+            // Only update if the message matches the expected admin thread for this user
+            if (msgAdminId === expectedAdminIdForUser) {
+              updatedUserObj.lastMessage = {
+                content: data.content,
+                createdAt: data.createdAt,
+                senderName: data.senderId.name,
+                senderRole: data.senderId.role,
+                fileType: data.fileType || null,
+              };
+              if (!isSenderActive && msgSenderId === msgChatUserId) {
+                updatedUserObj.unreadCount += 1;
+              }
+              
+              const listWithoutUser = prevUsers.filter((u) => u.id !== msgChatUserId);
+              return [updatedUserObj, ...listWithoutUser];
             }
-            
-            const listWithoutUser = prevUsers.filter((u) => u.id !== msgChatUserId);
-            return [updatedUserObj, ...listWithoutUser];
+            return prevUsers;
           } else {
             fetchUsers();
             return prevUsers;
