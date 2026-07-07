@@ -8,6 +8,7 @@ import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
 import PostCard from '@/components/PostCard';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface User {
   id?: string;
@@ -20,6 +21,7 @@ interface User {
   username?: string;
   createdAt?: string;
   isFrozen?: boolean;
+  isVerified?: boolean;
 }
 
 export default function ProfilePage() {
@@ -689,7 +691,10 @@ export default function ProfilePage() {
             style={{ display: 'none' }}
             onChange={handleAvatarChange}
           />
-          <h1 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px' }}>{name}</h1>
+          <h1 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+            {name}
+            {user?.isVerified && <VerifiedBadge size={18} style={{ marginLeft: '0px', marginRight: '0px' }} />}
+          </h1>
           {user?.username && (
             <p style={{ color: 'var(--accent-color)', fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>@{user.username}</p>
           )}

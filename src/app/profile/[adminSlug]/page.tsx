@@ -8,12 +8,14 @@ import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
 import PostCard from '@/components/PostCard';
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface AdminInfo {
   id: string;
   name: string;
   username: string;
   avatar: string;
+  isVerified?: boolean;
 }
 
 interface CurrentUser {
@@ -276,7 +278,10 @@ export default function AdminProfilePublicPage() {
                 </div>
               )}
             </div>
-            <h1 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px' }}>{admin.name}</h1>
+            <h1 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              {admin.name}
+              {admin.isVerified && <VerifiedBadge size={18} style={{ marginLeft: '0px', marginRight: '0px' }} />}
+            </h1>
             <p style={{ color: 'var(--accent-color)', fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>@{admin.username || 'admin'}</p>
             <span style={{ 
               fontSize: '11px', 
