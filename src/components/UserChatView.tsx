@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUserAvatarColor } from '@/lib/avatar';
+import VerifiedBadge from './VerifiedBadge';
 import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft, UserPlus, Search } from 'lucide-react';
 
 interface UserChatViewProps {
@@ -1526,9 +1527,12 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 </div>
                 <div className="convo-details" style={{ flex: 1, minWidth: 0 }}>
                   <div className="convo-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '120px', fontWeight: meta?.unreadCount > 0 ? 700 : 500 }}>
-                      {admin.name}
-                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', minWidth: 0, overflow: 'hidden' }}>
+                      <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', fontWeight: meta?.unreadCount > 0 ? 700 : 500 }}>
+                        {admin.name}
+                      </span>
+                      {(admin.isVerified || admin.role === 'admin' || admin.role === 'super_admin') && <VerifiedBadge />}
+                    </div>
                     {meta?.unreadCount > 0 && (
                       <span style={{
                         width: '8px',
@@ -1616,22 +1620,25 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                   )}
                 </div>
                 <div className="chat-user-details" style={{ minWidth: 0, overflow: 'hidden' }}>
-                  <span 
-                    className="chat-user-name" 
-                    style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      cursor: 'pointer',
-                      fontSize: '15px',
-                      fontWeight: 600
-                    }}
-                    onClick={() => {
-                      const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
-                      window.location.href = `/profile/${adminSlug}`;
-                    }}
-                    title="View Admin Profile"
-                  >{selectedAdmin.name}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span 
+                      className="chat-user-name" 
+                      style={{
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        cursor: 'pointer',
+                        fontSize: '15px',
+                        fontWeight: 600
+                      }}
+                      onClick={() => {
+                        const adminSlug = selectedAdmin.username || selectedAdmin._id || selectedAdmin.id;
+                        window.location.href = `/profile/${adminSlug}`;
+                      }}
+                      title="View Admin Profile"
+                    >{selectedAdmin.name}</span>
+                    {(selectedAdmin.isVerified || selectedAdmin.role === 'admin' || selectedAdmin.role === 'super_admin') && <VerifiedBadge />}
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>

@@ -274,7 +274,7 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { userId, name, email, phone, role, password, username, isFrozen, linkedAdmins, cyclePeriod } = await req.json();
+    const { userId, name, email, phone, role, password, username, isFrozen, isVerified, linkedAdmins, cyclePeriod } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
@@ -481,6 +481,11 @@ export async function PUT(req: NextRequest) {
       userToUpdate.isFrozen = isFrozen;
     }
 
+    // Update isVerified if provided
+    if (isVerified !== undefined) {
+      userToUpdate.isVerified = isVerified;
+    }
+
     // Update linkedAdmins if provided
     let newlyLinkedAdmins: string[] = [];
     if (linkedAdmins !== undefined) {
@@ -553,6 +558,7 @@ export async function PUT(req: NextRequest) {
         phone: userToUpdate.phone || '',
         role: userToUpdate.role,
         isFrozen: userToUpdate.isFrozen || false,
+        isVerified: userToUpdate.isVerified || false,
         createdAt: userToUpdate.createdAt,
         linkedAdmins: userToUpdate.linkedAdmins || [],
       },

@@ -14,6 +14,7 @@ const UserSchema = new Schema({
   fcmToken: { type: String, default: null },
   linkedAdmins: [{ type: Schema.Types.ObjectId, ref: 'User', default: [] }], // list of admins linked to this player
   isFrozen: { type: Boolean, default: false },
+  isVerified: { type: Boolean, default: false },
   billingStartDate: { type: Date, default: Date.now },
   extendedUntil: { type: Date, default: null },
   readNotices: [{ type: Schema.Types.ObjectId, ref: 'Notice', default: [] }],

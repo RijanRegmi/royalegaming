@@ -39,9 +39,12 @@ interface User {
   linkedAdmins?: string[] | User[];
   avatar?: string;
   isFrozen?: boolean;
+  isVerified?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
+
+import VerifiedBadge from '@/components/VerifiedBadge';
 
 interface Game {
   id: string;
@@ -126,6 +129,7 @@ export default function AdminSettingsPage() {
   const [editUserPassword, setEditUserPassword] = useState('');
   const [updatingUser, setUpdatingUser] = useState(false);
   const [editUserLinkedAdmins, setEditUserLinkedAdmins] = useState<string[]>([]);
+  const [editUserVerified, setEditUserVerified] = useState<boolean>(false);
 
   // --- Games management states ---
   const [games, setGames] = useState<Game[]>([]);
@@ -906,6 +910,7 @@ export default function AdminSettingsPage() {
     setEditUserPhone(profile.phone || '');
     setEditUserRole(profile.role);
     setEditUserPassword('');
+    setEditUserVerified(profile.isVerified || false);
     const adminsList = (profile.linkedAdmins || []).map((admin: any) => 
       typeof admin === 'string' ? admin : (admin._id || admin.id)
     ).filter(Boolean) as string[];
@@ -944,6 +949,7 @@ export default function AdminSettingsPage() {
           phone: editUserPhone,
           role: editUserRole,
           password: editUserPassword || undefined,
+          isVerified: editUserVerified,
           linkedAdmins: editUserRole === 'user' ? editUserLinkedAdmins : undefined,
         }),
       });
@@ -1705,8 +1711,11 @@ export default function AdminSettingsPage() {
                                 )}
                               </div>
                               <div className="profile-cell-details">
-                                <span className="profile-cell-name">
+                                <span className="profile-cell-name" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                   {profile.name}
+                                  {(profile.isVerified || profile.role === 'admin' || profile.role === 'super_admin') && (
+                                    <VerifiedBadge />
+                                  )}
                                   {profile.role === 'admin' && profile.username && (
                                     <span style={{ fontSize: '11px', color: 'var(--super-admin-color)', marginLeft: '8px', background: 'rgba(168, 85, 247, 0.1)', padding: '2px 6px', borderRadius: '4px' }}>
                                       /{profile.username}
@@ -3401,6 +3410,20 @@ export default function AdminSettingsPage() {
                   {(editingUserProfile._id || editingUserProfile.id) === currentUser.id && (
                     <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>You cannot change your own role.</span>
                   )}
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                  <input
+                    type="checkbox"
+                    id="editUserVerified"
+                    checked={editUserVerified}
+                    onChange={(e) => setEditUserVerified(e.target.checked)}
+                    disabled={updatingUser}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="editUserVerified" style={{ cursor: 'pointer', margin: 0, fontWeight: 600 }}>
+                    Verified Account Badge
+                  </label>
                 </div>
 
                 {editUserRole === 'user' && (
