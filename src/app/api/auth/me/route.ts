@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
           name: 'Support Chat',
           username: 'support',
           avatar: '',
+          isVerified: true,
         };
       }
       return adminObj;

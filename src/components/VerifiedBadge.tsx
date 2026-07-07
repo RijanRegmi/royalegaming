@@ -5,7 +5,7 @@ interface VerifiedBadgeProps {
   style?: React.CSSProperties;
 }
 
-export default function VerifiedBadge({ size = 14, style }: VerifiedBadgeProps) {
+export default function VerifiedBadge({ size = 12, style }: VerifiedBadgeProps) {
   return (
     <svg 
       viewBox="0 0 24 24" 
@@ -13,12 +13,12 @@ export default function VerifiedBadge({ size = 14, style }: VerifiedBadgeProps) 
       height={size} 
       style={{ 
         display: 'inline-block', 
-        marginLeft: '4px',
-        marginRight: '4px',
+        marginLeft: '3px',
+        marginRight: '3px',
         flexShrink: 0,
         verticalAlign: 'middle',
         position: 'relative',
-        top: '-1px',
+        top: '-0.5px',
         ...style
       }}
     >
