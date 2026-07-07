@@ -280,7 +280,7 @@ export default function AdminProfilePublicPage() {
             </div>
             <h1 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
               {admin.name}
-              {admin.isVerified && <VerifiedBadge size={18} style={{ marginLeft: '0px', marginRight: '0px' }} />}
+              {admin.isVerified && <VerifiedBadge size={20} style={{ marginLeft: '0px', marginRight: '0px' }} />}
             </h1>
             <p style={{ color: 'var(--accent-color)', fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>@{admin.username || 'admin'}</p>
             <span style={{ 

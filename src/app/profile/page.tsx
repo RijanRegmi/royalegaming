@@ -693,7 +693,7 @@ export default function ProfilePage() {
           />
           <h1 style={{ fontSize: '24px', fontWeight: 700, marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
             {name}
-            {user?.isVerified && <VerifiedBadge size={18} style={{ marginLeft: '0px', marginRight: '0px' }} />}
+            {user?.isVerified && <VerifiedBadge size={20} style={{ marginLeft: '0px', marginRight: '0px' }} />}
           </h1>
           {user?.username && (
             <p style={{ color: 'var(--accent-color)', fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>@{user.username}</p>
