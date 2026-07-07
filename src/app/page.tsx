@@ -406,11 +406,7 @@ export default function Home() {
         setPosts((prev) =>
           prev.map((post) => {
             if (post._id === postId) {
-              const currentUserId = user.id || user._id;
-              const newLikes = data.liked
-                ? [...post.likes, currentUserId]
-                : post.likes.filter((id) => id !== currentUserId);
-              return { ...post, likes: newLikes };
+              return { ...post, likes: data.likes || post.likes };
             }
             return post;
           })

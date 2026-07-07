@@ -44,6 +44,7 @@ export async function POST(req: NextRequest) {
       success: true,
       liked,
       likesCount: likes.length,
+      likes,
     });
   } catch (error) {
     console.error('Toggle post like error:', error);
