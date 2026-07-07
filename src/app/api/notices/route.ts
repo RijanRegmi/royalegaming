@@ -21,8 +21,14 @@ export async function GET(req: NextRequest) {
         targetUserId: { $exists: false }
       };
     } else if (payload.role === 'super_admin') {
-      // Super admins see all active notices, and can manage them
-      query = {}; // Super admin sees all, even inactive for log viewing
+      // Super admins see active notices targeted to "all", plus their own targeted notices
+      query = {
+        isActive: true,
+        $or: [
+          { targetRole: 'all', targetUserId: { $exists: false } },
+          { targetUserId: payload.userId }
+        ]
+      };
     } else if (payload.role === 'admin') {
       // Admins see notices targeted to "admin" or "all" (which have no targetUserId), plus their own targeted notices
       query = {
