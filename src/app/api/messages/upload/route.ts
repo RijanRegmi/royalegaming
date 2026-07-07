@@ -194,6 +194,7 @@ export async function POST(req: NextRequest) {
           name: 'Support Chat',
           email: 'support@rilogram.com',
           avatar: '',
+          isVerified: true,
         };
       }
       if (sanitizedMsg.recipientId && sanitizedMsg.recipientId.role === 'super_admin') {
@@ -202,6 +203,7 @@ export async function POST(req: NextRequest) {
           name: 'Support Chat',
           email: 'support@rilogram.com',
           avatar: '',
+          isVerified: true,
         };
       }
     }

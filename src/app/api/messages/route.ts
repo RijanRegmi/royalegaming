@@ -201,6 +201,7 @@ export async function GET(req: NextRequest) {
             email: primarySuperAdminEmail,
             phone: primarySuperAdminPhone,
             avatar: '',
+            isVerified: true,
           };
         }
         if (msgObj.recipientId && msgObj.recipientId.role === 'super_admin') {
@@ -210,6 +211,7 @@ export async function GET(req: NextRequest) {
             email: primarySuperAdminEmail,
             phone: primarySuperAdminPhone,
             avatar: '',
+            isVerified: true,
           };
         }
         return msgObj;
@@ -374,6 +376,7 @@ export async function POST(req: NextRequest) {
           name: 'Support Chat',
           email: 'support@rilogram.com',
           avatar: '',
+          isVerified: true,
         };
       }
       if (sanitizedMsg.recipientId && sanitizedMsg.recipientId.role === 'super_admin') {
@@ -382,6 +385,7 @@ export async function POST(req: NextRequest) {
           name: 'Support Chat',
           email: 'support@rilogram.com',
           avatar: '',
+          isVerified: true,
         };
       }
     }

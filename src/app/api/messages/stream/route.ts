@@ -115,6 +115,7 @@ export async function GET(req: NextRequest) {
                 email: primarySuperAdminEmail,
                 phone: primarySuperAdminPhone,
                 avatar: '',
+                isVerified: true,
               };
             }
             if (msgObj.recipientId && msgObj.recipientId.role === 'super_admin') {
@@ -124,6 +125,7 @@ export async function GET(req: NextRequest) {
                 email: primarySuperAdminEmail,
                 phone: primarySuperAdminPhone,
                 avatar: '',
+                isVerified: true,
               };
             }
           }
@@ -152,6 +154,7 @@ export async function GET(req: NextRequest) {
                 email: primarySuperAdminEmail,
                 phone: primarySuperAdminPhone,
                 avatar: '',
+                isVerified: true,
               };
             }
             if (msgObj.recipientId && msgObj.recipientId.role === 'super_admin') {
@@ -161,6 +164,7 @@ export async function GET(req: NextRequest) {
                 email: primarySuperAdminEmail,
                 phone: primarySuperAdminPhone,
                 avatar: '',
+                isVerified: true,
               };
             }
           }

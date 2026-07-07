@@ -244,6 +244,7 @@ export async function GET(req: NextRequest) {
         phone: shouldDisguise ? primarySuperAdminPhone : (user.phone || ''),
         avatar: shouldDisguise ? '' : (user.avatar || ''),
         role: user.role,
+        isVerified: shouldDisguise ? true : (user.isVerified || false),
         isFrozen: user.isFrozen || false,
         createdAt: user.createdAt,
         lastMessage: latestMessageMap.get(userIdStr) || null,
