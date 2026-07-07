@@ -517,8 +517,8 @@ export async function PUT(req: NextRequest) {
           await systemMessage.save();
 
           const populatedMessage = await Message.findById(systemMessage._id)
-            .populate('senderId', 'name email role avatar')
-            .populate('recipientId', 'name email role avatar');
+            .populate('senderId', 'name email role avatar isVerified')
+            .populate('recipientId', 'name email role avatar isVerified');
 
           chatEmitter.emit('message', populatedMessage);
 

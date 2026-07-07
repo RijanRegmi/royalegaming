@@ -14,8 +14,11 @@ export default function VerifiedBadge({ size = 14, style }: VerifiedBadgeProps) 
       style={{ 
         display: 'inline-block', 
         marginLeft: '4px',
+        marginRight: '4px',
         flexShrink: 0,
         verticalAlign: 'middle',
+        position: 'relative',
+        top: '-1px',
         ...style
       }}
     >

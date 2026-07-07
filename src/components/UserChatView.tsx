@@ -1531,7 +1531,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                       <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100px', fontWeight: meta?.unreadCount > 0 ? 700 : 500 }}>
                         {admin.name}
                       </span>
-                      {(admin.isVerified || admin.role === 'admin' || admin.role === 'super_admin') && <VerifiedBadge />}
+                      {admin.isVerified && <VerifiedBadge />}
                     </div>
                     {meta?.unreadCount > 0 && (
                       <span style={{
@@ -1637,7 +1637,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                       }}
                       title="View Admin Profile"
                     >{selectedAdmin.name}</span>
-                    {(selectedAdmin.isVerified || selectedAdmin.role === 'admin' || selectedAdmin.role === 'super_admin') && <VerifiedBadge />}
+                    {selectedAdmin.isVerified && <VerifiedBadge />}
                   </div>
                 </div>
               </div>

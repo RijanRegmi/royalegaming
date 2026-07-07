@@ -148,8 +148,8 @@ export async function GET(req: NextRequest) {
     }
 
     const messages = await Message.find(query)
-      .populate('senderId', 'name email role avatar')
-      .populate('recipientId', 'name email role avatar')
+      .populate('senderId', 'name email role avatar isVerified')
+      .populate('recipientId', 'name email role avatar isVerified')
       .populate({
         path: 'replyTo',
         populate: { path: 'senderId', select: 'name' }
@@ -349,8 +349,8 @@ export async function POST(req: NextRequest) {
 
     // Populate sender info for the SSE broadcast
     const populatedMessage = await Message.findById(newMessage._id)
-      .populate('senderId', 'name email role avatar')
-      .populate('recipientId', 'name email role avatar')
+      .populate('senderId', 'name email role avatar isVerified')
+      .populate('recipientId', 'name email role avatar isVerified')
       .populate({
         path: 'replyTo',
         populate: { path: 'senderId', select: 'name' }
@@ -464,8 +464,8 @@ export async function DELETE(req: NextRequest) {
       await Message.updateMany({ replyTo: messageId }, { $set: { replyTo: null } });
 
       const updatedMessage = await Message.findById(messageId)
-        .populate('senderId', 'name email role avatar')
-        .populate('recipientId', 'name email role avatar');
+        .populate('senderId', 'name email role avatar isVerified')
+        .populate('recipientId', 'name email role avatar isVerified');
 
       // Broadcast update
       chatEmitter.emit('message_update', updatedMessage);
@@ -519,8 +519,8 @@ export async function DELETE(req: NextRequest) {
       await systemMessage.save();
 
       const populatedSystemMsg = await Message.findById(systemMessage._id)
-        .populate('senderId', 'name email role avatar')
-        .populate('recipientId', 'name email role avatar');
+        .populate('senderId', 'name email role avatar isVerified')
+        .populate('recipientId', 'name email role avatar isVerified');
 
       // Broadcast clear chat event with system trace message
       chatEmitter.emit('message_update', {

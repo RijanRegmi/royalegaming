@@ -1669,7 +1669,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 <div className="convo-details">
                   <div className="convo-row" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <span className="convo-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '140px' }}>{u.name}</span>
-                    {(u.isVerified || u.role === 'admin' || u.role === 'super_admin') && <VerifiedBadge />}
+                    {u.isVerified && <VerifiedBadge />}
                     <span className={`role-badge ${u.role}`} style={{ fontSize: '8px', padding: '1px 4px', textTransform: 'uppercase', flexShrink: 0, marginTop: 0 }}>
                       {u.role === 'super_admin' ? (currentUser.role === 'super_admin' ? 'Super Admin' : 'Support') : u.role === 'admin' ? 'Admin' : 'User'}
                     </span>
@@ -1733,7 +1733,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                       whiteSpace: 'nowrap',
                       maxWidth: '120px'
                     }}>{selectedUser.name}</span>
-                    {(selectedUser.isVerified || selectedUser.role === 'admin' || selectedUser.role === 'super_admin') && <VerifiedBadge />}
+                    {selectedUser.isVerified && <VerifiedBadge />}
                     <span className={`role-badge ${selectedUser.role}`} style={{ fontSize: '9px', padding: '1px 5px', textTransform: 'uppercase', marginTop: 0, flexShrink: 0 }}>
                       {selectedUser.role === 'super_admin' ? (currentUser.role === 'super_admin' ? 'Super Admin' : 'Support') : selectedUser.role === 'admin' ? 'Admin' : 'User'}
                     </span>
@@ -2311,7 +2311,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           </div>
           <h2 className="details-name" style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
             {selectedUser.name}
-            {(selectedUser.isVerified || selectedUser.role === 'admin' || selectedUser.role === 'super_admin') && <VerifiedBadge />}
+            {selectedUser.isVerified && <VerifiedBadge />}
           </h2>
           <div className="details-role">
             <span className={`role-badge ${selectedUser.role}`}>

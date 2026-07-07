@@ -230,7 +230,7 @@ export default function PostCard({
               <span className="post-author-name" style={{ color: 'var(--text-primary)', fontWeight: 700, fontSize: '13.5px' }}>
                 {authorUsername}
               </span>
-              <VerifiedBadge />
+              {post.adminId?.isVerified && <VerifiedBadge />}
               <span style={{ color: 'var(--text-muted)', fontSize: '12px', margin: '0 4px' }}>•</span>
               <span className="post-time" style={{ color: 'var(--text-muted)', fontSize: '11px', margin: 0 }}>
                 {formatPostTime(post.createdAt)}

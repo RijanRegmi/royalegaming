@@ -1713,7 +1713,7 @@ export default function AdminSettingsPage() {
                               <div className="profile-cell-details">
                                 <span className="profile-cell-name" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                   {profile.name}
-                                  {(profile.isVerified || profile.role === 'admin' || profile.role === 'super_admin') && (
+                                  {profile.isVerified && (
                                     <VerifiedBadge />
                                   )}
                                   {profile.role === 'admin' && profile.username && (

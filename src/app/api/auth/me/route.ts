@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
     await dbConnect();
     let user = await User.findById(payload.userId)
-      .populate('linkedAdmins', 'name username avatar role');
+      .populate('linkedAdmins', 'name username avatar role isVerified');
       
     if (!user) {
       return NextResponse.json({ authenticated: false }, { status: 404 });
@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
     let filteredAdmins = (user.linkedAdmins || []).filter((admin: any) => admin.role !== 'super_admin');
     
     if (user.role === 'user') {
-      const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('name username avatar role');
+      const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('name username avatar role isVerified');
       if (primarySuperAdmin) {
         filteredAdmins.push(primarySuperAdmin);
       }

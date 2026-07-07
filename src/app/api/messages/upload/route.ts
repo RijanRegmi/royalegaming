@@ -171,8 +171,8 @@ export async function POST(req: NextRequest) {
 
     // Populate sender info for the SSE stream
     const populatedMessage = await Message.findById(newMessage._id)
-      .populate('senderId', 'name email role avatar')
-      .populate('recipientId', 'name email role avatar')
+      .populate('senderId', 'name email role avatar isVerified')
+      .populate('recipientId', 'name email role avatar isVerified')
       .populate({
         path: 'replyTo',
         populate: { path: 'senderId', select: 'name' }

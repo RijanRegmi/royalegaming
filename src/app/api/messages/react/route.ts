@@ -46,8 +46,8 @@ export async function POST(req: NextRequest) {
 
     // Populate the full message details so that the clients can render sender names, etc.
     const populatedMessage = await Message.findById(messageId)
-      .populate('senderId', 'name email role avatar')
-      .populate('recipientId', 'name email role avatar')
+      .populate('senderId', 'name email role avatar isVerified')
+      .populate('recipientId', 'name email role avatar isVerified')
       .populate({
         path: 'replyTo',
         populate: { path: 'senderId', select: 'name' }

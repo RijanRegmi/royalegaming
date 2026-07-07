@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
         name: admin.name,
         username: admin.username,
         avatar: admin.avatar || '',
+        isVerified: admin.isVerified || false,
       },
       referrerName
     });

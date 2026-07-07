@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
       }
       posts = await Post.find({ adminId: filterAdminId })
         .sort({ createdAt: -1 })
-        .populate('adminId', 'name username avatar role');
+        .populate('adminId', 'name username avatar role isVerified');
     } else if (payload.role === 'user') {
       const user = await User.findById(payload.userId);
       if (!user || !user.linkedAdmins || user.linkedAdmins.length === 0) {
@@ -61,17 +61,17 @@ export async function GET(req: NextRequest) {
       }
       posts = await Post.find({ adminId: { $in: user.linkedAdmins } })
         .sort({ createdAt: -1 })
-        .populate('adminId', 'name username avatar role');
+        .populate('adminId', 'name username avatar role isVerified');
     } else if (payload.role === 'super_admin') {
       // Super admins see all posts from all administrators
       posts = await Post.find({})
         .sort({ createdAt: -1 })
-        .populate('adminId', 'name username avatar role');
+        .populate('adminId', 'name username avatar role isVerified');
     } else {
       // Admins see their own posts
       posts = await Post.find({ adminId: payload.userId })
         .sort({ createdAt: -1 })
-        .populate('adminId', 'name username avatar role');
+        .populate('adminId', 'name username avatar role isVerified');
     }
 
     return NextResponse.json({ success: true, posts });
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
 
     await newPost.save();
 
-    const populatedPost = await Post.findById(newPost._id).populate('adminId', 'name username avatar role');
+    const populatedPost = await Post.findById(newPost._id).populate('adminId', 'name username avatar role isVerified');
 
     // Send push notifications to all users connected to this admin
     try {
@@ -235,7 +235,7 @@ export async function PUT(req: NextRequest) {
 
     await post.save();
 
-    const populatedPost = await Post.findById(post._id).populate('adminId', 'name username avatar role');
+    const populatedPost = await Post.findById(post._id).populate('adminId', 'name username avatar role isVerified');
     return NextResponse.json({ success: true, post: populatedPost });
   } catch (error: any) {
     console.error('Edit post error:', error);
