@@ -89,6 +89,7 @@ export async function sendPushNotification(
       const fcmPayload = {
         android: {
           priority: 'high' as const,
+          // NO notification block — data-only ensures background handler ALWAYS fires
         },
         apns: {
           headers: {
@@ -102,12 +103,14 @@ export async function sendPushNotification(
               },
               sound: 'default',
               'content-available': 1,
+              'mutable-content': 1,
             },
           },
         },
         data: {
           notifTitle: notificationTitle,
           notifBody: bodyText,
+          senderName: finalSenderName,
           click_action: 'FLUTTER_NOTIFICATION_CLICK',
           chatUserId: message.chatUserId?.toString() || '',
           messageId: message._id?.toString() || '',
