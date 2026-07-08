@@ -87,7 +87,13 @@ export async function sendPushNotification(
         : finalSenderName;
 
       const fcmPayload = {
+        android: {
+          priority: 'high' as const,
+        },
         apns: {
+          headers: {
+            'apns-priority': '10',
+          },
           payload: {
             aps: {
               alert: {
@@ -95,6 +101,7 @@ export async function sendPushNotification(
                 body: bodyText,
               },
               sound: 'default',
+              'content-available': 1,
             },
           },
         },
