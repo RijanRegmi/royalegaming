@@ -1853,7 +1853,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     <div
                       key={msg._id}
                       id={`msg-${msg._id}`}
-                      className={`message-bubble-row ${isUserMessage ? 'received' : 'sent'}`}
+                      className={`message-bubble-row ${isUserMessage ? 'received' : 'sent'} ${groupedReactions.length > 0 ? 'has-reactions' : ''}`}
                     >
                       {/* Emoji picker overlay */}
                       {activeEmojiPickerMessageId === msg._id && (

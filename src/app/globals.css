@@ -2382,51 +2382,60 @@ select option {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* Reaction Pills below bubble */
+/* Reaction Pills absolutely positioned like WhatsApp */
 .reaction-pills-container {
+  position: absolute;
+  bottom: -10px;
+  right: 12px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-  align-self: flex-start;
+  align-items: center;
+  background: #1f2c34; /* WhatsApp dark mode reaction badge background */
+  border: 2px solid #0b141a; /* WhatsApp border separation */
+  border-radius: var(--radius-full);
+  padding: 1px 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  z-index: 5;
 }
 
 .message-bubble-row.sent .reaction-pills-container {
-  align-self: flex-end;
+  right: 12px;
+  left: auto;
+}
+
+.message-bubble-row.received .reaction-pills-container {
+  right: 12px;
+  left: auto;
 }
 
 .reaction-pill {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  border-radius: var(--radius-full);
-  padding: 1px 6px;
-  font-size: 11px;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 2px !important;
+  font-size: 12px !important;
   display: flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: transform var(--transition-fast);
 }
 
 .reaction-pill:hover {
-  background: rgba(255, 255, 255, 0.12);
-  transform: scale(1.05);
-}
-
-.reaction-pill.my-reaction {
-  background: var(--accent-light);
-  border-color: rgba(0, 168, 132, 0.25);
-  color: var(--text-light);
+  transform: scale(1.15);
 }
 
 .reaction-pill-count {
-  color: var(--text-secondary);
-  font-size: 10px;
+  color: #8696a0; /* WhatsApp secondary text color */
+  font-size: 9px;
   font-weight: 600;
+  margin-left: 1px;
 }
 
 .reaction-pill.my-reaction .reaction-pill-count {
-  color: var(--text-light);
+  color: var(--accent-color);
+}
+
+.message-bubble-row.has-reactions {
+  margin-bottom: 16px !important;
 }
 
 /* Sidebar item online badge */

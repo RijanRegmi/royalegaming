@@ -249,6 +249,7 @@ export async function GET(req: NextRequest) {
         createdAt: user.createdAt,
         lastMessage: latestMessageMap.get(userIdStr) || null,
         unreadCount: unreadCountMap.get(userIdStr) || 0,
+        linkedAdmins: user.linkedAdmins || [],
       };
     });
 

@@ -3442,6 +3442,15 @@ export default function AdminSettingsPage() {
                     }}>
                       {profiles
                         .filter(p => p.role === 'admin' || p.role === 'super_admin')
+                        .sort((a, b) => {
+                          const aId = a._id || a.id;
+                          const bId = b._id || b.id;
+                          const aChecked = editUserLinkedAdmins.includes(aId);
+                          const bChecked = editUserLinkedAdmins.includes(bId);
+                          if (aChecked && !bChecked) return -1;
+                          if (!aChecked && bChecked) return 1;
+                          return 0;
+                        })
                         .map((admin) => {
                           const adminId = admin._id || admin.id;
                           const isChecked = editUserLinkedAdmins.includes(adminId);

@@ -1722,7 +1722,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                 id={`msg-${msg._id}`}
                 className={`message-bubble-row ${isMe ? 'sent' : 'received'} ${
                   !isMe && isSenderAdmin ? 'admin-sender' : ''
-                }`}
+                } ${groupedReactions.length > 0 ? 'has-reactions' : ''}`}
               >
                 {/* Emoji picker overlay */}
                 {activeEmojiPickerMessageId === msg._id && (
