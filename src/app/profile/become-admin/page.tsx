@@ -12,23 +12,35 @@ export default function BecomeAdminPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUser = async (isSilent = false) => {
       try {
         const res = await fetch('/api/auth/me');
         const data = await res.json();
         if (res.ok && data.authenticated) {
           setUser(data.user);
-        } else {
+        } else if (!isSilent) {
           router.push('/login');
         }
       } catch (err) {
         console.error('Fetch user error:', err);
-        setError('Failed to load profile details.');
+        if (!isSilent) {
+          setError('Failed to load profile details.');
+        }
       } finally {
-        setLoading(false);
+        if (!isSilent) {
+          setLoading(false);
+        }
       }
     };
+
     fetchUser();
+
+    // Poll for real-time special discount updates every 5 seconds
+    const interval = setInterval(() => {
+      fetchUser(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, [router]);
 
   const handlePurchase = async (planType: string) => {
