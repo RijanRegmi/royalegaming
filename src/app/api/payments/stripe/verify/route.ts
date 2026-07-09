@@ -30,9 +30,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    // Verify payment status
-    if (session.payment_status !== 'paid') {
-      return NextResponse.json({ success: false, message: 'Payment not completed yet' });
+    // Handle both payment mode and setup mode ($0 plans)
+    const isFreeSetup = session.metadata?.isFreeSetup === 'true';
+
+    if (isFreeSetup) {
+      // For setup mode, verify setup_intent status
+      if (session.status !== 'complete') {
+        return NextResponse.json({ success: false, message: 'Card setup not completed yet' });
+      }
+    } else {
+      // For payment mode, verify payment status
+      if (session.payment_status !== 'paid') {
+        return NextResponse.json({ success: false, message: 'Payment not completed yet' });
+      }
     }
 
     const sessionUserId = session.metadata?.userId;

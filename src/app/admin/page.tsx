@@ -907,7 +907,7 @@ export default function AdminSettingsPage() {
 
       setFeedback({ 
         type: 'success', 
-        message: `Successfully ${isFrozen ? 'frozen' : 'unfrozen'} account` 
+        message: `Successfully ${isFrozen ? 'frozen' : 'activated subscription for'} account` 
       });
     } catch (err) {
       setFeedback({ type: 'error', message: (err as Error).message });

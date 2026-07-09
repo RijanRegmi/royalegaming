@@ -100,7 +100,7 @@ export async function PUT(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Account successfully extended and unfrozen',
+      message: 'Subscription successfully extended and activated',
       user: {
         id: adminUser._id,
         name: adminUser.name,

@@ -65,7 +65,29 @@ export async function POST(req: NextRequest) {
 
     const origin = req.headers.get('origin') || 'https://royalegamingg.com';
 
-    // Create Stripe Checkout Session
+    // If amount is $0 or less, use Stripe Setup mode to collect a valid card
+    if (amount <= 0) {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        mode: 'setup',
+        metadata: {
+          userId: payload.userId,
+          planType: planType.toString(),
+          months: months.toString(),
+          isFreeSetup: 'true',
+        },
+        success_url: `${origin}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${origin}/payment/cancel`,
+      });
+
+      return NextResponse.json({
+        success: true,
+        sessionUrl: session.url,
+        sessionId: session.id,
+      });
+    }
+
+    // Create Stripe Checkout Session for paid plans
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       mode: 'payment',

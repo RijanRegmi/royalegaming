@@ -99,9 +99,12 @@ export default function BecomeAdminPage() {
     return () => clearInterval(interval);
   }, [router]);
 
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
   const handlePurchase = async (planType: string) => {
     setSubmittingPlan(planType);
     setError(null);
+    setSuccessMessage(null);
     try {
       const res = await fetch('/api/payments/stripe/session', {
         method: 'POST',
@@ -112,8 +115,61 @@ export default function BecomeAdminPage() {
       if (!res.ok) {
         throw new Error(data.error || 'Failed to initiate checkout session');
       }
-      if (data.sessionUrl) {
-        window.location.href = data.sessionUrl;
+      if (data.sessionUrl && data.sessionId) {
+        // Open Stripe in a popup window
+        const width = 500;
+        const height = 700;
+        const left = Math.round(window.screenX + (window.innerWidth - width) / 2);
+        const top = Math.round(window.screenY + (window.innerHeight - height) / 2);
+        const popup = window.open(
+          data.sessionUrl,
+          'stripe_checkout',
+          `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,resizable=yes`
+        );
+
+        if (!popup) {
+          // Popup blocked — fallback to redirect
+          window.location.href = data.sessionUrl;
+          return;
+        }
+
+        // Monitor the popup for redirect to success/cancel URL
+        const checkInterval = setInterval(async () => {
+          try {
+            if (popup.closed) {
+              clearInterval(checkInterval);
+              setSubmittingPlan(null);
+              return;
+            }
+            const currentUrl = popup.location.href;
+            if (currentUrl.includes('/payment/success')) {
+              clearInterval(checkInterval);
+              popup.close();
+              // Verify payment
+              const verifyRes = await fetch(`/api/payments/stripe/verify?session_id=${data.sessionId}`);
+              const verifyData = await verifyRes.json();
+              if (verifyRes.ok && verifyData.success) {
+                setSuccessMessage('Payment successful! Your account has been upgraded.');
+                // Refresh user data
+                const userRes = await fetch('/api/auth/me');
+                const userData = await userRes.json();
+                if (userRes.ok && userData.authenticated) {
+                  setUser(userData.user);
+                }
+              } else {
+                setSuccessMessage('Payment received! Your account will be activated shortly.');
+              }
+              setSubmittingPlan(null);
+            } else if (currentUrl.includes('/payment/cancel')) {
+              clearInterval(checkInterval);
+              popup.close();
+              setError('Payment was cancelled.');
+              setSubmittingPlan(null);
+            }
+          } catch {
+            // Cross-origin — popup is still on stripe.com, keep checking
+          }
+        }, 500);
       } else {
         throw new Error('Invalid server response: missing checkout URL');
       }
@@ -172,6 +228,13 @@ export default function BecomeAdminPage() {
         {error && (
           <div style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.25)', borderRadius: '12px', padding: '16px', color: '#fca5a5', fontSize: '14px', textAlign: 'center', marginBottom: '32px' }}>
             {error}
+          </div>
+        )}
+
+        {successMessage && (
+          <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.25)', borderRadius: '12px', padding: '16px', color: '#6ee7b7', fontSize: '14px', textAlign: 'center', marginBottom: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+            <Check size={18} style={{ color: '#10b981' }} />
+            {successMessage}
           </div>
         )}
 

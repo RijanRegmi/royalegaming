@@ -444,7 +444,7 @@ export async function PUT(req: NextRequest) {
 
           // Deactivate any active unfreeze notices to avoid clutter
           await Notice.updateMany(
-            { targetUserId: userId, title: 'Account Unfrozen' },
+            { targetUserId: userId, title: { $in: ['Account Unfrozen', 'Subscription Activated'] } },
             { $set: { isActive: false } }
           );
         } catch (msgError) {
@@ -460,8 +460,8 @@ export async function PUT(req: NextRequest) {
 
           // 2. Create a system notification confirming the unfreeze
           const unfreezeNotice = new Notice({
-            title: 'Account Unfrozen',
-            content: 'Your account has been successfully unfrozen by the Super Admin. Welcome back!',
+            title: 'Subscription Activated',
+            content: 'Your subscription has been activated successfully. Welcome back!',
             type: 'system',
             targetUserId: userId,
             targetRole: userToUpdate.role === 'admin' ? 'admin' : 'user',
@@ -470,8 +470,8 @@ export async function PUT(req: NextRequest) {
           await unfreezeNotice.save();
 
           // 3. Send push notification for the Notice
-          await sendPushNotification(userId, 'Account Unfrozen', {
-            content: 'Your account has been successfully unfrozen by the Super Admin. Welcome back!',
+          await sendPushNotification(userId, 'Subscription Activated', {
+            content: 'Your subscription has been activated successfully. Welcome back!',
             isSystem: true,
             chatUserId: userId,
             type: 'notice',
