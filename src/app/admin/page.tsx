@@ -1824,52 +1824,55 @@ export default function AdminSettingsPage() {
                                   <RefreshCw size={16} />
                                 </button>
                               )}
-                              {!isSelf && profile.role !== 'super_admin' && (
-                                <button 
-                                  className="icon-btn" 
-                                  title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
-                                  onClick={() => {
-                                    const billingStart = (profile as any).billingStartDate ? new Date((profile as any).billingStartDate) : new Date(profile.createdAt);
-                                    const deadline = new Date(billingStart.getTime() + 30 * 24 * 60 * 60 * 1000);
-                                    let effectiveDeadline = deadline;
-                                    if ((profile as any).extendedUntil && new Date((profile as any).extendedUntil) > deadline) {
-                                      effectiveDeadline = new Date((profile as any).extendedUntil);
-                                    }
-                                    const now = new Date();
-                                    const isCycleEnded = now > effectiveDeadline;
+                              {!isSelf && profile.role !== 'super_admin' && (() => {
+                                const billingStart = (profile as any).billingStartDate ? new Date((profile as any).billingStartDate) : new Date(profile.createdAt);
+                                const deadline = new Date(billingStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+                                let effectiveDeadline = deadline;
+                                if ((profile as any).extendedUntil && new Date((profile as any).extendedUntil) > deadline) {
+                                  effectiveDeadline = new Date((profile as any).extendedUntil);
+                                }
+                                const now = new Date();
+                                const isCycleEnded = now > effectiveDeadline;
+                                const isLocked = profile.isFrozen || (profile.role === 'admin' && isCycleEnded);
 
-                                    if (profile.isFrozen && isCycleEnded && profile.role === 'admin') {
+                                return (
+                                  <button 
+                                    className="icon-btn" 
+                                    title={profile.isFrozen ? "Unlock Account" : "Lock Account"}
+                                    onClick={() => {
+                                      if (profile.isFrozen && isCycleEnded && profile.role === 'admin') {
+                                        showConfirm({
+                                          title: 'Extend Cycle Required',
+                                          message: `The billing cycle for ${profile.name} has ended. You must extend their subscription cycle to unfreeze this account. Would you like to extend it now?`,
+                                          confirmText: 'Extend Cycle',
+                                          isDanger: false,
+                                          onConfirm: () => {
+                                            setExtendUserId(profileId);
+                                            setExtendUserName(profile.name);
+                                            setExtendDays('30');
+                                            setCustomDate('');
+                                            setShowExtendModal(true);
+                                          }
+                                        });
+                                        return;
+                                      }
+
+                                      const action = profile.isFrozen ? 'unlock' : 'lock';
                                       showConfirm({
-                                        title: 'Extend Cycle Required',
-                                        message: `The billing cycle for ${profile.name} has ended. You must extend their subscription cycle to unfreeze this account. Would you like to extend it now?`,
-                                        confirmText: 'Extend Cycle',
-                                        isDanger: false,
-                                        onConfirm: () => {
-                                          setExtendUserId(profileId);
-                                          setExtendUserName(profile.name);
-                                          setExtendDays('30');
-                                          setCustomDate('');
-                                          setShowExtendModal(true);
-                                        }
+                                        title: `${profile.isFrozen ? 'Unlock' : 'Lock'} Account`,
+                                        message: `Do you want to ${action} this account?`,
+                                        confirmText: profile.isFrozen ? 'Unlock' : 'Lock',
+                                        isDanger: !profile.isFrozen,
+                                        onConfirm: () => handleFreezeToggle(profileId, !profile.isFrozen)
                                       });
-                                      return;
-                                    }
-
-                                    const action = profile.isFrozen ? 'unlock' : 'lock';
-                                    showConfirm({
-                                      title: `${profile.isFrozen ? 'Unlock' : 'Lock'} Account`,
-                                      message: `Do you want to ${action} this account?`,
-                                      confirmText: profile.isFrozen ? 'Unlock' : 'Lock',
-                                      isDanger: !profile.isFrozen,
-                                      onConfirm: () => handleFreezeToggle(profileId, !profile.isFrozen)
-                                    });
-                                  }}
-                                  style={{ color: profile.isFrozen ? '#f59e0b' : '#10b981' }}
-                                  disabled={updatingId === profileId}
-                                >
-                                  {profile.isFrozen ? <Lock size={16} /> : <Unlock size={16} />}
-                                </button>
-                              )}
+                                    }}
+                                    style={{ color: isLocked ? '#ef4444' : '#10b981' }}
+                                    disabled={updatingId === profileId}
+                                  >
+                                    {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                                  </button>
+                                );
+                              })()}
                               {!isSelf && (
                                 <button 
                                   className="icon-btn" 
