@@ -1833,7 +1833,18 @@ export default function AdminSettingsPage() {
                                 }
                                 const now = new Date();
                                 const isCycleEnded = now > effectiveDeadline;
-                                const isLocked = profile.isFrozen || (profile.role === 'admin' && isCycleEnded);
+                                
+                                // Color logic:
+                                // - profile.isFrozen -> Red (#ef4444)
+                                // - !profile.isFrozen && isCycleEnded -> Yellow (#f59e0b)
+                                // - Otherwise -> Green (#10b981)
+                                const iconColor = profile.isFrozen 
+                                  ? '#ef4444' 
+                                  : (profile.role === 'admin' && isCycleEnded) 
+                                    ? '#f59e0b' 
+                                    : '#10b981';
+                                    
+                                const showLockedIcon = profile.isFrozen || (profile.role === 'admin' && isCycleEnded);
 
                                 return (
                                   <button 
@@ -1866,10 +1877,10 @@ export default function AdminSettingsPage() {
                                         onConfirm: () => handleFreezeToggle(profileId, !profile.isFrozen)
                                       });
                                     }}
-                                    style={{ color: isLocked ? '#ef4444' : '#10b981' }}
+                                    style={{ color: iconColor }}
                                     disabled={updatingId === profileId}
                                   >
-                                    {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                                    {showLockedIcon ? <Lock size={16} /> : <Unlock size={16} />}
                                   </button>
                                 );
                               })()}
@@ -2004,7 +2015,7 @@ export default function AdminSettingsPage() {
                                       onConfirm: () => handleFreezeToggle(profileId, !profile.isFrozen)
                                     });
                                   }}
-                                  style={{ color: profile.isFrozen ? '#f59e0b' : '#10b981' }}
+                                  style={{ color: profile.isFrozen ? '#ef4444' : '#10b981' }}
                                   disabled={updatingId === profileId}
                                 >
                                   {profile.isFrozen ? <Lock size={16} /> : <Unlock size={16} />}
