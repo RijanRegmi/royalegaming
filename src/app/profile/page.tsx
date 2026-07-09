@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react';
 import styles from './profile.module.css';
 import { useRouter } from 'next/navigation';
-import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X, Sun, Moon, Plus } from 'lucide-react';
+import { Mail, Phone, Lock, User as UserIcon, ArrowLeft, Eye, EyeOff, Loader2, Shield, LogOut, Pencil, Trash2, Heart, Image as ImageIcon, X, Sun, Moon, Plus, CreditCard } from 'lucide-react';
 import AdSenseBanner from '@/components/AdSenseBanner';
 import SponsoredPostCard from '@/components/SponsoredPostCard';
 import DoubleTapLikeImage from '@/components/DoubleTapLikeImage';
@@ -711,6 +711,106 @@ export default function ProfilePage() {
           }}>
             {user?.role === 'super_admin' ? 'Super Admin' : user?.role === 'admin' ? 'Admin' : 'Member'}
           </span>
+
+          {/* ── Become Admin / Upgrade / Extend subscription banners ── */}
+          {user && user.role === 'user' && (
+            <div style={{
+              background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(99, 102, 241, 0.1) 100%)',
+              border: '1px solid rgba(168, 85, 247, 0.3)',
+              borderRadius: '16px',
+              padding: '16px 20px',
+              marginTop: '20px',
+              textAlign: 'left',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '16px',
+              width: '100%',
+              maxWidth: '550px',
+              marginLeft: 'auto',
+              marginRight: 'auto'
+            }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <div style={{ color: '#c084fc', display: 'flex', alignItems: 'center' }}><Shield size={20} /></div>
+                <div>
+                  <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 800, color: '#fff' }}>Become an Administrator</h4>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)' }}>Configure custom checkout gateways, verify transactions, and manage players.</p>
+                </div>
+              </div>
+              <button
+                onClick={() => router.push('/profile/become-admin')}
+                className="btn-primary"
+                style={{ padding: '8px 16px', fontSize: '12px', width: 'auto', margin: 0, cursor: 'pointer' }}
+              >
+                Upgrade
+              </button>
+            </div>
+          )}
+
+          {user && user.role === 'admin' && (() => {
+            const billingStart = (user as any).billingStartDate ? new Date((user as any).billingStartDate) : new Date(user.createdAt || new Date());
+            const deadline = new Date(billingStart.getTime() + 30 * 24 * 60 * 60 * 1000);
+            let effectiveDeadline = deadline;
+            if ((user as any).extendedUntil && new Date((user as any).extendedUntil) > deadline) {
+              effectiveDeadline = new Date((user as any).extendedUntil);
+            }
+            const now = new Date();
+            const msRemaining = effectiveDeadline.getTime() - now.getTime();
+            const daysRemaining = Math.ceil(msRemaining / (24 * 60 * 60 * 1000));
+            const isCycleEnded = now > effectiveDeadline;
+
+            return (
+              <div style={{
+                background: isCycleEnded 
+                  ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(245, 158, 11, 0.05) 100%)'
+                  : 'linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 102, 241, 0.05) 100%)',
+                border: isCycleEnded 
+                  ? '1px solid rgba(239, 68, 68, 0.2)'
+                  : '1px solid rgba(16, 185, 129, 0.2)',
+                borderRadius: '16px',
+                padding: '16px 20px',
+                marginTop: '20px',
+                textAlign: 'left',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                width: '100%',
+                maxWidth: '550px',
+                marginLeft: 'auto',
+                marginRight: 'auto'
+              }}>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ color: isCycleEnded ? '#ef4444' : '#10b981', display: 'flex', alignItems: 'center' }}><CreditCard size={20} /></div>
+                  <div>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 800, color: '#fff' }}>
+                      {isCycleEnded ? 'Billing Cycle Ended' : 'Administrative Billing Cycle'}
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+                      {isCycleEnded 
+                        ? 'Your billing cycle expired. Extend now to resume your console access.'
+                        : `Plan expires in ${daysRemaining} day(s) (${effectiveDeadline.toLocaleDateString()}).`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push('/profile/become-admin')}
+                  className="btn-primary"
+                  style={{ 
+                    padding: '8px 16px', 
+                    fontSize: '12px', 
+                    width: 'auto', 
+                    margin: 0,
+                    cursor: 'pointer',
+                    background: isCycleEnded ? '#ef4444' : 'var(--accent-color)',
+                    borderColor: 'transparent'
+                  }}
+                >
+                  {isCycleEnded ? 'Renew Plan' : 'Extend'}
+                </button>
+              </div>
+            );
+          })()}
 
           {/* Toggle Form / Details Edit View Button for Admins */}
           {isUserAdmin && (

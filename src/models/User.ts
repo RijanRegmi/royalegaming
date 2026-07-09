@@ -17,6 +17,12 @@ const UserSchema = new Schema({
   isVerified: { type: Boolean, default: false },
   billingStartDate: { type: Date, default: Date.now },
   extendedUntil: { type: Date, default: null },
+  cyclePeriod: { type: Number, default: 1 },
+  specialDiscount: {
+    pricePerMonth: { type: Number, default: null },
+    totalPrice: { type: Number, default: null },
+    months: { type: Number, default: null }
+  },
   readNotices: [{ type: Schema.Types.ObjectId, ref: 'Notice', default: [] }],
 }, { timestamps: true });
 

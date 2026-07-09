@@ -25,7 +25,8 @@ import {
   Check,
   Key,
   CreditCard,
-  Search
+  Search,
+  Percent
 } from 'lucide-react';
 
 interface User {
@@ -42,6 +43,11 @@ interface User {
   isVerified?: boolean;
   createdAt: string;
   updatedAt?: string;
+  specialDiscount?: {
+    pricePerMonth: number | null;
+    totalPrice: number | null;
+    months: number | null;
+  };
 }
 
 import VerifiedBadge from '@/components/VerifiedBadge';
@@ -130,6 +136,15 @@ export default function AdminSettingsPage() {
   const [updatingUser, setUpdatingUser] = useState(false);
   const [editUserLinkedAdmins, setEditUserLinkedAdmins] = useState<string[]>([]);
   const [editUserVerified, setEditUserVerified] = useState<boolean>(false);
+
+  // --- Special Discount states ---
+  const [showSpecialDiscountModal, setShowSpecialDiscountModal] = useState<boolean>(false);
+  const [discountUserId, setDiscountUserId] = useState<string>('');
+  const [discountUserName, setDiscountUserName] = useState<string>('');
+  const [discountMonths, setDiscountMonths] = useState<string>('1');
+  const [discountPricePerMonth, setDiscountPricePerMonth] = useState<string>('');
+  const [discountTotalPrice, setDiscountTotalPrice] = useState<string>('');
+  const [savingDiscount, setSavingDiscount] = useState<boolean>(false);
 
   // --- Games management states ---
   const [games, setGames] = useState<Game[]>([]);
@@ -917,6 +932,71 @@ export default function AdminSettingsPage() {
     setEditUserLinkedAdmins(adminsList);
     setShowEditUserModal(true);
     setFeedback(null);
+  };
+
+  const openSpecialDiscountModal = (profile: User) => {
+    setDiscountUserId(profile.id || profile._id);
+    setDiscountUserName(profile.name);
+    setDiscountMonths(profile.specialDiscount?.months?.toString() || '1');
+    setDiscountPricePerMonth(profile.specialDiscount?.pricePerMonth?.toString() || '');
+    setDiscountTotalPrice(profile.specialDiscount?.totalPrice?.toString() || '');
+    setShowSpecialDiscountModal(true);
+    setFeedback(null);
+  };
+
+  const handleSaveSpecialDiscount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentUser?.role !== 'super_admin') {
+      setFeedback({ type: 'error', message: 'Forbidden: Only super admins can manage special discounts' });
+      return;
+    }
+    setSavingDiscount(true);
+    setFeedback(null);
+
+    try {
+      const isClearing = !discountPricePerMonth || !discountMonths;
+      const body = {
+        userId: discountUserId,
+        months: isClearing ? null : parseInt(discountMonths, 10),
+        pricePerMonth: isClearing ? null : parseFloat(discountPricePerMonth),
+        totalPrice: isClearing ? null : (discountTotalPrice ? parseFloat(discountTotalPrice) : null),
+      };
+
+      const res = await fetch('/api/admin/users/special-discount', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update special discount');
+      }
+
+      setProfiles((prev) =>
+        prev.map((p) =>
+          (p._id || p.id) === discountUserId
+            ? {
+                ...p,
+                specialDiscount: body.months === null
+                  ? undefined
+                  : {
+                      months: body.months,
+                      pricePerMonth: body.pricePerMonth,
+                      totalPrice: body.totalPrice || (body.months * (body.pricePerMonth || 0)),
+                    },
+              }
+            : p
+        )
+      );
+
+      setFeedback({ type: 'success', message: 'Successfully updated special discount' });
+      setShowSpecialDiscountModal(false);
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
+    } finally {
+      setSavingDiscount(false);
+    }
   };
 
   const handleSaveUser = async (e: React.FormEvent) => {
@@ -1808,6 +1888,14 @@ export default function AdminSettingsPage() {
                               >
                                 <Edit2 size={16} />
                               </button>
+                              <button 
+                                className="icon-btn" 
+                                title="Special Discount" 
+                                onClick={() => openSpecialDiscountModal(profile)}
+                                style={{ color: '#f59e0b' }}
+                              >
+                                <Percent size={16} />
+                              </button>
                               {profile.role === 'admin' && (
                                 <button 
                                   className="icon-btn" 
@@ -2000,6 +2088,14 @@ export default function AdminSettingsPage() {
                                 style={{ color: 'var(--accent-color)' }}
                               >
                                 <Edit2 size={16} />
+                              </button>
+                              <button 
+                                className="icon-btn" 
+                                title="Special Discount" 
+                                onClick={() => openSpecialDiscountModal(profile)}
+                                style={{ color: '#f59e0b' }}
+                              >
+                                <Percent size={16} />
                               </button>
                               {profile.role !== 'super_admin' && (
                                 <button 
@@ -3848,6 +3944,118 @@ export default function AdminSettingsPage() {
                 <button type="button" className="btn-secondary" style={{ width: 'auto', margin: 0, padding: '8px 16px' }} onClick={() => setShowPromoteModal(false)} disabled={promotingRole}>Cancel</button>
                 <button type="submit" className="btn-primary" style={{ width: 'auto', margin: 0, padding: '8px 20px' }} disabled={promotingRole}>
                   {promotingRole ? 'Promoting...' : 'Confirm Promotion'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Special Discount Modal */}
+      {showSpecialDiscountModal && (
+        <div className="modal-overlay" onClick={() => setShowSpecialDiscountModal(false)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+            <div className="modal-header">
+              <h2>Targeted Special Discount</h2>
+              <button className="icon-btn" onClick={() => setShowSpecialDiscountModal(false)}>
+                <X size={18} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSaveSpecialDiscount}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                  Configure a targeted discount plan for <strong style={{ color: '#fff' }}>{discountUserName}</strong>. They will see this exclusive price on their billing/upgrade screens.
+                </p>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Plan Duration (Months) *</label>
+                  <select 
+                    value={discountMonths} 
+                    onChange={(e) => {
+                      const newMonths = e.target.value;
+                      setDiscountMonths(newMonths);
+                      const price = parseFloat(discountPricePerMonth) || 0;
+                      setDiscountTotalPrice((parseInt(newMonths, 10) * price).toString());
+                    }}
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
+                    disabled={savingDiscount}
+                    required
+                  >
+                    <option value="1">1 Month</option>
+                    <option value="6">6 Months</option>
+                    <option value="12">12 Months</option>
+                  </select>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Custom Price Per Month ($ USD) *</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="number"
+                      placeholder="e.g. 299"
+                      className="form-input"
+                      value={discountPricePerMonth}
+                      onChange={(e) => {
+                        setDiscountPricePerMonth(e.target.value);
+                        const months = parseInt(discountMonths, 10) || 1;
+                        const price = parseFloat(e.target.value) || 0;
+                        setDiscountTotalPrice((months * price).toString());
+                      }}
+                      disabled={savingDiscount}
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Total Price ($ USD) *</label>
+                  <div className="input-wrapper">
+                    <input
+                      type="number"
+                      placeholder="e.g. 299"
+                      className="form-input"
+                      value={discountTotalPrice}
+                      onChange={(e) => setDiscountTotalPrice(e.target.value)}
+                      disabled={savingDiscount}
+                      min="0"
+                      step="0.01"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
+                  Clear inputs to remove the special discount and revert to standard plans.
+                </p>
+              </div>
+              
+              <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button 
+                  type="button" 
+                  className="btn-secondary" 
+                  style={{ width: 'auto', margin: 0, padding: '8px 16px' }} 
+                  onClick={async () => {
+                    // Set inputs to empty and trigger save immediately
+                    setDiscountPricePerMonth('');
+                    setDiscountTotalPrice('');
+                    setDiscountMonths('1');
+                    
+                    // Call save immediately by constructing dummy FormEvent
+                    const mockEvent = { preventDefault: () => {} } as React.FormEvent;
+                    
+                    // Use timeout to let state flush
+                    setTimeout(() => {
+                      const saveBtn = document.getElementById('save-discount-submit-btn');
+                      if (saveBtn) saveBtn.click();
+                    }, 50);
+                  }} 
+                  disabled={savingDiscount}
+                >
+                  Clear Discount
+                </button>
+                <button id="save-discount-submit-btn" type="submit" className="btn-primary" style={{ width: 'auto', margin: 0, padding: '8px 20px' }} disabled={savingDiscount}>
+                  {savingDiscount ? 'Saving...' : 'Save Discount'}
                 </button>
               </div>
             </form>
