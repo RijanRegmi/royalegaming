@@ -4013,11 +4013,11 @@ export default function AdminSettingsPage() {
                   <div className="input-wrapper">
                     <input
                       type="number"
-                      placeholder="e.g. 299"
+                      placeholder="Calculated automatically"
                       className="form-input"
                       value={discountTotalPrice}
-                      onChange={(e) => setDiscountTotalPrice(e.target.value)}
-                      disabled={savingDiscount}
+                      readOnly
+                      style={{ background: 'rgba(255,255,255,0.05)', cursor: 'not-allowed', color: '#94a3b8' }}
                       min="0"
                       step="0.01"
                       required

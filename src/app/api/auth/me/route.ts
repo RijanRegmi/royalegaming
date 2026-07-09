@@ -80,6 +80,7 @@ export async function GET(req: NextRequest) {
         isFrozen: user.isFrozen || false,
         billingStartDate: user.billingStartDate || null,
         extendedUntil: user.extendedUntil || null,
+        specialDiscount: user.specialDiscount || null,
       },
     });
   } catch (error) {
