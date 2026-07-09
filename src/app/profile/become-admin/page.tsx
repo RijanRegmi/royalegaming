@@ -163,21 +163,10 @@ export default function BecomeAdminPage() {
         </button>
 
         {/* Title Block */}
-        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(99, 102, 241, 0.15) 100%)', border: '1px solid rgba(168, 85, 247, 0.3)', borderRadius: '20px', padding: '6px 16px', marginBottom: '16px' }}>
-            <Sparkles size={14} style={{ color: '#c084fc' }} />
-            <span style={{ fontSize: '11px', fontWeight: 800, letterSpacing: '1.5px', color: '#c084fc', textTransform: 'uppercase' }}>
-              {isAlreadyAdmin ? 'Extend Subscription' : 'Become Administrator'}
-            </span>
-          </div>
-          <h1 style={{ fontSize: '36px', fontWeight: 900, margin: '0 0 16px 0', background: 'linear-gradient(to right, #ffffff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.5px' }}>
-            {isAlreadyAdmin ? 'Extend Your Administrative Limits' : 'Unlock Your Own Administrative Panel'}
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 900, margin: '0', color: '#fff', letterSpacing: '-0.5px' }}>
+            {isAlreadyAdmin ? 'Extend Subscription' : 'Become Administrator'}
           </h1>
-          <p style={{ fontSize: '15px', color: '#94a3b8', maxWidth: '600px', margin: '0 auto', lineHeight: '1.6' }}>
-            {isAlreadyAdmin 
-              ? 'Extend your active cycle seamlessly. Purchase extensions stack securely on top of your remaining time, taking effect after your current cycle ends.'
-              : 'Configure custom checkout gateways, verify transactions, broadcast announcements, direct-message players, and manage your community under your own unique slug.'}
-          </p>
         </div>
 
         {error && (
