@@ -21,7 +21,8 @@ const UserSchema = new Schema({
   specialDiscount: {
     pricePerMonth: { type: Number, default: null },
     totalPrice: { type: Number, default: null },
-    months: { type: Number, default: null }
+    months: { type: Number, default: null },
+    expiresAt: { type: Date, default: null }
   },
   readNotices: [{ type: Schema.Types.ObjectId, ref: 'Notice', default: [] }],
 }, { timestamps: true });

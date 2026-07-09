@@ -11,7 +11,7 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { userId, months, pricePerMonth, totalPrice } = await req.json();
+    const { userId, months, pricePerMonth, totalPrice, expiresInHours } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: 'Missing userId parameter' }, { status: 400 });
@@ -29,7 +29,8 @@ export async function PUT(req: NextRequest) {
           specialDiscount: {
             pricePerMonth: null,
             totalPrice: null,
-            months: null
+            months: null,
+            expiresAt: null
           }
         }
       });
@@ -45,12 +46,18 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid discount parameters' }, { status: 400 });
     }
 
+    let expiresAt: Date | null = null;
+    if (expiresInHours && parseInt(expiresInHours, 10) > 0) {
+      expiresAt = new Date(Date.now() + parseInt(expiresInHours, 10) * 60 * 60 * 1000);
+    }
+
     await User.findByIdAndUpdate(userId, {
       $set: {
         specialDiscount: {
           pricePerMonth: numPrice,
           totalPrice: numTotal,
-          months: numMonths
+          months: numMonths,
+          expiresAt: expiresAt
         }
       }
     });

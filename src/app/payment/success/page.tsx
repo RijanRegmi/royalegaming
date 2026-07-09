@@ -10,20 +10,31 @@ export default function PaymentSuccessPage() {
   const [userName, setUserName] = useState('');
 
   useEffect(() => {
-    let attempts = 0;
-    const maxAttempts = 15; // 30 seconds total
+    const searchParams = new URLSearchParams(window.location.search);
+    const sessionId = searchParams.get('session_id');
 
-    const checkUpgradeStatus = async () => {
+    if (!sessionId) {
+      setStatus('timeout');
+      return;
+    }
+
+    let attempts = 0;
+    const maxAttempts = 5;
+
+    const verifyTransaction = async () => {
       try {
-        const res = await fetch('/api/auth/me');
+        const res = await fetch(`/api/payments/stripe/verify?session_id=${sessionId}`);
         const data = await res.json();
         
-        if (res.ok && data.authenticated) {
-          setUserName(data.user.name);
-          if (data.user.role === 'admin' || data.user.role === 'super_admin') {
-            setStatus('success');
-            return;
+        if (res.ok && data.success) {
+          setStatus('success');
+          // Fetch user details to get name
+          const userRes = await fetch('/api/auth/me');
+          const userData = await userRes.json();
+          if (userRes.ok && userData.authenticated) {
+            setUserName(userData.user.name);
           }
+          return;
         }
       } catch (err) {
         console.error('Error verifying status:', err);
@@ -31,13 +42,13 @@ export default function PaymentSuccessPage() {
 
       attempts++;
       if (attempts < maxAttempts) {
-        setTimeout(checkUpgradeStatus, 2000);
+        setTimeout(verifyTransaction, 3000);
       } else {
         setStatus('timeout');
       }
     };
 
-    checkUpgradeStatus();
+    verifyTransaction();
   }, [router]);
 
   return (

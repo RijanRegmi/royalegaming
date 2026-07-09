@@ -4,6 +4,8 @@ import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
 
+import SubscriptionPlan from '@/models/SubscriptionPlan';
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_key_to_avoid_build_error_if_not_present');
 
 export async function POST(req: NextRequest) {
@@ -30,18 +32,25 @@ export async function POST(req: NextRequest) {
     let amount = 599.00; // in USD
     let planName = 'Rilogram Admin 1-Month Plan';
 
-    if (planType === '1') {
-      months = 1;
-      amount = 599.00;
-      planName = 'Rilogram Admin 1-Month Plan';
-    } else if (planType === '6') {
-      months = 6;
-      amount = 3294.00;
-      planName = 'Rilogram Admin 6-Month Plan';
-    } else if (planType === '12') {
-      months = 12;
-      amount = 5988.00;
-      planName = 'Rilogram Admin 12-Month Plan';
+    if (planType === '1' || planType === '6' || planType === '12') {
+      const plan = await SubscriptionPlan.findOne({ planId: planType });
+      if (!plan) {
+        // Fallback to bootstrap defaults if not found in db yet
+        if (planType === '1') {
+          months = 1;
+          amount = 599.00;
+        } else if (planType === '6') {
+          months = 6;
+          amount = 3294.00;
+        } else {
+          months = 12;
+          amount = 5988.00;
+        }
+      } else {
+        months = plan.months;
+        amount = plan.pricePerMonth * plan.months;
+      }
+      planName = `Rilogram Admin ${months}-Month Plan`;
     } else if (planType === 'special') {
       const discount = user.specialDiscount;
       if (!discount || discount.pricePerMonth === null || discount.months === null) {

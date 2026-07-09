@@ -84,7 +84,7 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   
   // Tab control
-  const [activeTab, setActiveTab] = useState<'users' | 'credentials' | 'payments' | 'notices' | 'games'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'credentials' | 'payments' | 'notices' | 'games' | 'billing'>('users');
   
   // Common states
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -144,6 +144,7 @@ export default function AdminSettingsPage() {
   const [discountMonths, setDiscountMonths] = useState<string>('1');
   const [discountPricePerMonth, setDiscountPricePerMonth] = useState<string>('');
   const [discountTotalPrice, setDiscountTotalPrice] = useState<string>('');
+  const [discountExpiresIn, setDiscountExpiresIn] = useState<string>('24');
   const [savingDiscount, setSavingDiscount] = useState<boolean>(false);
 
   // --- Games management states ---
@@ -200,6 +201,61 @@ export default function AdminSettingsPage() {
   const [extendDays, setExtendDays] = useState<string>('30');
   const [customDate, setCustomDate] = useState<string>('');
   const [extending, setExtending] = useState<boolean>(false);
+
+  // --- Default Billing Plans states ---
+  const [billingPlans, setBillingPlans] = useState<any[]>([]);
+  const [loadingBillingPlans, setLoadingBillingPlans] = useState<boolean>(true);
+  const [editingPlan, setEditingPlan] = useState<any | null>(null);
+  const [editPlanPrice, setEditPlanPrice] = useState<string>('');
+  const [updatingPlanPrice, setUpdatingPlanPrice] = useState<boolean>(false);
+
+  const fetchBillingPlans = async () => {
+    setLoadingBillingPlans(true);
+    try {
+      const res = await fetch('/api/payments/plans');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBillingPlans(data.plans || []);
+      }
+    } catch (err) {
+      console.error('Error fetching billing plans:', err);
+    } finally {
+      setLoadingBillingPlans(false);
+    }
+  };
+
+  const handleUpdatePlanPrice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPlan) return;
+
+    setUpdatingPlanPrice(true);
+    setFeedback(null);
+    try {
+      const res = await fetch('/api/admin/subscription-plans', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          planId: editingPlan.planId,
+          pricePerMonth: editPlanPrice,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update plan price');
+      }
+
+      setBillingPlans((prev) =>
+        prev.map((p) => (p.planId === editingPlan.planId ? { ...p, pricePerMonth: parseFloat(editPlanPrice) } : p))
+      );
+      setEditingPlan(null);
+      setFeedback({ type: 'success', message: 'Successfully updated default plan pricing!' });
+    } catch (err) {
+      setFeedback({ type: 'error', message: (err as Error).message });
+    } finally {
+      setUpdatingPlanPrice(false);
+    }
+  };
 
   const fetchNotices = useCallback(async () => {
     setLoadingNotices(true);
@@ -960,6 +1016,7 @@ export default function AdminSettingsPage() {
         months: isClearing ? null : parseInt(discountMonths, 10),
         pricePerMonth: isClearing ? null : parseFloat(discountPricePerMonth),
         totalPrice: isClearing ? null : (discountTotalPrice ? parseFloat(discountTotalPrice) : null),
+        expiresInHours: isClearing ? null : parseInt(discountExpiresIn, 10),
       };
 
       const res = await fetch('/api/admin/users/special-discount', {
@@ -984,6 +1041,7 @@ export default function AdminSettingsPage() {
                       months: body.months,
                       pricePerMonth: body.pricePerMonth,
                       totalPrice: body.totalPrice || (body.months * (body.pricePerMonth || 0)),
+                      expiresAt: body.expiresInHours ? new Date(Date.now() + body.expiresInHours * 60 * 60 * 1000).toISOString() : null,
                     },
               }
             : p
@@ -1482,6 +1540,33 @@ export default function AdminSettingsPage() {
             }}
           >
             <CreditCard size={16} /> Payment Channels
+          </button>
+        )}
+        {currentUser.role === 'super_admin' && (
+          <button
+            className={`tab-btn ${activeTab === 'billing' ? 'active' : ''}`}
+            onClick={() => {
+              setActiveTab('billing');
+              fetchBillingPlans();
+            }}
+            style={{
+              padding: '10px 18px',
+              fontSize: '14px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              borderBottom: activeTab === 'billing' ? '3px solid var(--super-admin-color)' : '3px solid transparent',
+              color: activeTab === 'billing' ? 'var(--text-primary)' : 'var(--text-secondary)',
+              background: 'none',
+              outline: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.2s',
+              flexShrink: 0,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <Percent size={16} /> Pricing Plans
           </button>
         )}
       </div>
@@ -2734,6 +2819,93 @@ export default function AdminSettingsPage() {
                           <Trash2 size={16} />
                         </button>
                       </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : activeTab === 'billing' && currentUser.role === 'super_admin' ? (
+        <div className="admin-table-container glass">
+          <div
+            style={{
+              padding: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              borderBottom: '1px solid var(--border-color)',
+            }}
+          >
+            <div>
+              <span style={{ fontWeight: 600, display: 'block' }}>Default Subscription Plans Pricing</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                Directly customize the standard pricing plans that display to all web and mobile app users.
+              </span>
+            </div>
+            <button className="icon-btn" title="Refresh data" onClick={fetchBillingPlans}>
+              <RefreshCw size={16} />
+            </button>
+          </div>
+
+          {loadingBillingPlans ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+              <div className="spinner"></div>
+            </div>
+          ) : billingPlans.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+              No subscription plans configured.
+            </div>
+          ) : (
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Plan Name</th>
+                  <th>Duration</th>
+                  <th>Original Default Monthly Rate</th>
+                  <th>Current Price Per Month</th>
+                  <th>Total Cost</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {billingPlans.map((plan) => (
+                  <tr key={plan.planId}>
+                    <td>
+                      <span style={{ fontWeight: 600 }}>{plan.name}</span>
+                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{plan.subtitle}</div>
+                    </td>
+                    <td>
+                      <span className="role-badge user" style={{ padding: '3px 8px' }}>
+                        {plan.months} Month(s)
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>
+                        $599 / month
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 700, color: 'var(--success-color)' }}>
+                        ${plan.pricePerMonth} / month
+                      </span>
+                    </td>
+                    <td>
+                      <span style={{ fontWeight: 600 }}>
+                        ${plan.pricePerMonth * plan.months}
+                      </span>
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button 
+                        className="btn-secondary" 
+                        style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: 0 }}
+                        onClick={() => {
+                          setEditingPlan(plan);
+                          setEditPlanPrice(plan.pricePerMonth.toString());
+                        }}
+                      >
+                        <Edit2 size={13} /> Edit Price
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -4024,6 +4196,26 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+
+                <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600 }}>Offer Expiration *</label>
+                  <select 
+                    value={discountExpiresIn} 
+                    onChange={(e) => setDiscountExpiresIn(e.target.value)}
+                    style={{ background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)', borderRadius: '8px', padding: '12px', color: '#fff', width: '100%' }}
+                    disabled={savingDiscount}
+                    required
+                  >
+                    <option value="1">1 Hour</option>
+                    <option value="6">6 Hours</option>
+                    <option value="12">12 Hours</option>
+                    <option value="24">24 Hours (1 Day)</option>
+                    <option value="48">48 Hours (2 Days)</option>
+                    <option value="72">72 Hours (3 Days)</option>
+                    <option value="168">1 Week</option>
+                    <option value="0">Never Expires</option>
+                  </select>
+                </div>
                 
                 <p style={{ margin: 0, fontSize: '11px', color: 'var(--text-muted)' }}>
                   Clear inputs to remove the special discount and revert to standard plans.
@@ -4056,6 +4248,81 @@ export default function AdminSettingsPage() {
                 </button>
                 <button id="save-discount-submit-btn" type="submit" className="btn-primary" style={{ width: 'auto', margin: 0, padding: '8px 20px' }} disabled={savingDiscount}>
                   {savingDiscount ? 'Saving...' : 'Save Discount'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Default Billing Plan Edit Price Modal */}
+      {editingPlan && (
+        <div className="modal-overlay" onClick={() => setEditingPlan(null)}>
+          <div className="modal-content glass" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+            <div className="modal-header">
+              <h2>Customize Plan Price</h2>
+              <button className="icon-btn" onClick={() => setEditingPlan(null)}>
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdatePlanPrice}>
+              <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ padding: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', borderRadius: '12px' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Target Subscription Plan</div>
+                  <div style={{ fontSize: '16px', fontWeight: 800, marginTop: '4px', color: '#fff' }}>{editingPlan.name}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>Cycle length: {editingPlan.months} month(s)</div>
+                </div>
+
+                <div className="form-group">
+                  <label>Custom Price Per Month ($ USD) *</label>
+                  <div className="input-wrapper">
+                    <Percent size={16} className="input-icon" />
+                    <input
+                      type="number"
+                      step="any"
+                      placeholder="e.g. 450"
+                      className="form-input"
+                      value={editPlanPrice}
+                      onChange={(e) => setEditPlanPrice(e.target.value)}
+                      disabled={updatingPlanPrice}
+                      required
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Resulting Total Price ($ USD)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    value={(() => {
+                      const p = parseFloat(editPlanPrice);
+                      if (isNaN(p) || p < 0) return '$0.00';
+                      return `$${(p * editingPlan.months).toFixed(2)}`;
+                    })()}
+                    disabled
+                    style={{ background: 'rgba(255,255,255,0.03)', color: 'var(--text-secondary)' }}
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ padding: '8px 16px' }}
+                  onClick={() => setEditingPlan(null)}
+                  disabled={updatingPlanPrice}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  style={{ width: 'auto', padding: '8px 20px', margin: 0 }}
+                  disabled={updatingPlanPrice}
+                >
+                  {updatingPlanPrice ? 'Saving Changes...' : 'Save Pricing'}
                 </button>
               </div>
             </form>

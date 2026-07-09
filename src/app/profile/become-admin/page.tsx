@@ -4,27 +4,83 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Check, Sparkles, Shield, Zap, CreditCard, Lock, Gift } from 'lucide-react';
 
+function PlanCountdown({ expiresAt }: { expiresAt: string }) {
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    const target = new Date(expiresAt).getTime();
+
+    const updateTimer = () => {
+      const now = Date.now();
+      const diff = target - now;
+
+      if (diff <= 0) {
+        setTimeLeft('Offer expired');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      const formatted = [
+        hours.toString().padStart(2, '0'),
+        minutes.toString().padStart(2, '0'),
+        seconds.toString().padStart(2, '0')
+      ].join(':');
+
+      setTimeLeft(`Expires in ${formatted}`);
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [expiresAt]);
+
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#ff4b6b', fontWeight: 800, background: 'rgba(255, 75, 107, 0.1)', padding: '4px 12px', borderRadius: '20px', marginTop: '8px', border: '1px solid rgba(255, 75, 107, 0.2)' }}>
+      <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#ff4b6b', animation: 'pulse 1.5s infinite' }} />
+      {timeLeft}
+      <style>{`
+        @keyframes pulse {
+          0% { transform: scale(0.95); opacity: 0.5; }
+          50% { transform: scale(1.1); opacity: 1; }
+          100% { transform: scale(0.95); opacity: 0.5; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function BecomeAdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
+  const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submittingPlan, setSubmittingPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchUser = async (isSilent = false) => {
+    const fetchUserAndPlans = async (isSilent = false) => {
       try {
-        const res = await fetch('/api/auth/me');
-        const data = await res.json();
-        if (res.ok && data.authenticated) {
-          setUser(data.user);
+        const userRes = await fetch('/api/auth/me');
+        const userData = await userRes.json();
+        if (userRes.ok && userData.authenticated) {
+          setUser(userData.user);
         } else if (!isSilent) {
           router.push('/login');
+          return;
+        }
+
+        const plansRes = await fetch('/api/payments/plans');
+        const plansData = await plansRes.json();
+        if (plansRes.ok && plansData.success) {
+          setPlans(plansData.plans || []);
         }
       } catch (err) {
-        console.error('Fetch user error:', err);
+        console.error('Fetch user or plans error:', err);
         if (!isSilent) {
-          setError('Failed to load profile details.');
+          setError('Failed to load profile or subscription plan details.');
         }
       } finally {
         if (!isSilent) {
@@ -33,11 +89,11 @@ export default function BecomeAdminPage() {
       }
     };
 
-    fetchUser();
+    fetchUserAndPlans();
 
-    // Poll for real-time special discount updates every 5 seconds
+    // Poll for real-time special discount and plan pricing updates every 5 seconds
     const interval = setInterval(() => {
-      fetchUser(true);
+      fetchUserAndPlans(true);
     }, 5000);
 
     return () => clearInterval(interval);
@@ -80,7 +136,12 @@ export default function BecomeAdminPage() {
   }
 
   const isAlreadyAdmin = user?.role === 'admin' || user?.role === 'super_admin';
-  const hasSpecialDiscount = user?.specialDiscount && user.specialDiscount.pricePerMonth !== null && user.specialDiscount.months !== null;
+  const hasSpecialDiscount = user?.specialDiscount && 
+    user.specialDiscount.pricePerMonth !== null && 
+    user.specialDiscount.months !== null &&
+    (!user.specialDiscount.expiresAt || new Date(user.specialDiscount.expiresAt) > new Date());
+
+  const specialMonths = hasSpecialDiscount ? user.specialDiscount.months : null;
 
   return (
     <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '40px 20px', fontFamily: 'var(--font-roboto, sans-serif)', position: 'relative', overflowX: 'hidden' }}>
@@ -125,157 +186,107 @@ export default function BecomeAdminPage() {
           </div>
         )}
 
-        {/* ── EXCLUSIVE SPECIAL OFFER BANNER ── */}
-        {hasSpecialDiscount && (
-          <div style={{
-            background: 'linear-gradient(135deg, rgba(168, 85, 247, 0.18) 0%, rgba(99, 102, 241, 0.08) 100%)',
-            border: '1px solid rgba(168, 85, 247, 0.35)',
-            borderRadius: '20px',
-            padding: '30px',
-            marginBottom: '40px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '24px',
-            boxShadow: '0 8px 32px rgba(168, 85, 247, 0.15)',
-            backdropFilter: 'blur(10px)',
-          }}>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-              <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'rgba(168, 85, 247, 0.2)', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', color: '#c084fc', flexShrink: 0 }}>
-                <Gift size={24} />
-              </div>
-              <div>
-                <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800, color: 'white' }}>Exclusive Offer Configured For You!</h3>
-                <p style={{ margin: 0, fontSize: '14px', color: '#cbd5e1', lineHeight: '1.5', maxWidth: '550px' }}>
-                  Super Admin has configured a special targeted discount cycle just for your account. Get upgraded/extended for only <strong style={{ color: '#c084fc' }}>${user.specialDiscount.pricePerMonth}/month</strong> (Total of ${user.specialDiscount.totalPrice}) for {user.specialDiscount.months} Month(s).
-                </p>
-              </div>
-            </div>
-            
-            <button
-              onClick={() => handlePurchase('special')}
-              disabled={submittingPlan !== null}
-              style={{
-                background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '30px',
-                padding: '14px 28px',
-                fontSize: '14px',
-                fontWeight: 700,
-                cursor: 'pointer',
-                boxShadow: '0 4px 15px rgba(168, 85, 247, 0.4)',
-                transition: 'all 0.2s',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(168, 85, 247, 0.5)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(168, 85, 247, 0.4)'; }}
-            >
-              {submittingPlan === 'special' ? 'Redirecting...' : 'Redeem Offer'}
-            </button>
-          </div>
-        )}
-
         {/* Pricing Layout */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '30px', marginBottom: '64px' }}>
-          
-          {/* Plan 1: 1 Month */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '36px 30px', display: 'flex', flexDirection: 'column', position: 'relative', transition: 'all 0.3s' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 10px 0', color: '#fff' }}>1 Month Plan</h2>
-            <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 24px 0' }}>Perfect for testing administrative tools</p>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '30px' }}>
-              <span style={{ fontSize: '40px', fontWeight: 900, color: '#fff' }}>$599</span>
-              <span style={{ fontSize: '14px', color: '#94a3b8' }}>/month</span>
-            </div>
-            <button
-              onClick={() => handlePurchase('1')}
-              disabled={submittingPlan !== null}
-              style={{ width: '100%', padding: '14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', marginBottom: '30px' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#000'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
-            >
-              {submittingPlan === '1' ? 'Opening Stripe...' : 'Purchase Plan'}
-            </button>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <PlanFeature text="Full Admin Panel Console" />
-              <PlanFeature text="Custom Checkout gateways" />
-              <PlanFeature text="Custom Invite Codes" />
-              <PlanFeature text="24/7 Support Hotline" />
-            </div>
-          </div>
+          {plans.map((plan: any) => {
+              const isSpecial = specialMonths === plan.months;
+              const price = isSpecial ? user.specialDiscount.pricePerMonth : plan.pricePerMonth;
+              const totalPrice = isSpecial ? user.specialDiscount.totalPrice : (plan.pricePerMonth * plan.months);
+              const showPopular = plan.isPopular && !isSpecial;
 
-          {/* Plan 2: 6 Months (Popular) */}
-          <div style={{ background: 'rgba(168, 85, 247, 0.02)', border: '2px solid #a855f7', borderRadius: '24px', padding: '36px 30px', display: 'flex', flexDirection: 'column', position: 'relative', transition: 'all 0.3s', boxShadow: '0 10px 30px rgba(168, 85, 247, 0.1)' }}>
-            <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#a855f7', color: '#fff', fontSize: '10px', fontWeight: 800, padding: '4px 14px', borderRadius: '12px', letterSpacing: '1px', textTransform: 'uppercase' }}>
-              Most Popular
-            </div>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 10px 0', color: '#fff' }}>6 Month Plan</h2>
-            <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 24px 0' }}>Save big with half-year cycle extension</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '30px' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '40px', fontWeight: 900, color: '#fff' }}>$549</span>
-                <span style={{ fontSize: '14px', color: '#94a3b8' }}>/month</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '12px', color: '#ef4444', textDecoration: 'line-through' }}>$3,594</span>
-                <span style={{ fontSize: '12px', color: '#25d366', fontWeight: 700 }}>$3,294 total (Save 10%)</span>
-              </div>
-            </div>
-            <button
-              onClick={() => handlePurchase('6')}
-              disabled={submittingPlan !== null}
-              style={{ width: '100%', padding: '14px', background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)', border: 'none', borderRadius: '14px', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', marginBottom: '30px', boxShadow: '0 4px 15px rgba(168, 85, 247, 0.2)' }}
-              onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 18px rgba(168, 85, 247, 0.3)'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 4px 15px rgba(168, 85, 247, 0.2)'; }}
-            >
-              {submittingPlan === '6' ? 'Opening Stripe...' : 'Purchase Plan'}
-            </button>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <PlanFeature text="Full Admin Panel Console" />
-              <PlanFeature text="Custom Checkout gateways" />
-              <PlanFeature text="Custom Invite Codes" />
-              <PlanFeature text="24/7 Support Hotline" />
-              <PlanFeature text="Priority Webhook validation" />
-            </div>
-          </div>
+              return (
+                <div 
+                  key={plan.planId}
+                  style={{ 
+                    background: isSpecial ? 'rgba(168, 85, 247, 0.03)' : (showPopular ? 'rgba(168, 85, 247, 0.02)' : 'rgba(255,255,255,0.02)'), 
+                    border: isSpecial ? '2px solid #a855f7' : (showPopular ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.05)'), 
+                    borderRadius: '24px', 
+                    padding: '36px 30px', 
+                    display: 'flex', 
+                    flexDirection: 'column', 
+                    position: 'relative', 
+                    transition: 'all 0.3s',
+                    boxShadow: (isSpecial || showPopular) ? '0 10px 30px rgba(168, 85, 247, 0.15)' : 'none'
+                  }}
+                >
+                  {(isSpecial || showPopular) && (
+                    <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#a855f7', color: '#fff', fontSize: '10px', fontWeight: 900, padding: '4px 14px', borderRadius: '12px', letterSpacing: '1.2px', textTransform: 'uppercase' }}>
+                      {isSpecial ? 'Special Offer For You' : 'Most Popular'}
+                    </div>
+                  )}
+                  <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 10px 0', color: '#fff' }}>{plan.name}</h2>
+                  <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 24px 0' }}>{plan.subtitle}</p>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '30px' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                      <span style={{ fontSize: '40px', fontWeight: 900, color: '#fff' }}>${price}</span>
+                      <span style={{ fontSize: '14px', color: '#94a3b8' }}>/month</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      {isSpecial ? (
+                        <>
+                          <span style={{ fontSize: '12px', color: '#ef4444', textDecoration: 'line-through' }}>${plan.pricePerMonth * plan.months}</span>
+                          <span style={{ fontSize: '12px', color: '#25d366', fontWeight: 700 }}>${totalPrice} total</span>
+                        </>
+                      ) : (
+                        plan.months > 1 && (
+                          <>
+                            <span style={{ fontSize: '12px', color: '#ef4444', textDecoration: 'line-through' }}>${599 * plan.months}</span>
+                            <span style={{ fontSize: '12px', color: '#25d366', fontWeight: 700 }}>${totalPrice} total (Save {Math.round((1 - (plan.pricePerMonth / 599)) * 100)}%)</span>
+                          </>
+                        )
+                      )}
+                    </div>
+                    {isSpecial && user.specialDiscount.expiresAt && <PlanCountdown expiresAt={user.specialDiscount.expiresAt} />}
+                  </div>
 
-          {/* Plan 3: 12 Months */}
-          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '36px 30px', display: 'flex', flexDirection: 'column', position: 'relative', transition: 'all 0.3s' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 800, margin: '0 0 10px 0', color: '#fff' }}>12 Month Plan</h2>
-            <p style={{ fontSize: '13px', color: '#94a3b8', margin: '0 0 24px 0' }}>Ultimate value for professional managers</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: '30px' }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '40px', fontWeight: 900, color: '#fff' }}>$499</span>
-                <span style={{ fontSize: '14px', color: '#94a3b8' }}>/month</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <span style={{ fontSize: '12px', color: '#ef4444', textDecoration: 'line-through' }}>$7,188</span>
-                <span style={{ fontSize: '12px', color: '#25d366', fontWeight: 700 }}>$5,988 total (Save 16.7%)</span>
-              </div>
-            </div>
-            <button
-              onClick={() => handlePurchase('12')}
-              disabled={submittingPlan !== null}
-              style={{ width: '100%', padding: '14px', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '14px', color: '#fff', fontSize: '14px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s', marginBottom: '30px' }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#000'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = '#fff'; }}
-            >
-              {submittingPlan === '12' ? 'Opening Stripe...' : 'Purchase Plan'}
-            </button>
-            <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <PlanFeature text="Full Admin Panel Console" />
-              <PlanFeature text="Custom Checkout gateways" />
-              <PlanFeature text="Custom Invite Codes" />
-              <PlanFeature text="24/7 Support Hotline" />
-              <PlanFeature text="Premium Hosting Bandwidth" />
-              <PlanFeature text="Zero Commission Processing" />
-            </div>
+                  <button
+                    onClick={() => handlePurchase(isSpecial ? 'special' : plan.planId)}
+                    disabled={submittingPlan !== null}
+                    style={{ 
+                      width: '100%', 
+                      padding: '14px', 
+                      background: (isSpecial || showPopular) ? 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)' : 'rgba(255,255,255,0.06)', 
+                      border: (isSpecial || showPopular) ? 'none' : '1px solid rgba(255,255,255,0.1)', 
+                      borderRadius: '14px', 
+                      color: '#fff', 
+                      fontSize: '14px', 
+                      fontWeight: 700, 
+                      cursor: 'pointer', 
+                      transition: 'all 0.2s', 
+                      marginBottom: '30px',
+                      boxShadow: (isSpecial || showPopular) ? '0 4px 15px rgba(168, 85, 247, 0.2)' : 'none'
+                    }}
+                    onMouseEnter={(e) => { 
+                      if (isSpecial || showPopular) {
+                        e.currentTarget.style.transform = 'translateY(-1px)'; 
+                        e.currentTarget.style.boxShadow = '0 6px 18px rgba(168, 85, 247, 0.3)'; 
+                      } else {
+                        e.currentTarget.style.background = '#fff'; 
+                        e.currentTarget.style.color = '#000'; 
+                      }
+                    }}
+                    onMouseLeave={(e) => { 
+                      if (isSpecial || showPopular) {
+                        e.currentTarget.style.transform = 'translateY(0)'; 
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(168, 85, 247, 0.2)'; 
+                      } else {
+                        e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; 
+                        e.currentTarget.style.color = '#fff'; 
+                      }
+                    }}
+                  >
+                    {submittingPlan === plan.planId || (isSpecial && submittingPlan === 'special') ? 'Opening Stripe...' : 'Purchase Plan'}
+                  </button>
+                  <div style={{ borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {plan.features.map((feature: string, idx: number) => (
+                      <PlanFeature key={idx} text={feature} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-
-        </div>
 
         {/* Feature Grid Details */}
         <div style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '24px', padding: '40px 30px' }}>
