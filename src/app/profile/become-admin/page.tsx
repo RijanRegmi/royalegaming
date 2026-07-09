@@ -144,7 +144,7 @@ export default function BecomeAdminPage() {
   const specialMonths = hasSpecialDiscount ? user.specialDiscount.months : null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000', color: '#fff', padding: '40px 20px', fontFamily: 'var(--font-roboto, sans-serif)', position: 'relative', overflowX: 'hidden' }}>
+    <div style={{ height: '100vh', overflowY: 'auto', background: '#000', color: '#fff', padding: '40px 20px', fontFamily: 'var(--font-sans, sans-serif)', position: 'relative', overflowX: 'hidden' }}>
       
       {/* Background Glowing Orbs */}
       <div style={{ position: 'absolute', top: '-10%', left: '-10%', width: '400px', height: '400px', background: 'radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 70%)', filter: 'blur(50px)', pointerEvents: 'none' }} />
