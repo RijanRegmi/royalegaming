@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   let onPresence: ((presence: any) => void) | undefined;
   let onUserFreeze: ((data: any) => void) | undefined;
   let onUserRole: ((data: any) => void) | undefined;
+  let onUserLink: ((data: any) => void) | undefined;
   let cleaned = false;
 
   const cleanup = () => {
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
     if (onPresence) chatEmitter.off('presence', onPresence);
     if (onUserFreeze) chatEmitter.off('user_freeze', onUserFreeze);
     if (onUserRole) chatEmitter.off('user_role', onUserRole);
+    if (onUserLink) chatEmitter.off('user_link', onUserLink);
 
     // Decrement connection count for this user
     const onlineUsers = (global as any).onlineUsers;
@@ -193,11 +195,19 @@ export async function GET(req: NextRequest) {
         } catch (e) {}
       };
 
+      // Listen for user manual linking notifications
+      onUserLink = (data: any) => {
+        try {
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'user_link', ...data })}\n\n`));
+        } catch (e) {}
+      };
+
       chatEmitter.on('message', onMessage);
       chatEmitter.on('message_update', onMessageUpdate);
       chatEmitter.on('presence', onPresence);
       chatEmitter.on('user_freeze', onUserFreeze);
       chatEmitter.on('user_role', onUserRole);
+      chatEmitter.on('user_link', onUserLink);
     },
     cancel() {
       cleanup();

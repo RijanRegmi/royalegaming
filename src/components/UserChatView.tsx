@@ -911,6 +911,13 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
           return;
         }
 
+        if (data.type === 'user_link') {
+          if (data.userId === currentUser.id) {
+            window.location.reload();
+          }
+          return;
+        }
+
         if (data.isChatCleared) {
           const currentAdmin = selectedAdminRef.current;
           const currentAdminId = currentAdmin ? (currentAdmin._id || currentAdmin.id)?.toString() : '';
@@ -1992,25 +1999,7 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       )}
 
       {/* Input Form */}
-      {currentUser.isManuallyLinked && selectedAdmin && selectedAdmin.role !== 'super_admin' ? (
-        <div style={{
-          padding: '20px',
-          background: 'rgba(255, 255, 255, 0.02)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px',
-          color: '#cbd5e1',
-          fontSize: '13.5px',
-          fontWeight: 500,
-          textAlign: 'center'
-        }}>
-          <Shield size={18} style={{ color: '#ffb400' }} />
-          <span>Please contact the Support Chat/Team directly for assistance.</span>
-        </div>
-      ) : (
-        <form className="chat-input-bar" onSubmit={handleSendMessage}>
+      <form className="chat-input-bar" onSubmit={handleSendMessage}>
           <input 
             type="file" 
             ref={fileInputRef} 
@@ -2099,7 +2088,6 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
             </>
           )}
         </form>
-      )}
     </>
   ) : (
           <div className="chat-empty-state" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>

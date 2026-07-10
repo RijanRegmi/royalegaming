@@ -1001,6 +1001,14 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
           return;
         }
 
+        if (data.type === 'user_link') {
+          const adminIds = data.adminIds || [];
+          if (adminIds.includes(currentUser.id) || currentUser.role === 'super_admin') {
+            fetchUsers();
+          }
+          return;
+        }
+
         const currentSelected = selectedUserRef.current;
 
         if (data.isChatCleared) {

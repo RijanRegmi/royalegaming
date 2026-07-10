@@ -290,9 +290,6 @@ export async function POST(req: NextRequest) {
         if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
           return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
         }
-        if (userObj && userObj.isManuallyLinked) {
-          return NextResponse.json({ error: 'Messaging this administrator is disabled.' }, { status: 403 });
-        }
       }
 
       recipientId = reqAdminId;

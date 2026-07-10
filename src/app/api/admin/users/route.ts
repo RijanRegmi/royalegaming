@@ -499,11 +499,64 @@ export async function PUT(req: NextRequest) {
         newlyLinkedAdmins = targetAdmins.filter((id: string) => !previousAdmins.includes(id));
         if (newlyLinkedAdmins.length > 0) {
           userToUpdate.isManuallyLinked = true;
+          
+          // Auto-insert system messages for the newly linked admin(s)
+          try {
+            const primarySuperAdmin = await User.findOne({ role: 'super_admin' }).sort({ createdAt: 1 }).select('_id');
+            const primarySuperAdminId = primarySuperAdmin ? primarySuperAdmin._id : userToUpdate._id;
+            
+            for (const newAdminId of newlyLinkedAdmins) {
+              const systemMsg1 = new Message({
+                senderId: primarySuperAdminId,
+                recipientId: userToUpdate._id,
+                chatUserId: userToUpdate._id,
+                adminId: new mongoose.Types.ObjectId(newAdminId),
+                content: 'Referred by Support Team',
+                isSystem: true,
+              });
+              await systemMsg1.save();
+              
+              const systemMsg2 = new Message({
+                senderId: primarySuperAdminId,
+                recipientId: userToUpdate._id,
+                chatUserId: userToUpdate._id,
+                adminId: new mongoose.Types.ObjectId(newAdminId),
+                content: `${userToUpdate.name} has joined the chat`,
+                isSystem: true,
+              });
+              await systemMsg2.save();
+              
+              // Populate and emit systemMsg1
+              const populatedMsg1 = await Message.findById(systemMsg1._id)
+                .populate('senderId', 'name email role avatar isVerified')
+                .populate('recipientId', 'name email role avatar isVerified');
+              if (populatedMsg1) {
+                chatEmitter.emit('message', populatedMsg1);
+              }
+              
+              // Populate and emit systemMsg2
+              const populatedMsg2 = await Message.findById(systemMsg2._id)
+                .populate('senderId', 'name email role avatar isVerified')
+                .populate('recipientId', 'name email role avatar isVerified');
+              if (populatedMsg2) {
+                chatEmitter.emit('message', populatedMsg2);
+              }
+            }
+          } catch (err) {
+            console.error('Error creating system messages during linking:', err);
+          }
         }
       }
     }
 
     await userToUpdate.save();
+
+    if (linkedAdmins !== undefined) {
+      chatEmitter.emit('user_link', {
+        userId: userToUpdate._id.toString(),
+        adminIds: (userToUpdate.linkedAdmins || []).map((id: any) => id.toString()),
+      });
+    }
 
     if (hasFrozenChanged) {
       chatEmitter.emit('user_freeze', { 
