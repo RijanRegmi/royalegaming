@@ -283,10 +283,15 @@ export async function POST(req: NextRequest) {
       }
 
       // Verify link (allow if target is super_admin)
-      if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
-        const targetAdmin = await User.findById(reqAdminId);
-        if (!targetAdmin || targetAdmin.role !== 'super_admin') {
+      const targetAdmin = await User.findById(reqAdminId);
+      const isTargetSuperAdmin = targetAdmin && targetAdmin.role === 'super_admin';
+
+      if (!isTargetSuperAdmin) {
+        if (!userObj || !userObj.linkedAdmins.map((id: any) => id.toString()).includes(reqAdminId)) {
           return NextResponse.json({ error: 'You are not linked to this administrator' }, { status: 403 });
+        }
+        if (userObj && userObj.isManuallyLinked) {
+          return NextResponse.json({ error: 'Messaging this administrator is disabled.' }, { status: 403 });
         }
       }
 
@@ -319,6 +324,9 @@ export async function POST(req: NextRequest) {
           // Verify standard admin is linked to this player
           if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
             return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
+          }
+          if (targetUser && targetUser.isManuallyLinked) {
+            return NextResponse.json({ error: 'Messaging this user is disabled.' }, { status: 403 });
           }
           adminIdStr = payload.userId;
         }

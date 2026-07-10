@@ -1573,6 +1573,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     );
   }
 
+  const isManuallyBlocked = selectedUser?.isManuallyLinked && currentUser.role !== 'super_admin';
+
   return (
     <div className={`dashboard-container ${selectedUser ? 'has-selected-user' : ''}`}>
       {/* Left Sidebar */}
@@ -2077,7 +2079,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             </div>
 
             {/* File Preview Bar */}
-            {selectedFile && (
+            {selectedFile && !isManuallyBlocked && (
               <div className="file-preview-bar">
                 <div className="file-preview-card">
                   {fileType === 'image' && filePreview ? (
@@ -2099,7 +2101,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             )}
 
             {/* Reply Preview Bar */}
-            {replyingToMessage && (
+            {replyingToMessage && !isManuallyBlocked && (
               <div className="reply-preview-bar">
                 <div className="reply-preview-content">
                   <span className="reply-preview-title">
@@ -2123,7 +2125,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               </div>
             )}
 
-            {currentUser.isFrozen && selectedUser?.role !== 'super_admin' && (
+            {currentUser.isFrozen && selectedUser?.role !== 'super_admin' && !isManuallyBlocked && (
               <div style={{
                 background: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -2143,7 +2145,26 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             )}
 
             {/* Chat Input Form */}
-            <form className="chat-input-bar" onSubmit={handleSendMessage}>
+            {isManuallyBlocked ? (
+              <div style={{
+                padding: '20px',
+                background: 'rgba(255, 255, 255, 0.02)',
+                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                color: '#cbd5e1',
+                fontSize: '13.5px',
+                fontWeight: 500,
+                textAlign: 'center',
+                width: '100%'
+              }}>
+                <Shield size={18} style={{ color: '#ffb400' }} />
+                <span>Messaging with this user is disabled. Please contact the Support Chat/Team.</span>
+              </div>
+            ) : (
+              <form className="chat-input-bar" onSubmit={handleSendMessage}>
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -2297,6 +2318,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 </>
               )}
             </form>
+            )}
           </>
         ) : (
           <div className="chat-empty-state">

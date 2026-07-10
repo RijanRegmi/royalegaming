@@ -18,6 +18,7 @@ interface UserChatViewProps {
     username?: string;
     linkedAdmins?: Array<{ _id: string; name: string; username: string; avatar?: string; role?: string }>;
     isFrozen?: boolean;
+    isManuallyLinked?: boolean;
   };
 }
 
@@ -1991,95 +1992,114 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
       )}
 
       {/* Input Form */}
-      <form className="chat-input-bar" onSubmit={handleSendMessage}>
-        <input 
-          type="file" 
-          ref={fileInputRef} 
-          style={{ display: 'none' }} 
-          onChange={handleFileChange}
-          accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
-        />
-        
-        {!isRecording && (
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button 
-              type="button" 
-              className="chat-action-btn" 
-              onClick={triggerFileSelect} 
-              title="Attach file or image"
-              disabled={sending}
-            >
-              <Paperclip size={20} />
-            </button>
-            <button 
-              type="button" 
-              className="chat-action-btn" 
-              onClick={() => setShowPaymentModal(true)} 
-              title="View Payment QR Codes"
-              disabled={sending}
-            >
-              <CreditCard size={20} />
-            </button>
-          </div>
-        )}
+      {currentUser.isManuallyLinked && selectedAdmin && selectedAdmin.role !== 'super_admin' ? (
+        <div style={{
+          padding: '20px',
+          background: 'rgba(255, 255, 255, 0.02)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.05)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '10px',
+          color: '#cbd5e1',
+          fontSize: '13.5px',
+          fontWeight: 500,
+          textAlign: 'center'
+        }}>
+          <Shield size={18} style={{ color: '#ffb400' }} />
+          <span>Please contact the Support Chat/Team directly for assistance.</span>
+        </div>
+      ) : (
+        <form className="chat-input-bar" onSubmit={handleSendMessage}>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            style={{ display: 'none' }} 
+            onChange={handleFileChange}
+            accept="image/*,.pdf,.doc,.docx,.txt,.xls,.xlsx,.zip,.rar"
+          />
+          
+          {!isRecording && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                type="button" 
+                className="chat-action-btn" 
+                onClick={triggerFileSelect} 
+                title="Attach file or image"
+                disabled={sending}
+              >
+                <Paperclip size={20} />
+              </button>
+              <button 
+                type="button" 
+                className="chat-action-btn" 
+                onClick={() => setShowPaymentModal(true)} 
+                title="View Payment QR Codes"
+                disabled={sending}
+              >
+                <CreditCard size={20} />
+              </button>
+            </div>
+          )}
 
-        {isRecording ? (
-          <div className="voice-recording-banner">
-            <div className="recording-indicator">
-              <div className="recording-status-dot" />
-              <span>Recording voice note...</span>
-              <span className="recording-timer">{formatRecordingTime(recordingTime)}</span>
+          {isRecording ? (
+            <div className="voice-recording-banner">
+              <div className="recording-indicator">
+                <div className="recording-status-dot" />
+                <span>Recording voice note...</span>
+                <span className="recording-timer">{formatRecordingTime(recordingTime)}</span>
+              </div>
+              <div className="recording-actions">
+                <button 
+                  type="button" 
+                  className="recording-action-btn cancel" 
+                  onClick={handleCancelRecording}
+                  title="Cancel recording"
+                >
+                  <X size={18} />
+                </button>
+                <button 
+                  type="button" 
+                  className="recording-action-btn send" 
+                  onClick={handleStopRecording}
+                  title="Send recording"
+                >
+                  <Send size={16} fill="white" />
+                </button>
+              </div>
             </div>
-            <div className="recording-actions">
-              <button 
-                type="button" 
-                className="recording-action-btn cancel" 
-                onClick={handleCancelRecording}
-                title="Cancel recording"
-              >
-                <X size={18} />
-              </button>
-              <button 
-                type="button" 
-                className="recording-action-btn send" 
-                onClick={handleStopRecording}
-                title="Send recording"
-              >
-                <Send size={16} fill="white" />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <div className="chat-input-wrapper">
-              <input
-                type="text"
-                placeholder={selectedFile ? "Add a caption..." : "Type a message to admins..."}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                disabled={sending}
-              />
-            </div>
-            
-            {/* Toggle Mic / Send Button */}
-            {inputText.trim() || selectedFile ? (
-              <button type="submit" className="send-btn" disabled={sending}>
-                {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} fill="white" />}
-              </button>
-            ) : (
-              <button 
-                type="button" 
-                className="send-btn" 
-                onClick={handleStartRecording} 
-                title="Record voice message"
-                disabled={sending}
-              >
-                <Mic size={18} fill="white" />
-              </button>
-            )}
-          </>
-        )}
-      </form>
+          ) : (
+            <>
+              <div className="chat-input-wrapper">
+                <input
+                  type="text"
+                  placeholder={selectedFile ? "Add a caption..." : "Type a message to admins..."}
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  disabled={sending}
+                />
+              </div>
+              
+              {/* Toggle Mic / Send Button */}
+              {inputText.trim() || selectedFile ? (
+                <button type="submit" className="send-btn" disabled={sending}>
+                  {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} fill="white" />}
+                </button>
+              ) : (
+                <button 
+                  type="button" 
+                  className="send-btn" 
+                  onClick={handleStartRecording} 
+                  title="Record voice message"
+                  disabled={sending}
+                >
+                  <Mic size={18} fill="white" />
+                </button>
+              )}
+            </>
+          )}
+        </form>
+      )}
     </>
   ) : (
           <div className="chat-empty-state" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>

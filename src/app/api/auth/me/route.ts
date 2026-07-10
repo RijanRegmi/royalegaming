@@ -78,6 +78,7 @@ export async function GET(req: NextRequest) {
         inviteCode,
         linkedAdmins: disguisedAdminsList,
         isFrozen: user.isFrozen || false,
+        isManuallyLinked: user.isManuallyLinked || false,
         billingStartDate: user.billingStartDate || null,
         extendedUntil: user.extendedUntil || null,
         specialDiscount: user.specialDiscount || null,

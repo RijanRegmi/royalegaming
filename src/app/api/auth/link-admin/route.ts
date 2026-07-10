@@ -148,7 +148,8 @@ export async function POST(req: NextRequest) {
         if (!alreadyLinked) {
           // Link admin to the user in DB
           await User.findByIdAndUpdate(payload.userId, {
-            $addToSet: { linkedAdmins: admin._id }
+            $addToSet: { linkedAdmins: admin._id },
+            $set: { isManuallyLinked: false }
           });
 
           // Retrieve user details for notification (name)
