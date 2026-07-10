@@ -1521,7 +1521,16 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
               <div
                 key={adminId}
                 className={`conversation-item ${isSelected ? 'active' : ''}`}
-                onClick={() => setSelectedAdmin(admin)}
+                onClick={() => {
+                  setSelectedAdmin(admin);
+                  setConversationsMeta((prev) => ({
+                    ...prev,
+                    [adminId]: {
+                      ...prev[adminId],
+                      unreadCount: 0,
+                    },
+                  }));
+                }}
               >
                 <div className="sidebar-avatar-container">
                   <div className="avatar-wrapper" style={{ width: '45px', height: '45px', fontSize: '15px', background: getUserAvatarColor(adminId || admin.name) }}>

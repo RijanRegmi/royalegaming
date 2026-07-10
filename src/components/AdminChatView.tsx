@@ -1676,6 +1676,11 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     return;
                   }
                   setSelectedUser(u);
+                  setUsers((prevUsers) =>
+                    prevUsers.map((user) =>
+                      user.id === u.id ? { ...user, unreadCount: 0 } : user
+                    )
+                  );
                   if (typeof window !== 'undefined' && window.innerWidth <= 768) {
                     setShowDetails(false);
                   }
