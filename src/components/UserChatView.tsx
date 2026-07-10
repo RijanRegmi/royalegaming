@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getUserAvatarColor } from '@/lib/avatar';
 import VerifiedBadge from './VerifiedBadge';
-import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft, UserPlus, Search } from 'lucide-react';
+import { Send, LogOut, MessageSquare, Shield, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, ArrowLeft, UserPlus, Search, Clock, AlertCircle } from 'lucide-react';
 
 interface UserChatViewProps {
   currentUser: {
@@ -1569,15 +1569,32 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
-                        maxWidth: '130px'
+                        maxWidth: '130px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px'
                       }}>
-                        {(meta.lastMessage.senderId === currentUser.id || 
-                          meta.lastMessage.senderId?._id === currentUser.id || 
-                          meta.lastMessage.senderId?.id === currentUser.id) ? 'You: ' : ''}
-                        {meta.lastMessage.fileType === 'image' && '📷 Image'}
-                        {meta.lastMessage.fileType === 'voice' && '🎵 Voice message'}
-                        {meta.lastMessage.fileType === 'document' && '📄 Document'}
-                        {!meta.lastMessage.fileType && meta.lastMessage.content}
+                        {(() => {
+                          const lastMsg = meta.lastMessage;
+                          const isMe = lastMsg.senderId === currentUser.id || lastMsg.senderId?._id === currentUser.id || lastMsg.senderId?.id === currentUser.id;
+                          if (!isMe) return null;
+                          if (lastMsg.isSending || lastMsg.isUnsent) {
+                            return <Clock size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />;
+                          }
+                          if (lastMsg.isRead) {
+                            return <CheckCheck size={12} style={{ color: '#34B7F1', flexShrink: 0 }} />;
+                          }
+                          if (isOnline) {
+                            return <CheckCheck size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />;
+                          }
+                          return <Check size={12} style={{ color: 'var(--text-muted)', opacity: 0.6, flexShrink: 0 }} />;
+                        })()}
+                        <span>
+                          {meta.lastMessage.fileType === 'image' && '📷 Image'}
+                          {meta.lastMessage.fileType === 'voice' && '🎵 Voice message'}
+                          {meta.lastMessage.fileType === 'document' && '📄 Document'}
+                          {!meta.lastMessage.fileType && meta.lastMessage.content}
+                        </span>
                       </span>
                     ) : (
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No messages yet</span>
@@ -1918,22 +1935,40 @@ export default function UserChatView({ currentUser }: UserChatViewProps) {
                     </div>
                   )}
 
-                  {msg.content && <span className="message-text">{msg.content}</span>}
-                  
-                  <div className="message-bubble-meta">
-                    <span className="message-time">{formatTime(msg.createdAt)}</span>
-                    {isMe && (
-                      <span className="message-ticks">
-                        {msg.isRead ? (
-                          <CheckCheck size={15} className="tick-read" />
-                        ) : isAdminOnline ? (
-                          <CheckCheck size={15} className="tick-delivered" />
-                        ) : (
-                          <Check size={15} className="tick-sent" />
+                  {msg.content ? (
+                    <span className="message-text">
+                      {msg.content}
+                      <span className="message-bubble-meta" style={{ display: 'inline-flex', verticalAlign: 'bottom', float: 'right', marginLeft: '8px', marginTop: '6px', position: 'relative', bottom: '-2px' }}>
+                        <span className="message-time">{formatTime(msg.createdAt)}</span>
+                        {isMe && (
+                          <span className="message-ticks">
+                            {msg.isRead ? (
+                              <CheckCheck size={15} className="tick-read" />
+                            ) : isAdminOnline ? (
+                              <CheckCheck size={15} className="tick-delivered" />
+                            ) : (
+                              <Check size={15} className="tick-sent" />
+                            )}
+                          </span>
                         )}
                       </span>
-                    )}
-                  </div>
+                    </span>
+                  ) : (
+                    <div className="message-bubble-meta">
+                      <span className="message-time">{formatTime(msg.createdAt)}</span>
+                      {isMe && (
+                        <span className="message-ticks">
+                          {msg.isRead ? (
+                            <CheckCheck size={15} className="tick-read" />
+                          ) : isAdminOnline ? (
+                            <CheckCheck size={15} className="tick-delivered" />
+                          ) : (
+                            <Check size={15} className="tick-sent" />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Reaction pills */}
                   {!msg.isUnsent && groupedReactions.length > 0 && (

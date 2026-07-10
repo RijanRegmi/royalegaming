@@ -5,7 +5,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { getUserAvatarColor } from '@/lib/avatar';
 import VerifiedBadge from './VerifiedBadge';
-import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, UserPlus } from 'lucide-react';
+import { Search, Send, LogOut, Shield, User as UserIcon, MessageSquare, Info, ArrowLeft, Paperclip, Mic, X, Play, Pause, FileText, Download, Loader2, Check, CheckCheck, CornerUpLeft, Smile, Trash2, Home, CreditCard, Bell, BellOff, UserPlus, Clock, AlertCircle } from 'lucide-react';
 
 interface AdminChatViewProps {
   currentUser: {
@@ -1712,15 +1712,31 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                     </span>
                   </div>
                   <div className="convo-row">
-                    <span className="convo-message-preview">
+                    <span className="convo-message-preview" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                       {u.lastMessage ? (
                         <>
-                          {((currentUser.role === 'super_admin' ? u.lastMessage.senderRole === 'super_admin' : u.lastMessage.senderId === currentUser.id)) ? 'You: ' : ''}
-                          {u.lastMessage.fileType === 'image' && '📷 Image'}
-                          {u.lastMessage.fileType === 'voice' && '🎵 Voice Message'}
-                          {u.lastMessage.fileType === 'document' && '📄 Document'}
-                          {u.lastMessage.fileType ? ' ' : ''}
-                          {u.lastMessage.content || ''}
+                          {(() => {
+                            const lastMsg = u.lastMessage;
+                            const isMe = (currentUser.role === 'super_admin' ? lastMsg.senderRole === 'super_admin' : (lastMsg.senderId === currentUser.id || lastMsg.senderId?._id === currentUser.id));
+                            if (!isMe) return null;
+                            if (lastMsg.isSending || lastMsg.isUnsent) {
+                              return <Clock size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />;
+                            }
+                            if (lastMsg.isRead) {
+                              return <CheckCheck size={12} style={{ color: '#34B7F1', flexShrink: 0 }} />;
+                            }
+                            if (!!onlineUsers[u.id]) {
+                              return <CheckCheck size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />;
+                            }
+                            return <Check size={12} style={{ color: 'var(--text-muted)', opacity: 0.6, flexShrink: 0 }} />;
+                          })()}
+                          <span>
+                            {u.lastMessage.fileType === 'image' && '📷 Image'}
+                            {u.lastMessage.fileType === 'voice' && '🎵 Voice Message'}
+                            {u.lastMessage.fileType === 'document' && '📄 Document'}
+                            {u.lastMessage.fileType ? ' ' : ''}
+                            {u.lastMessage.content || ''}
+                          </span>
                         </>
                       ) : (
                         <span style={{ fontStyle: 'italic', color: 'var(--text-muted)' }}>No messages yet</span>
@@ -2048,22 +2064,40 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                           </div>
                         )}
 
-                        {msg.content && <span className="message-text">{msg.content}</span>}
-                        
-                        <div className="message-bubble-meta">
-                          <span className="message-time">{formatTime(msg.createdAt)}</span>
-                          {!isUserMessage && (
-                            <span className="message-ticks">
-                              {msg.isRead ? (
-                                <CheckCheck size={15} className="tick-read" />
-                              ) : isSelectedUserOnline ? (
-                                <CheckCheck size={15} className="tick-delivered" />
-                              ) : (
-                                <Check size={15} className="tick-sent" />
+                        {msg.content ? (
+                          <span className="message-text">
+                            {msg.content}
+                            <span className="message-bubble-meta" style={{ display: 'inline-flex', verticalAlign: 'bottom', float: 'right', marginLeft: '8px', marginTop: '6px', position: 'relative', bottom: '-2px' }}>
+                              <span className="message-time">{formatTime(msg.createdAt)}</span>
+                              {!isUserMessage && (
+                                <span className="message-ticks">
+                                  {msg.isRead ? (
+                                    <CheckCheck size={15} className="tick-read" />
+                                  ) : isSelectedUserOnline ? (
+                                    <CheckCheck size={15} className="tick-delivered" />
+                                  ) : (
+                                    <Check size={15} className="tick-sent" />
+                                  )}
+                                </span>
                               )}
                             </span>
-                          )}
-                        </div>
+                          </span>
+                        ) : (
+                          <div className="message-bubble-meta">
+                            <span className="message-time">{formatTime(msg.createdAt)}</span>
+                            {!isUserMessage && (
+                              <span className="message-ticks">
+                                {msg.isRead ? (
+                                  <CheckCheck size={15} className="tick-read" />
+                                ) : isSelectedUserOnline ? (
+                                  <CheckCheck size={15} className="tick-delivered" />
+                                ) : (
+                                  <Check size={15} className="tick-sent" />
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
 
                         {/* Reaction pills */}
                         {!msg.isUnsent && groupedReactions.length > 0 && (
