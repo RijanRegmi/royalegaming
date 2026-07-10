@@ -218,6 +218,7 @@ export async function GET(req: NextRequest) {
         senderRole: sender ? sender.role : 'user',
         fileType: msg.fileType || null,
         isSystem: msg.isSystem || false,
+        isRead: msg.isRead || false,
       });
     });
 
