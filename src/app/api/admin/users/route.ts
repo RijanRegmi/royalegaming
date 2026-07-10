@@ -250,6 +250,7 @@ export async function GET(req: NextRequest) {
         lastMessage: latestMessageMap.get(userIdStr) || null,
         unreadCount: unreadCountMap.get(userIdStr) || 0,
         linkedAdmins: user.linkedAdmins || [],
+        isManuallyLinked: user.isManuallyLinked || false,
       };
     });
 

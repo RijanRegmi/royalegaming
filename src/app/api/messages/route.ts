@@ -325,9 +325,6 @@ export async function POST(req: NextRequest) {
           if (!targetUser || !targetUser.linkedAdmins.map((id: any) => id.toString()).includes(payload.userId)) {
             return NextResponse.json({ error: 'This user is not linked to you' }, { status: 403 });
           }
-          if (targetUser && targetUser.isManuallyLinked) {
-            return NextResponse.json({ error: 'Messaging this user is disabled.' }, { status: 403 });
-          }
           adminIdStr = payload.userId;
         }
       }

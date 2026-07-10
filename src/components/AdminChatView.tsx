@@ -1481,8 +1481,8 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     }
       
     if (searchQuery.trim() === '') {
-      // Show only users with a valid last message when search is empty, or if the user is a super admin (disguised support chat)
-      return !!u.lastMessage || u.role === 'super_admin';
+      // Show only users with a valid last message when search is empty, or if the user is a super admin (disguised support chat), or if they are manually linked
+      return !!u.lastMessage || u.role === 'super_admin' || u.isManuallyLinked;
     }
     
     return matchesSearch;
@@ -1573,7 +1573,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
     );
   }
 
-  const isManuallyBlocked = selectedUser?.isManuallyLinked && currentUser.role !== 'super_admin';
+
 
   return (
     <div className={`dashboard-container ${selectedUser ? 'has-selected-user' : ''}`}>
@@ -2079,7 +2079,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             </div>
 
             {/* File Preview Bar */}
-            {selectedFile && !isManuallyBlocked && (
+            {selectedFile && (
               <div className="file-preview-bar">
                 <div className="file-preview-card">
                   {fileType === 'image' && filePreview ? (
@@ -2101,7 +2101,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             )}
 
             {/* Reply Preview Bar */}
-            {replyingToMessage && !isManuallyBlocked && (
+            {replyingToMessage && (
               <div className="reply-preview-bar">
                 <div className="reply-preview-content">
                   <span className="reply-preview-title">
@@ -2125,7 +2125,7 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
               </div>
             )}
 
-            {currentUser.isFrozen && selectedUser?.role !== 'super_admin' && !isManuallyBlocked && (
+            {currentUser.isFrozen && selectedUser?.role !== 'super_admin' && (
               <div style={{
                 background: 'rgba(239, 68, 68, 0.1)',
                 border: '1px solid rgba(239, 68, 68, 0.2)',
@@ -2145,25 +2145,6 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
             )}
 
             {/* Chat Input Form */}
-            {isManuallyBlocked ? (
-              <div style={{
-                padding: '20px',
-                background: 'rgba(255, 255, 255, 0.02)',
-                borderTop: '1px solid rgba(255, 255, 255, 0.05)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px',
-                color: '#cbd5e1',
-                fontSize: '13.5px',
-                fontWeight: 500,
-                textAlign: 'center',
-                width: '100%'
-              }}>
-                <Shield size={18} style={{ color: '#ffb400' }} />
-                <span>Messaging with this user is disabled. Please contact the Support Chat/Team.</span>
-              </div>
-            ) : (
               <form className="chat-input-bar" onSubmit={handleSendMessage}>
               <input 
                 type="file" 
@@ -2318,7 +2299,6 @@ export default function AdminChatView({ currentUser }: AdminChatViewProps) {
                 </>
               )}
             </form>
-            )}
           </>
         ) : (
           <div className="chat-empty-state">
