@@ -63,6 +63,7 @@ function CheckoutForm({
   amount, 
   months, 
   isFreeSetup,
+  isSetupIntent = false,
   savedCard,
   planType,
   plans,
@@ -79,6 +80,7 @@ function CheckoutForm({
   amount: number; 
   months: number; 
   isFreeSetup: boolean; 
+  isSetupIntent?: boolean;
   savedCard: { brand: string; last4: string } | null;
   planType: string;
   plans: any[];
@@ -210,6 +212,40 @@ function CheckoutForm({
       const cardNumberElement = elements.getElement(CardNumberElement);
       if (!cardNumberElement) {
         throw new Error('Card Number element not found.');
+      }
+
+      if (isSetupIntent) {
+        // Confirm Card Setup for $0 checkout verification
+        const { setupIntent, error } = await stripe.confirmCardSetup(clientSecret, {
+          payment_method: {
+            card: cardNumberElement,
+            billing_details: {
+              name: cardholderName || undefined,
+              address: {
+                country: country,
+                line1: address || undefined,
+              },
+            },
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Card setup failed');
+        }
+
+        if (setupIntent && setupIntent.status === 'succeeded') {
+          const verifyRes = await fetch(`/api/payments/stripe/verify?setup_intent_id=${setupIntent.id}`);
+          const verifyData = await verifyRes.json();
+
+          if (verifyRes.ok && verifyData.success) {
+            router.push(`/payment/success?session_id=${setupIntent.id}`);
+          } else {
+            throw new Error(verifyData.error || 'Failed to verify card setup on server');
+          }
+        } else {
+          throw new Error('Card setup is still pending. Please contact support.');
+        }
+        return;
       }
 
       const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
@@ -1030,6 +1066,7 @@ function CustomCheckoutContent() {
             amount={initData.amount}
             months={initData.months}
             isFreeSetup={false}
+            isSetupIntent={initData.isSetupIntent}
             savedCard={initData.savedCard}
             planType={planType}
             plans={plans}

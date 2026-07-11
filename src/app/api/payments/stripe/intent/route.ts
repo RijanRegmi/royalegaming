@@ -115,11 +115,26 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Handle $0 setup / free trial plans
+    // Handle $0 setup / free trial plans (using SetupIntent to securely collect and link card details)
     if (amount <= 0) {
+      const setupIntent = await stripe.setupIntents.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        metadata: {
+          userId: payload.userId,
+          planType: planType.toString(),
+          months: months.toString(),
+          verificationMonths: verificationMonths.toString(),
+          verificationIncluded,
+        },
+      });
+
       return NextResponse.json({
         success: true,
-        isFreeSetup: true,
+        isFreeSetup: false,
+        isSetupIntent: true,
+        clientSecret: setupIntent.client_secret,
+        paymentIntentId: setupIntent.id,
         amount: 0,
         planName,
         months,

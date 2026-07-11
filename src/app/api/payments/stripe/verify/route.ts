@@ -18,10 +18,11 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('session_id');
     const paymentIntentId = searchParams.get('payment_intent_id') || (sessionId?.startsWith('pi_') ? sessionId : null);
+    const setupIntentId = searchParams.get('setup_intent_id') || (sessionId?.startsWith('seti_') ? sessionId : null);
 
-    const txId = paymentIntentId || sessionId;
+    const txId = paymentIntentId || setupIntentId || sessionId;
     if (!txId) {
-      return NextResponse.json({ error: 'Missing session_id or payment_intent_id' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing session_id, payment_intent_id or setup_intent_id' }, { status: 400 });
     }
 
     await dbConnect();
@@ -32,7 +33,23 @@ export async function GET(req: NextRequest) {
     let verificationMonths = 0;
     let paymentMethodToSave: string | null = null;
 
-    if (paymentIntentId) {
+    if (setupIntentId) {
+      // Verify via SetupIntent ($0 trial/special card collection)
+      const setupIntent = await stripe.setupIntents.retrieve(setupIntentId);
+      if (!setupIntent) {
+        return NextResponse.json({ error: 'Setup Intent not found' }, { status: 404 });
+      }
+      isPaid = setupIntent.status === 'succeeded';
+      targetUserId = setupIntent.metadata?.userId || '';
+      months = parseInt(setupIntent.metadata?.months || '1', 10);
+      verificationMonths = parseInt(setupIntent.metadata?.verificationMonths || '0', 10);
+      
+      if (setupIntent.payment_method) {
+        paymentMethodToSave = typeof setupIntent.payment_method === 'string'
+          ? setupIntent.payment_method
+          : setupIntent.payment_method.id;
+      }
+    } else if (paymentIntentId) {
       // Verify via PaymentIntent
       const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
       if (!intent) {
