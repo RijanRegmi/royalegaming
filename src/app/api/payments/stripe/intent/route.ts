@@ -157,6 +157,12 @@ export async function POST(req: NextRequest) {
       savedCard: user.stripePaymentMethodId ? {
         brand: user.stripeCardBrand,
         last4: user.stripeCardLast4
+      } : null,
+      specialDiscount: user.specialDiscount && user.specialDiscount.pricePerMonth !== null ? {
+        pricePerMonth: user.specialDiscount.pricePerMonth,
+        totalPrice: user.specialDiscount.totalPrice,
+        months: user.specialDiscount.months,
+        expiresAt: user.specialDiscount.expiresAt
       } : null
     });
   } catch (error) {
