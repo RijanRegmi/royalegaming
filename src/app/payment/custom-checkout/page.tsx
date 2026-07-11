@@ -1002,23 +1002,25 @@ function CustomCheckoutContent() {
       </div>
 
       {initData.isFreeSetup ? (
-        <CheckoutForm
-          clientSecret={null}
-          paymentIntentId={initData.paymentIntentId || 'free_setup_' + Date.now()}
-          planName={initData.planName}
-          amount={0}
-          months={initData.months}
-          isFreeSetup={true}
-          savedCard={initData.savedCard}
-          planType={planType}
-          plans={plans}
-          verificationPlans={verificationPlans}
-          specialDiscount={initData.specialDiscount}
-          userRole={initData.userRole}
-          verificationCycle={verificationCycle}
-          onChangePlan={handleChangePlan}
-          onChangeVerification={handleChangeVerification}
-        />
+        <Elements stripe={stripePromise}>
+          <CheckoutForm
+            clientSecret={null}
+            paymentIntentId={initData.paymentIntentId || 'free_setup_' + Date.now()}
+            planName={initData.planName}
+            amount={0}
+            months={initData.months}
+            isFreeSetup={true}
+            savedCard={initData.savedCard}
+            planType={planType}
+            plans={plans}
+            verificationPlans={verificationPlans}
+            specialDiscount={initData.specialDiscount}
+            userRole={initData.userRole}
+            verificationCycle={verificationCycle}
+            onChangePlan={handleChangePlan}
+            onChangeVerification={handleChangeVerification}
+          />
+        </Elements>
       ) : (
         <Elements stripe={stripePromise} options={{ clientSecret: initData.clientSecret }}>
           <CheckoutForm
