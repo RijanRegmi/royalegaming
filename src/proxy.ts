@@ -136,12 +136,13 @@ export function proxy(request: NextRequest) {
                                  pathname.startsWith('/static') || 
                                  pathname.startsWith('/login') || 
                                  pathname.startsWith('/register') || 
+                                 pathname.startsWith('/payment') || 
                                  pathname.startsWith('/api/auth/login') || 
                                  pathname.startsWith('/api/auth/register') ||
                                  pathname.startsWith('/api/auth/guest');
 
-      // Allow admin profile paths: /profile/[adminSlug]
-      const isInviteOrLinkUrl = pathname.startsWith('/profile/') && !pathname.startsWith('/profile/become-admin');
+      // Allow admin profile and become-admin paths
+      const isInviteOrLinkUrl = pathname.startsWith('/profile/');
 
       if (!isAllowedApi && !isStaticOrAuthPage && !isInviteOrLinkUrl) {
         // Secure API proxy blocker (returns 403 Forbidden JSON)
