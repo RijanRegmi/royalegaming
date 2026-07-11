@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
       await user.save();
     }
 
+    const isAllowedVerification = user.role === 'admin' || user.role === 'super_admin';
     let months = 1;
     let amount = 599.00; // in USD
     let planName = 'Rilogram Admin 1-Month Plan';
@@ -77,12 +78,18 @@ export async function POST(req: NextRequest) {
       months = discount.months;
       amount = discount.totalPrice || (discount.months * discount.pricePerMonth);
       planName = `Rilogram Admin Special ${months}-Month Plan`;
+    } else if (planType === 'verification') {
+      if (!isAllowedVerification) {
+        return NextResponse.json({ error: 'Forbidden: Standard users cannot buy verification badges' }, { status: 403 });
+      }
+      months = 0;
+      amount = 0;
+      planName = 'Verification Badge';
     } else {
       return NextResponse.json({ error: 'Invalid planType specified' }, { status: 400 });
     }
 
     // Handle Verification Add-on calculation (Only if role is admin or super_admin)
-    const isAllowedVerification = user.role === 'admin' || user.role === 'super_admin';
     let verificationMonths = 0;
     let verificationIncluded = 'false';
 

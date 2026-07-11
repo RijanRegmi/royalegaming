@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { planType } = await req.json();
+    const { planType, verificationCycle } = await req.json();
     if (!planType) {
       return NextResponse.json({ error: 'Missing planType parameter' }, { status: 400 });
     }
@@ -59,6 +59,8 @@ export async function POST(req: NextRequest) {
       months = discount.months;
       amount = discount.totalPrice || (discount.months * discount.pricePerMonth);
       planName = `Rilogram Admin Special ${months}-Month Plan`;
+    } else if (planType === 'verification') {
+      planName = 'Verification Badge';
     } else {
       return NextResponse.json({ error: 'Invalid planType specified' }, { status: 400 });
     }
@@ -71,7 +73,10 @@ export async function POST(req: NextRequest) {
       ? authHeader.substring(7) 
       : req.cookies.get('auth_token')?.value;
 
-    const sessionUrl = `${origin}/payment/custom-checkout?planType=${planType}${token ? `&token=${token}` : ''}`;
+    let sessionUrl = `${origin}/payment/custom-checkout?planType=${planType}${token ? `&token=${token}` : ''}`;
+    if (verificationCycle) {
+      sessionUrl += `&verificationCycle=${verificationCycle}`;
+    }
 
     return NextResponse.json({
       success: true,
