@@ -77,9 +77,7 @@ export async function POST(req: NextRequest) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(amount * 100), // Stripe expects cents
       currency: 'usd',
-      automatic_payment_methods: {
-        enabled: true,
-      },
+      payment_method_types: ['card'], // Explicitly allow credit/debit card payments
       metadata: {
         userId: payload.userId,
         planType: planType.toString(),
