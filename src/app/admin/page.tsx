@@ -1946,6 +1946,12 @@ export default function AdminSettingsPage() {
                                   <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                                     Expires: {effectiveDeadline.toLocaleDateString()}
                                   </span>
+                                  {profile.isVerified && (
+                                    <span style={{ fontSize: '11px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                      <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+                                      Badge: {(profile as any).verifiedUntil ? new Date((profile as any).verifiedUntil).toLocaleDateString() : 'Lifetime'}
+                                    </span>
+                                  )}
                                 </div>
                               );
                             })() : (
