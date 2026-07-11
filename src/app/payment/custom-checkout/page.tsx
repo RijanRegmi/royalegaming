@@ -16,7 +16,7 @@ import {
 // Initialize Stripe with the publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder_key_to_avoid_build_error_if_not_present');
 
-// Inline SVGs for Card Brands to match Claude's layout
+// Inline SVGs for Card Brands
 function VisaLogo() {
   return (
     <svg width="28" height="18" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: '2px' }}>
@@ -64,7 +64,8 @@ function CheckoutForm({
   months, 
   isFreeSetup,
   savedCard,
-  planType
+  planType,
+  onChangePlan
 }: { 
   clientSecret: string | null; 
   paymentIntentId: string | null;
@@ -74,6 +75,7 @@ function CheckoutForm({
   isFreeSetup: boolean; 
   savedCard: { brand: string; last4: string } | null;
   planType: string;
+  onChangePlan: (type: string) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -119,7 +121,7 @@ function CheckoutForm({
         return;
       }
 
-      // A. Charge Saved Card Info
+      // A. Confirm with Saved Card
       if (useSavedCardView && savedCard) {
         const payRes = await fetch('/api/payments/stripe/intent', {
           method: 'POST',
@@ -132,7 +134,6 @@ function CheckoutForm({
         }
 
         if (payData.requiresAction && payData.clientSecret) {
-          // If saved card requires 3D Secure validation, execute browser redirect or pop-up challenge
           const { paymentIntent, error } = await stripe!.confirmCardPayment(payData.clientSecret);
           if (error) {
             throw new Error(error.message || 'Verification challenge failed.');
@@ -152,7 +153,7 @@ function CheckoutForm({
         return;
       }
 
-      // B. Normal Element Form Processing
+      // B. Confirm with Split Elements
       if (!stripe || !elements || !clientSecret || !paymentIntentId) {
         throw new Error('Stripe is not fully initialized. Please try again.');
       }
@@ -162,7 +163,6 @@ function CheckoutForm({
         throw new Error('Card Number element not found.');
       }
 
-      // Confirm payment with Stripe directly
       const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardNumberElement,
@@ -223,48 +223,116 @@ function CheckoutForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
+      {/* Plan Toggles - Clone of Claude radio options */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        {/* Monthly Card Option */}
+        <div 
+          onClick={() => onChangePlan('1')}
+          style={{ 
+            cursor: 'pointer', 
+            padding: '16px', 
+            borderRadius: '16px', 
+            background: 'rgba(255,255,255,0.01)', 
+            border: planType === '1' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            position: 'relative',
+            transition: 'border-color 0.2s'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ 
+              width: '18px', 
+              height: '18px', 
+              borderRadius: '50%', 
+              border: planType === '1' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
+              background: '#0b0f19',
+              transition: 'border-color 0.2s'
+            }} />
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Monthly</span>
+          </div>
+          <span style={{ fontSize: '13px', color: '#94a3b8' }}>$5.99/month + tax</span>
+        </div>
+
+        {/* Yearly Card Option */}
+        <div 
+          onClick={() => onChangePlan('12')}
+          style={{ 
+            cursor: 'pointer', 
+            padding: '16px', 
+            borderRadius: '16px', 
+            background: planType === '12' ? 'rgba(168, 85, 247, 0.02)' : 'rgba(255,255,255,0.01)', 
+            border: planType === '12' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            position: 'relative',
+            transition: 'border-color 0.2s'
+          }}
+        >
+          {/* Discount Badge */}
+          <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
+            Save 17%
+          </div>
+          
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ 
+              width: '18px', 
+              height: '18px', 
+              borderRadius: '50%', 
+              border: planType === '12' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
+              background: '#0b0f19',
+              transition: 'border-color 0.2s'
+            }} />
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Yearly</span>
+          </div>
+          <span style={{ fontSize: '13px', color: '#94a3b8' }}>$59.88/year + tax</span>
+        </div>
+      </div>
+
       {/* Order Summary Details */}
-      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', padding: '24px' }}>
-        <h3 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: 700, letterSpacing: '0.25px', color: '#94a3b8', textTransform: 'uppercase' }}>
+      <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', padding: '20px 24px' }}>
+        <h3 style={{ margin: '0 0 14px 0', fontSize: '13.5px', fontWeight: 700, letterSpacing: '0.25px', color: '#6b7280', textTransform: 'uppercase' }}>
           Order details
         </h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff' }}>{planName}</span>
-            <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>${amount.toFixed(2)}</span>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: '#fff' }}>{planName}</span>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>${amount.toFixed(2)}</span>
           </div>
           <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)' }} />
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '14px', color: '#94a3b8' }}>Subtotal</span>
-            <span style={{ fontSize: '14px', color: '#cbd5e1' }}>${amount.toFixed(2)}</span>
+            <span style={{ fontSize: '13.5px', color: '#94a3b8' }}>Subtotal</span>
+            <span style={{ fontSize: '13.5px', color: '#cbd5e1' }}>${amount.toFixed(2)}</span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-            <span style={{ fontSize: '15px', fontWeight: 800, color: '#fff' }}>Total due today</span>
-            <span style={{ fontSize: '18px', fontWeight: 900, color: '#c084fc' }}>${amount.toFixed(2)}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Total due today</span>
+            <span style={{ fontSize: '16px', fontWeight: 900, color: '#fff' }}>${amount.toFixed(2)}</span>
           </div>
         </div>
       </div>
 
       {/* Auto-renew warning message */}
       {!isFreeSetup && (
-        <div style={{ display: 'flex', gap: '10px', background: 'rgba(168, 85, 247, 0.05)', border: '1px solid rgba(168, 85, 247, 0.1)', borderRadius: '12px', padding: '14px', fontSize: '12.5px', color: '#c084fc', lineHeight: '1.5' }}>
-          <Shield size={16} style={{ flexShrink: 0, marginTop: '2px' }} />
+        <div style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '14px', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5' }}>
+          <Shield size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#a855f7' }} />
           <span>
-            Your subscription will auto-renew on <strong>{getRenewalDate()}</strong>. You will be charged ${amount.toFixed(2)} / cycle. Cancel anytime in your profile settings.
+            Your subscription will auto renew on <strong>{getRenewalDate()}</strong>. You will be charged ${amount.toFixed(2)}/{months === 12 ? 'year' : 'month'} + tax.
           </span>
         </div>
       )}
 
-      {/* Payment Method Section */}
+      {/* Payment Method Form */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
         <h3 style={{ margin: '0', fontSize: '16px', fontWeight: 700, color: '#fff' }}>
           Payment method
         </h3>
 
         {useSavedCardView && savedCard ? (
-          /* Render Saved Card UI matching your mockup design */
+          /* Render Saved Card UI */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div 
               style={{ 
@@ -289,20 +357,10 @@ function CheckoutForm({
                 </span>
               </div>
               
-              {/* Pencil edit icon to toggle back to Elements Form */}
               <button 
                 type="button" 
                 onClick={() => setUseSavedCardView(false)} 
-                style={{ 
-                  background: 'none', 
-                  border: 'none', 
-                  color: '#c084fc', 
-                  cursor: 'pointer', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  padding: '6px' 
-                }}
+                style={{ background: 'none', border: 'none', color: '#c084fc', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px' }}
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -320,15 +378,14 @@ function CheckoutForm({
                 style={{ marginTop: '3px', cursor: 'pointer', width: '15px', height: '15px', accentColor: '#a855f7' }}
               />
               <span>
-                You agree that Rilogram will charge your card in the amount above now and on a recurring basis until you cancel. You can cancel at any time in your account settings.
+                You agree that Rilogram will charge your card in the amount above now and on a recurring {months === 12 ? 'annual' : 'monthly'} basis until you cancel in accordance with our terms. You can cancel at any time in your account settings.
               </span>
             </label>
           </div>
         ) : (
-          /* Render standard Card Input Form */
+          /* Render Split Card Input Elements */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
             
-            {/* If we have a saved card, show "Use saved card" button */}
             {savedCard && (
               <button
                 type="button"
@@ -345,7 +402,7 @@ function CheckoutForm({
               <input
                 type="text"
                 required
-                placeholder="Name on card"
+                placeholder="Rijan Regmi"
                 value={cardholderName}
                 onChange={(e) => setCardholderName(e.target.value)}
                 style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
@@ -389,7 +446,7 @@ function CheckoutForm({
 
             {!isFreeSetup && (
               <>
-                {/* Card Number Input (Split Element) with Brand Logos */}
+                {/* Card Number Input with Brand Logos */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Card number</label>
                   <div 
@@ -410,7 +467,6 @@ function CheckoutForm({
                         onBlur={() => setIsNumFocused(false)}
                       />
                     </div>
-                    {/* Static brand logos to match Claude's layout */}
                     <div style={{ display: 'flex', gap: '4px', marginLeft: '12px', opacity: 0.85, flexShrink: 0 }}>
                       <VisaLogo />
                       <MastercardLogo />
@@ -464,7 +520,6 @@ function CheckoutForm({
                           onBlur={() => setIsCvcFocused(false)}
                         />
                       </div>
-                      {/* Static CVC indicator icon */}
                       <svg width="20" height="13" viewBox="0 0 20 13" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginLeft: '8px', opacity: 0.5 }}>
                         <rect width="20" height="13" rx="2" fill="#555F7D"/>
                         <rect y="3" width="20" height="2" fill="#1F2937"/>
@@ -497,7 +552,7 @@ function CheckoutForm({
                       style={{ marginTop: '3px', cursor: 'pointer', width: '15px', height: '15px', accentColor: '#a855f7' }}
                     />
                     <span>
-                      You agree that Rilogram will charge your card in the amount above now and on a recurring basis until you cancel. You can cancel at any time in your account settings.
+                      You agree that Rilogram will charge your card in the amount above now and on a recurring {months === 12 ? 'annual' : 'monthly'} basis until you cancel in accordance with our terms. You can cancel at any time in your account settings.
                     </span>
                   </label>
                 </div>
@@ -517,9 +572,9 @@ function CheckoutForm({
       <button
         type="submit"
         disabled={submitting || (!isFreeSetup && !useSavedCardView && (!stripe || !elements))}
-        style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)', border: 'none', borderRadius: '16px', color: '#fff', fontSize: '15px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)', transition: 'transform 0.2s' }}
-        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+        style={{ width: '100%', padding: '16px', background: '#e2e8f0', border: 'none', borderRadius: '16px', color: '#0f172a', fontSize: '15px', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', transition: 'opacity 0.2s' }}
+        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
+        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
       >
         {submitting ? (
           <>
@@ -527,10 +582,7 @@ function CheckoutForm({
             <span>Processing secure payment...</span>
           </>
         ) : (
-          <>
-            <Lock size={15} />
-            <span>Subscribe</span>
-          </>
+          <span>Subscribe</span>
         )}
       </button>
 
@@ -546,10 +598,11 @@ function CheckoutForm({
 function CustomCheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const planType = searchParams.get('planType') || '1';
+  const [planType, setPlanType] = useState(searchParams.get('planType') || '1');
   const token = searchParams.get('token');
 
   const [loading, setLoading] = useState(true);
+  const [submittingPlan, setSubmittingPlan] = useState(false);
   const [initData, setInitData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -575,11 +628,18 @@ function CustomCheckoutContent() {
         setError((err as Error).message);
       } finally {
         setLoading(false);
+        setSubmittingPlan(false);
       }
     };
 
     initCheckout();
   }, [planType, token]);
+
+  const handleChangePlan = (newPlanType: string) => {
+    if (newPlanType === planType || submittingPlan) return;
+    setSubmittingPlan(true);
+    setPlanType(newPlanType);
+  };
 
   if (loading) {
     return (
@@ -606,8 +666,15 @@ function CustomCheckoutContent() {
   }
 
   return (
-    <div style={{ maxWidth: '480px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '480px', margin: '0 auto', position: 'relative' }}>
       
+      {/* Loading overlay when toggling between plans */}
+      {submittingPlan && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(11,15,25,0.7)', backdropFilter: 'blur(2px)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '24px' }}>
+          <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={32} />
+        </div>
+      )}
+
       {/* Header Info */}
       <div style={{ marginBottom: '32px' }}>
         <button 
@@ -632,6 +699,7 @@ function CustomCheckoutContent() {
           isFreeSetup={true}
           savedCard={initData.savedCard}
           planType={planType}
+          onChangePlan={handleChangePlan}
         />
       ) : (
         <Elements stripe={stripePromise} options={{ clientSecret: initData.clientSecret }}>
@@ -644,6 +712,7 @@ function CustomCheckoutContent() {
             isFreeSetup={false}
             savedCard={initData.savedCard}
             planType={planType}
+            onChangePlan={handleChangePlan}
           />
         </Elements>
       )}
@@ -666,7 +735,7 @@ export default function CustomCheckoutPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at center, #0b0f19 0%, #030712 100%)', color: '#fff', padding: '40px 20px', fontFamily: "'Outfit', 'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#111111', color: '#fff', padding: '40px 20px', fontFamily: "'Outfit', 'Inter', sans-serif" }}>
       <Suspense fallback={
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', gap: '16px' }}>
           <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={40} />
