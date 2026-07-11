@@ -53,12 +53,13 @@ export default function MobileNavigation() {
   useEffect(() => {
     if (loading || !user) return;
 
-    // Check if the current page is a public one
+    // Check if the current page is a public one or a payment flow page
     const isPublicPage = pathname === '/login' || 
                          pathname.startsWith('/invite') || 
                          pathname === '/register' || 
                          pathname.startsWith('/reset-password') || 
-                         pathname.startsWith('/forgot-password');
+                         pathname.startsWith('/forgot-password') ||
+                         pathname.startsWith('/payment');
 
     if (!isPublicPage) {
       document.body.classList.add('has-mobile-nav');
@@ -73,12 +74,13 @@ export default function MobileNavigation() {
 
   if (loading || !user) return null;
 
-  // Do not show on login, register, reset-password, invite pages
+  // Do not show on login, register, reset-password, invite, or payment pages
   const isPublicPage = pathname === '/login' || 
                        pathname.startsWith('/invite') || 
                        pathname === '/register' || 
                        pathname.startsWith('/reset-password') || 
-                       pathname.startsWith('/forgot-password');
+                       pathname.startsWith('/forgot-password') ||
+                       pathname.startsWith('/payment');
 
   if (isPublicPage) return null;
 
