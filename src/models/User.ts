@@ -26,6 +26,10 @@ const UserSchema = new Schema({
     expiresAt: { type: Date, default: null }
   },
   readNotices: [{ type: Schema.Types.ObjectId, ref: 'Notice', default: [] }],
+  stripeCustomerId: { type: String, default: null },
+  stripePaymentMethodId: { type: String, default: null },
+  stripeCardBrand: { type: String, default: null },
+  stripeCardLast4: { type: String, default: null },
 }, { timestamps: true });
 
 const User = models.User || model('User', UserSchema);

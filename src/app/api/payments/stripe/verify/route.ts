@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     let isPaid = false;
     let targetUserId = '';
     let months = 1;
+    let paymentMethodToSave: string | null = null;
 
     if (paymentIntentId) {
       // Verify via PaymentIntent
@@ -38,6 +39,13 @@ export async function GET(req: NextRequest) {
       isPaid = intent.status === 'succeeded';
       targetUserId = intent.metadata?.userId || '';
       months = parseInt(intent.metadata?.months || '1', 10);
+      
+      const shouldSaveCard = intent.metadata?.saveCard === 'true';
+      if (shouldSaveCard && intent.payment_method) {
+        paymentMethodToSave = typeof intent.payment_method === 'string' 
+          ? intent.payment_method 
+          : intent.payment_method.id;
+      }
     } else {
       // Verify via Checkout Session
       const session = await stripe.checkout.sessions.retrieve(sessionId!);
@@ -85,6 +93,20 @@ export async function GET(req: NextRequest) {
     user.cyclePeriod = months;
     user.isFrozen = false;
     user.extendedUntil = newExtendedUntil;
+
+    // Save card info details to profile if requested
+    if (paymentMethodToSave) {
+      try {
+        const pm = await stripe.paymentMethods.retrieve(paymentMethodToSave);
+        if (pm && pm.card) {
+          user.stripePaymentMethodId = paymentMethodToSave;
+          user.stripeCardBrand = pm.card.brand;
+          user.stripeCardLast4 = pm.card.last4;
+        }
+      } catch (pmErr) {
+        console.error('[Stripe Verify] Error retrieving/saving payment method details:', pmErr);
+      }
+    }
 
     // Clear one-time special discount
     user.specialDiscount = {

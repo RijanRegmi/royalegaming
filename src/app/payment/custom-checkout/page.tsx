@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Lock, Shield, Check, Loader2 } from 'lucide-react';
+import { ArrowLeft, Lock, Shield, Check, Loader2, CreditCard } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { 
   Elements, 
@@ -62,7 +62,9 @@ function CheckoutForm({
   planName, 
   amount, 
   months, 
-  isFreeSetup 
+  isFreeSetup,
+  savedCard,
+  planType
 }: { 
   clientSecret: string | null; 
   paymentIntentId: string | null;
@@ -70,6 +72,8 @@ function CheckoutForm({
   amount: number; 
   months: number; 
   isFreeSetup: boolean; 
+  savedCard: { brand: string; last4: string } | null;
+  planType: string;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -78,9 +82,13 @@ function CheckoutForm({
   const [cardholderName, setCardholderName] = useState('');
   const [country, setCountry] = useState('US');
   const [address, setAddress] = useState('');
+  const [saveCardChecked, setSaveCardChecked] = useState(true);
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // View state: If they have a saved card, start in "saved card view"
+  const [useSavedCardView, setUseSavedCardView] = useState(!!savedCard);
 
   // States to handle border styling dynamically on focus
   const [isNumFocused, setIsNumFocused] = useState(false);
@@ -111,6 +119,40 @@ function CheckoutForm({
         return;
       }
 
+      // A. Charge Saved Card Info
+      if (useSavedCardView && savedCard) {
+        const payRes = await fetch('/api/payments/stripe/intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ planType, useSavedCard: true }),
+        });
+        const payData = await payRes.json();
+        if (!payRes.ok) {
+          throw new Error(payData.error || 'Failed to authorize payment on saved card.');
+        }
+
+        if (payData.requiresAction && payData.clientSecret) {
+          // If saved card requires 3D Secure validation, execute browser redirect or pop-up challenge
+          const { paymentIntent, error } = await stripe!.confirmCardPayment(payData.clientSecret);
+          if (error) {
+            throw new Error(error.message || 'Verification challenge failed.');
+          }
+          if (paymentIntent && paymentIntent.status === 'succeeded') {
+            const verifyRes = await fetch(`/api/payments/stripe/verify?payment_intent_id=${paymentIntent.id}`);
+            const verifyData = await verifyRes.json();
+            if (verifyRes.ok && verifyData.success) {
+              router.push(`/payment/success?session_id=${paymentIntent.id}`);
+              return;
+            }
+          }
+          throw new Error('Verification completed but status mismatch.');
+        } else if (payData.success) {
+          router.push(`/payment/success?session_id=${payData.paymentIntentId}`);
+        }
+        return;
+      }
+
+      // B. Normal Element Form Processing
       if (!stripe || !elements || !clientSecret || !paymentIntentId) {
         throw new Error('Stripe is not fully initialized. Please try again.');
       }
@@ -120,7 +162,7 @@ function CheckoutForm({
         throw new Error('Card Number element not found.');
       }
 
-      // Confirm payment with Stripe directly (PCI-DSS compliant)
+      // Confirm payment with Stripe directly
       const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card: cardNumberElement,
@@ -215,165 +257,253 @@ function CheckoutForm({
         </div>
       )}
 
-      {/* Payment details form */}
+      {/* Payment Method Section */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 700, color: '#fff' }}>
+        <h3 style={{ margin: '0', fontSize: '16px', fontWeight: 700, color: '#fff' }}>
           Payment method
         </h3>
 
-        {/* Full Name */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Full name</label>
-          <input
-            type="text"
-            required
-            placeholder="Name on card"
-            value={cardholderName}
-            onChange={(e) => setCardholderName(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
-            onFocus={(e) => e.target.style.borderColor = 'rgba(168, 85, 247, 0.5)'}
-            onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
-          />
-        </div>
-
-        {/* Country Selector */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Country or region</label>
-          <select
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }}
-          >
-            <option value="US">United States</option>
-            <option value="GB">United Kingdom</option>
-            <option value="CA">Canada</option>
-            <option value="AU">Australia</option>
-            <option value="DE">Germany</option>
-            <option value="FR">France</option>
-            <option value="PH">Philippines</option>
-            <option value="NP">Nepal</option>
-          </select>
-        </div>
-
-        {/* Address */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Address</label>
-          <input
-            type="text"
-            placeholder="Billing street address"
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
-            onFocus={(e) => e.target.style.borderColor = 'rgba(168, 85, 247, 0.5)'}
-            onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
-          />
-        </div>
-
-        {!isFreeSetup && (
-          <>
-            {/* Card Number Input (Split Element) with Brand Logos */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Card number</label>
-              <div 
+        {useSavedCardView && savedCard ? (
+          /* Render Saved Card UI matching your mockup design */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div 
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'space-between', 
+                padding: '16px 20px', 
+                background: 'rgba(255,255,255,0.03)', 
+                border: '1px solid rgba(255,255,255,0.06)', 
+                borderRadius: '16px' 
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                {savedCard.brand === 'visa' ? <VisaLogo /> : 
+                 savedCard.brand === 'mastercard' ? <MastercardLogo /> : 
+                 savedCard.brand === 'amex' ? <AmexLogo /> : 
+                 savedCard.brand === 'discover' ? <DiscoverLogo /> : 
+                 <CreditCard size={18} style={{ color: '#94a3b8' }} />}
+                
+                <span style={{ fontSize: '15px', fontWeight: 600, color: '#fff', textTransform: 'capitalize' }}>
+                  {savedCard.brand} •••• {savedCard.last4}
+                </span>
+              </div>
+              
+              {/* Pencil edit icon to toggle back to Elements Form */}
+              <button 
+                type="button" 
+                onClick={() => setUseSavedCardView(false)} 
                 style={{ 
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '14px 16px', 
-                  background: 'rgba(255,255,255,0.03)', 
-                  border: isNumFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
-                  borderRadius: '12px', 
-                  transition: 'border-color 0.2s' 
+                  background: 'none', 
+                  border: 'none', 
+                  color: '#c084fc', 
+                  cursor: 'pointer', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  padding: '6px' 
                 }}
               >
-                <div style={{ flex: 1 }}>
-                  <CardNumberElement 
-                    options={elementOptions} 
-                    onFocus={() => setIsNumFocused(true)}
-                    onBlur={() => setIsNumFocused(false)}
-                  />
-                </div>
-                {/* Static brand logos to match Claude's layout */}
-                <div style={{ display: 'flex', gap: '4px', marginLeft: '12px', opacity: 0.85, flexShrink: 0 }}>
-                  <VisaLogo />
-                  <MastercardLogo />
-                  <AmexLogo />
-                  <DiscoverLogo />
-                </div>
-              </div>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4Z"></path>
+                </svg>
+              </button>
             </div>
 
-            {/* Expiration and CVC side-by-side */}
-            <div style={{ display: 'flex', gap: '16px' }}>
-              
-              {/* Expiration date */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Expiration date</label>
-                <div 
-                  style={{ 
-                    padding: '14px 16px', 
-                    background: 'rgba(255,255,255,0.03)', 
-                    border: isExpFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
-                    borderRadius: '12px', 
-                    transition: 'border-color 0.2s' 
-                  }}
-                >
-                  <CardExpiryElement 
-                    options={elementOptions}
-                    onFocus={() => setIsExpFocused(true)}
-                    onBlur={() => setIsExpFocused(false)}
-                  />
-                </div>
-              </div>
+            {/* Checkbox: terms agreement for saved card */}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5', marginTop: '4px' }}>
+              <input 
+                type="checkbox" 
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                style={{ marginTop: '3px', cursor: 'pointer', width: '15px', height: '15px', accentColor: '#a855f7' }}
+              />
+              <span>
+                You agree that Rilogram will charge your card in the amount above now and on a recurring basis until you cancel. You can cancel at any time in your account settings.
+              </span>
+            </label>
+          </div>
+        ) : (
+          /* Render standard Card Input Form */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            
+            {/* If we have a saved card, show "Use saved card" button */}
+            {savedCard && (
+              <button
+                type="button"
+                onClick={() => setUseSavedCardView(true)}
+                style={{ alignSelf: 'flex-start', padding: '6px 12px', background: 'rgba(255,255,255,0.06)', border: 'none', borderRadius: '8px', color: '#cbd5e1', fontSize: '12px', fontWeight: 600, cursor: 'pointer', marginBottom: '8px' }}
+              >
+                Use saved card info
+              </button>
+            )}
 
-              {/* Security code */}
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Security code</label>
-                <div 
-                  style={{ 
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '14px 16px', 
-                    background: 'rgba(255,255,255,0.03)', 
-                    border: isCvcFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
-                    borderRadius: '12px', 
-                    transition: 'border-color 0.2s' 
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <CardCvcElement 
-                      options={elementOptions}
-                      onFocus={() => setIsCvcFocused(true)}
-                      onBlur={() => setIsCvcFocused(false)}
-                    />
+            {/* Full Name */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Full name</label>
+              <input
+                type="text"
+                required
+                placeholder="Name on card"
+                value={cardholderName}
+                onChange={(e) => setCardholderName(e.target.value)}
+                style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
+                onFocus={(e) => e.target.style.borderColor = 'rgba(168, 85, 247, 0.5)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
+              />
+            </div>
+
+            {/* Country Selector */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Country or region</label>
+              <select
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+                style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none' }}
+              >
+                <option value="US">United States</option>
+                <option value="GB">United Kingdom</option>
+                <option value="CA">Canada</option>
+                <option value="AU">Australia</option>
+                <option value="DE">Germany</option>
+                <option value="FR">France</option>
+                <option value="PH">Philippines</option>
+                <option value="NP">Nepal</option>
+              </select>
+            </div>
+
+            {/* Address */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Address</label>
+              <input
+                type="text"
+                placeholder="Billing street address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
+                onFocus={(e) => e.target.style.borderColor = 'rgba(168, 85, 247, 0.5)'}
+                onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
+              />
+            </div>
+
+            {!isFreeSetup && (
+              <>
+                {/* Card Number Input (Split Element) with Brand Logos */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Card number</label>
+                  <div 
+                    style={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '14px 16px', 
+                      background: 'rgba(255,255,255,0.03)', 
+                      border: isNumFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
+                      borderRadius: '12px', 
+                      transition: 'border-color 0.2s' 
+                    }}
+                  >
+                    <div style={{ flex: 1 }}>
+                      <CardNumberElement 
+                        options={elementOptions} 
+                        onFocus={() => setIsNumFocused(true)}
+                        onBlur={() => setIsNumFocused(false)}
+                      />
+                    </div>
+                    {/* Static brand logos to match Claude's layout */}
+                    <div style={{ display: 'flex', gap: '4px', marginLeft: '12px', opacity: 0.85, flexShrink: 0 }}>
+                      <VisaLogo />
+                      <MastercardLogo />
+                      <AmexLogo />
+                      <DiscoverLogo />
+                    </div>
                   </div>
-                  {/* Static CVC indicator icon */}
-                  <svg width="20" height="13" viewBox="0 0 20 13" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginLeft: '8px', opacity: 0.5 }}>
-                    <rect width="20" height="13" rx="2" fill="#555F7D"/>
-                    <rect y="3" width="20" height="2" fill="#1F2937"/>
-                    <rect x="14" y="7" width="4" height="4" rx="0.5" fill="#E5E7EB"/>
-                    <path d="M12.5 9.5H13" stroke="white" strokeWidth="0.75" strokeLinecap="round"/>
-                  </svg>
                 </div>
-              </div>
 
-            </div>
+                {/* Expiration and CVC side-by-side */}
+                <div style={{ display: 'flex', gap: '16px' }}>
+                  
+                  {/* Expiration date */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Expiration date</label>
+                    <div 
+                      style={{ 
+                        padding: '14px 16px', 
+                        background: 'rgba(255,255,255,0.03)', 
+                        border: isExpFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
+                        borderRadius: '12px', 
+                        transition: 'border-color 0.2s' 
+                      }}
+                    >
+                      <CardExpiryElement 
+                        options={elementOptions}
+                        onFocus={() => setIsExpFocused(true)}
+                        onBlur={() => setIsExpFocused(false)}
+                      />
+                    </div>
+                  </div>
 
-            {/* Checkboxes */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '10px' }}>
-              {/* Checkbox: terms agreement */}
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5' }}>
-                <input 
-                  type="checkbox" 
-                  checked={agreeTerms}
-                  onChange={(e) => setAgreeTerms(e.target.checked)}
-                  style={{ marginTop: '3px', cursor: 'pointer', width: '15px', height: '15px', accentColor: '#a855f7' }}
-                />
-                <span>
-                  You agree that Rilogram will charge your card in the amount above now and on a recurring basis until you cancel. You can cancel at any time in your account settings.
-                </span>
-              </label>
-            </div>
-          </>
+                  {/* Security code */}
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Security code</label>
+                    <div 
+                      style={{ 
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '14px 16px', 
+                        background: 'rgba(255,255,255,0.03)', 
+                        border: isCvcFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
+                        borderRadius: '12px', 
+                        transition: 'border-color 0.2s' 
+                      }}
+                    >
+                      <div style={{ flex: 1 }}>
+                        <CardCvcElement 
+                          options={elementOptions}
+                          onFocus={() => setIsCvcFocused(true)}
+                          onBlur={() => setIsCvcFocused(false)}
+                        />
+                      </div>
+                      {/* Static CVC indicator icon */}
+                      <svg width="20" height="13" viewBox="0 0 20 13" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginLeft: '8px', opacity: 0.5 }}>
+                        <rect width="20" height="13" rx="2" fill="#555F7D"/>
+                        <rect y="3" width="20" height="2" fill="#1F2937"/>
+                        <rect x="14" y="7" width="4" height="4" rx="0.5" fill="#E5E7EB"/>
+                        <path d="M12.5 9.5H13" stroke="white" strokeWidth="0.75" strokeLinecap="round"/>
+                      </svg>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Save card info option checkbox */}
+                <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '13px', color: '#cbd5e1', marginTop: '8px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={saveCardChecked}
+                    onChange={(e) => setSaveCardChecked(e.target.checked)}
+                    style={{ cursor: 'pointer', width: '15px', height: '15px', accentColor: '#a855f7' }}
+                  />
+                  <span>Save payment method for future use</span>
+                </label>
+
+                {/* Checkboxes: terms agreement */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '10px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={agreeTerms}
+                      onChange={(e) => setAgreeTerms(e.target.checked)}
+                      style={{ marginTop: '3px', cursor: 'pointer', width: '15px', height: '15px', accentColor: '#a855f7' }}
+                    />
+                    <span>
+                      You agree that Rilogram will charge your card in the amount above now and on a recurring basis until you cancel. You can cancel at any time in your account settings.
+                    </span>
+                  </label>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
 
@@ -386,7 +516,7 @@ function CheckoutForm({
       {/* Submit button */}
       <button
         type="submit"
-        disabled={submitting || (!isFreeSetup && (!stripe || !elements))}
+        disabled={submitting || (!isFreeSetup && !useSavedCardView && (!stripe || !elements))}
         style={{ width: '100%', padding: '16px', background: 'linear-gradient(135deg, #a855f7 0%, #6366f1 100%)', border: 'none', borderRadius: '16px', color: '#fff', fontSize: '15px', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', boxShadow: '0 4px 20px rgba(168, 85, 247, 0.3)', transition: 'transform 0.2s' }}
         onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
         onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
@@ -500,6 +630,8 @@ function CustomCheckoutContent() {
           amount={0}
           months={initData.months}
           isFreeSetup={true}
+          savedCard={initData.savedCard}
+          planType={planType}
         />
       ) : (
         <Elements stripe={stripePromise} options={{ clientSecret: initData.clientSecret }}>
@@ -510,6 +642,8 @@ function CustomCheckoutContent() {
             amount={initData.amount}
             months={initData.months}
             isFreeSetup={false}
+            savedCard={initData.savedCard}
+            planType={planType}
           />
         </Elements>
       )}

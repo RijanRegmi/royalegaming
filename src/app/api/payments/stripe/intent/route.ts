@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { planType } = await req.json();
+    const { planType, useSavedCard, saveCard } = await req.json();
     if (!planType) {
       return NextResponse.json({ error: 'Missing planType parameter' }, { status: 400 });
     }
@@ -25,6 +25,21 @@ export async function POST(req: NextRequest) {
     const user = await User.findById(payload.userId);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // 1. Ensure a Stripe Customer exists for this user
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email,
+        name: user.name,
+        metadata: {
+          userId: user._id.toString(),
+        }
+      });
+      customerId = customer.id;
+      user.stripeCustomerId = customerId;
+      await user.save();
     }
 
     let months = 1;
@@ -73,17 +88,64 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Create Stripe PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Stripe expects cents
+    // 2. Handle payment with Saved Card
+    if (useSavedCard && user.stripePaymentMethodId) {
+      try {
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: Math.round(amount * 100),
+          currency: 'usd',
+          customer: customerId,
+          payment_method: user.stripePaymentMethodId,
+          off_session: false,
+          confirm: true, // Auto-confirm payment using the saved card!
+          payment_method_types: ['card'],
+          metadata: {
+            userId: payload.userId,
+            planType: planType.toString(),
+            months: months.toString(),
+            savedCardUsed: 'true',
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          clientSecret: paymentIntent.client_secret,
+          paymentIntentId: paymentIntent.id,
+          requiresAction: paymentIntent.status === 'requires_action',
+          amount,
+          planName,
+          months,
+          savedCard: {
+            brand: user.stripeCardBrand,
+            last4: user.stripeCardLast4
+          }
+        });
+      } catch (err) {
+        // If card fails off-session, fall back to normal checkout creation below
+        console.warn('Saved card confirm failed, falling back to elements form:', err);
+      }
+    }
+
+    // 3. Normal payment intent creation (For new card or fallback)
+    const intentParams: Stripe.PaymentIntentCreateParams = {
+      amount: Math.round(amount * 100),
       currency: 'usd',
-      payment_method_types: ['card'], // Explicitly allow credit/debit card payments
+      customer: customerId,
+      payment_method_types: ['card'],
       metadata: {
         userId: payload.userId,
         planType: planType.toString(),
         months: months.toString(),
+        saveCard: saveCard ? 'true' : 'false',
       },
-    });
+    };
+
+    // If user checks the box to save card info, configure future usage
+    if (saveCard) {
+      intentParams.setup_future_usage = 'off_session';
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create(intentParams);
 
     return NextResponse.json({
       success: true,
@@ -91,7 +153,11 @@ export async function POST(req: NextRequest) {
       paymentIntentId: paymentIntent.id,
       amount,
       planName,
-      months
+      months,
+      savedCard: user.stripePaymentMethodId ? {
+        brand: user.stripeCardBrand,
+        last4: user.stripeCardLast4
+      } : null
     });
   } catch (error) {
     console.error('Stripe PaymentIntent creation error:', error);
