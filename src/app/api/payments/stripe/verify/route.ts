@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
     let isPaid = false;
     let targetUserId = '';
     let months = 1;
+    let verificationMonths = 0;
     let paymentMethodToSave: string | null = null;
 
     if (paymentIntentId) {
@@ -39,6 +40,7 @@ export async function GET(req: NextRequest) {
       isPaid = intent.status === 'succeeded';
       targetUserId = intent.metadata?.userId || '';
       months = parseInt(intent.metadata?.months || '1', 10);
+      verificationMonths = parseInt(intent.metadata?.verificationMonths || '0', 10);
       
       const shouldSaveCard = intent.metadata?.saveCard === 'true';
       if (shouldSaveCard && intent.payment_method) {
@@ -61,6 +63,7 @@ export async function GET(req: NextRequest) {
       }
       targetUserId = session.metadata?.userId || '';
       months = parseInt(session.metadata?.months || '1', 10);
+      verificationMonths = parseInt(session.metadata?.verificationMonths || '0', 10);
     }
 
     if (!isPaid) {
@@ -93,6 +96,15 @@ export async function GET(req: NextRequest) {
     user.cyclePeriod = months;
     user.isFrozen = false;
     user.extendedUntil = newExtendedUntil;
+
+    // Apply verification badge update if requested
+    if (verificationMonths > 0) {
+      user.isVerified = true;
+      const vDate = user.verifiedUntil && new Date(user.verifiedUntil) > now 
+        ? new Date(user.verifiedUntil) 
+        : now;
+      user.verifiedUntil = new Date(vDate.getTime() + verificationMonths * 30 * 24 * 60 * 60 * 1000);
+    }
 
     // Save card info details to profile if requested
     if (paymentMethodToSave) {

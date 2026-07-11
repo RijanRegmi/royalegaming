@@ -204,9 +204,11 @@ export default function AdminSettingsPage() {
 
   // --- Default Billing Plans states ---
   const [billingPlans, setBillingPlans] = useState<any[]>([]);
+  const [verificationPlans, setVerificationPlans] = useState<any[]>([]);
   const [loadingBillingPlans, setLoadingBillingPlans] = useState<boolean>(true);
   const [editingPlan, setEditingPlan] = useState<any | null>(null);
   const [editPlanPrice, setEditPlanPrice] = useState<string>('');
+  const [editPlanIncludesVerification, setEditPlanIncludesVerification] = useState<boolean>(false);
   const [updatingPlanPrice, setUpdatingPlanPrice] = useState<boolean>(false);
 
   const fetchBillingPlans = async () => {
@@ -216,6 +218,7 @@ export default function AdminSettingsPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setBillingPlans(data.plans || []);
+        setVerificationPlans(data.verificationPlans || []);
       }
     } catch (err) {
       console.error('Error fetching billing plans:', err);
@@ -237,6 +240,7 @@ export default function AdminSettingsPage() {
         body: JSON.stringify({
           planId: editingPlan.planId,
           pricePerMonth: editPlanPrice,
+          includesVerification: editPlanIncludesVerification,
         }),
       });
 
@@ -246,7 +250,10 @@ export default function AdminSettingsPage() {
       }
 
       setBillingPlans((prev) =>
-        prev.map((p) => (p.planId === editingPlan.planId ? { ...p, pricePerMonth: parseFloat(editPlanPrice) } : p))
+        prev.map((p) => (p.planId === editingPlan.planId ? { ...p, pricePerMonth: parseFloat(editPlanPrice), includesVerification: editPlanIncludesVerification } : p))
+      );
+      setVerificationPlans((prev) =>
+        prev.map((p) => (p.planId === editingPlan.planId ? { ...p, pricePerMonth: parseFloat(editPlanPrice), includesVerification: editPlanIncludesVerification } : p))
       );
       setEditingPlan(null);
       setFeedback({ type: 'success', message: 'Successfully updated default plan pricing!' });
@@ -2827,91 +2834,175 @@ export default function AdminSettingsPage() {
           )}
         </div>
       ) : activeTab === 'billing' && currentUser.role === 'super_admin' ? (
-        <div className="admin-table-container glass">
-          <div
-            style={{
-              padding: '20px',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              borderBottom: '1px solid var(--border-color)',
-            }}
-          >
-            <div>
-              <span style={{ fontWeight: 600, display: 'block' }}>Default Subscription Plans Pricing</span>
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
-                Directly customize the standard pricing plans that display to all web and mobile app users.
-              </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div className="admin-table-container glass">
+            <div
+              style={{
+                padding: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                borderBottom: '1px solid var(--border-color)',
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 600, display: 'block' }}>Default Subscription Plans Pricing</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Directly customize the standard pricing plans that display to all web and mobile app users.
+                </span>
+              </div>
+              <button className="icon-btn" title="Refresh data" onClick={fetchBillingPlans}>
+                <RefreshCw size={16} />
+              </button>
             </div>
-            <button className="icon-btn" title="Refresh data" onClick={fetchBillingPlans}>
-              <RefreshCw size={16} />
-            </button>
+
+            {loadingBillingPlans ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                <div className="spinner"></div>
+              </div>
+            ) : billingPlans.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                No subscription plans configured.
+              </div>
+            ) : (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Plan Name</th>
+                    <th>Duration</th>
+                    <th>Auto-Verification</th>
+                    <th>Price Per Month</th>
+                    <th>Total Cost</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {billingPlans.map((plan) => (
+                    <tr key={plan.planId}>
+                      <td>
+                        <span style={{ fontWeight: 600 }}>{plan.name}</span>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{plan.subtitle}</div>
+                      </td>
+                      <td>
+                        <span className="role-badge user" style={{ padding: '3px 8px' }}>
+                          {plan.months} Month(s)
+                        </span>
+                      </td>
+                      <td>
+                        {plan.includesVerification ? (
+                          <span style={{ fontSize: '11.5px', color: '#10b981', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Check size={14} /> Included
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Excluded</span>
+                        )}
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 700, color: 'var(--success-color)' }}>
+                          ${plan.pricePerMonth} / month
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600 }}>
+                          ${plan.pricePerMonth * plan.months}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn-secondary" 
+                          style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: 0 }}
+                          onClick={() => {
+                            setEditingPlan(plan);
+                            setEditPlanPrice(plan.pricePerMonth.toString());
+                            setEditPlanIncludesVerification(!!plan.includesVerification);
+                          }}
+                        >
+                          <Edit2 size={13} /> Edit Price
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
-          {loadingBillingPlans ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-              <div className="spinner"></div>
+          {/* Verification Badge Customizer */}
+          <div className="admin-table-container glass">
+            <div
+              style={{
+                padding: '20px',
+                borderBottom: '1px solid var(--border-color)',
+              }}
+            >
+              <div>
+                <span style={{ fontWeight: 600, display: 'block' }}>Verification Badge Add-On Pricing</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Configure cycle periods and add-on pricing options for administrators buying a verification badge.
+                </span>
+              </div>
             </div>
-          ) : billingPlans.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-              No subscription plans configured.
-            </div>
-          ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Plan Name</th>
-                  <th>Duration</th>
-                  <th>Original Default Monthly Rate</th>
-                  <th>Current Price Per Month</th>
-                  <th>Total Cost</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {billingPlans.map((plan) => (
-                  <tr key={plan.planId}>
-                    <td>
-                      <span style={{ fontWeight: 600 }}>{plan.name}</span>
-                      <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{plan.subtitle}</div>
-                    </td>
-                    <td>
-                      <span className="role-badge user" style={{ padding: '3px 8px' }}>
-                        {plan.months} Month(s)
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)' }}>
-                        $599 / month
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 700, color: 'var(--success-color)' }}>
-                        ${plan.pricePerMonth} / month
-                      </span>
-                    </td>
-                    <td>
-                      <span style={{ fontWeight: 600 }}>
-                        ${plan.pricePerMonth * plan.months}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <button 
-                        className="btn-secondary" 
-                        style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: 0 }}
-                        onClick={() => {
-                          setEditingPlan(plan);
-                          setEditPlanPrice(plan.pricePerMonth.toString());
-                        }}
-                      >
-                        <Edit2 size={13} /> Edit Price
-                      </button>
-                    </td>
+
+            {loadingBillingPlans ? (
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                <div className="spinner"></div>
+              </div>
+            ) : verificationPlans.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                No verification pricing plans found.
+              </div>
+            ) : (
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Plan Name</th>
+                    <th>Duration</th>
+                    <th>Price Per Month</th>
+                    <th>Total Cost</th>
+                    <th style={{ textAlign: 'right' }}>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
+                </thead>
+                <tbody>
+                  {verificationPlans.map((plan) => (
+                    <tr key={plan.planId}>
+                      <td>
+                        <span style={{ fontWeight: 600 }}>{plan.name}</span>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>{plan.subtitle}</div>
+                      </td>
+                      <td>
+                        <span className="role-badge admins" style={{ padding: '3px 8px' }}>
+                          {plan.months} Month(s)
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 700, color: 'var(--success-color)' }}>
+                          ${plan.pricePerMonth} / month
+                        </span>
+                      </td>
+                      <td>
+                        <span style={{ fontWeight: 600 }}>
+                          ${plan.pricePerMonth * plan.months}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn-secondary" 
+                          style={{ padding: '6px 12px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', margin: 0 }}
+                          onClick={() => {
+                            setEditingPlan(plan);
+                            setEditPlanPrice(plan.pricePerMonth.toString());
+                            setEditPlanIncludesVerification(!!plan.includesVerification);
+                          }}
+                        >
+                          <Edit2 size={13} /> Edit Price
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
         </div>
       ) : null}
 
@@ -4290,6 +4381,22 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                 </div>
+
+                {!editingPlan.planId.startsWith('v') && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0' }}>
+                    <input
+                      type="checkbox"
+                      id="editPlanIncludesVerification"
+                      checked={editPlanIncludesVerification}
+                      onChange={(e) => setEditPlanIncludesVerification(e.target.checked)}
+                      disabled={updatingPlanPrice}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="editPlanIncludesVerification" style={{ cursor: 'pointer', margin: 0, fontWeight: 600, fontSize: '13px' }}>
+                      Include Verification Badge in this plan
+                    </label>
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label>Resulting Total Price ($ USD)</label>

@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import Stripe from 'stripe';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
-import { getUserFromRequest } from '@/lib/auth';
 import SubscriptionPlan from '@/models/SubscriptionPlan';
+import { getUserFromRequest } from '@/lib/auth';
+import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_key_to_avoid_build_error_if_not_present');
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
+  apiVersion: '2023-10-16' as any,
+});
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,18 +16,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { planType, useSavedCard, saveCard } = await req.json();
-    if (!planType) {
-      return NextResponse.json({ error: 'Missing planType parameter' }, { status: 400 });
-    }
-
     await dbConnect();
-
-    // Fetch user details from database
     const user = await User.findById(payload.userId);
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    const body = await req.json().catch(() => ({}));
+    const planType = body.planType || '1';
+    const useSavedCard = body.useSavedCard || false;
+    const verificationCycle = body.verificationCycle || null; // '1', '6', '12' or null
+    const saveCard = body.saveCard || false;
 
     // 1. Ensure a Stripe Customer exists for this user
     let customerId = user.stripeCustomerId;
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
     let months = 1;
     let amount = 599.00; // in USD
     let planName = 'Rilogram Admin 1-Month Plan';
+    let planIncludesVerification = false;
 
     if (planType === '1' || planType === '6' || planType === '12') {
       const plan = await SubscriptionPlan.findOne({ planId: planType });
@@ -59,10 +61,12 @@ export async function POST(req: NextRequest) {
         } else {
           months = 12;
           amount = 5988.00;
+          planIncludesVerification = true;
         }
       } else {
         months = plan.months;
         amount = plan.pricePerMonth * plan.months;
+        planIncludesVerification = !!plan.includesVerification;
       }
       planName = `Rilogram Admin ${months}-Month Plan`;
     } else if (planType === 'special') {
@@ -77,6 +81,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid planType specified' }, { status: 400 });
     }
 
+    // Handle Verification Add-on calculation (Only if role is admin or super_admin)
+    const isAllowedVerification = user.role === 'admin' || user.role === 'super_admin';
+    let verificationMonths = 0;
+    let verificationIncluded = 'false';
+
+    if (isAllowedVerification) {
+      if (planIncludesVerification) {
+        verificationMonths = months;
+        verificationIncluded = 'true';
+        planName += ' (Includes Verification)';
+      } else if (verificationCycle === '1' || verificationCycle === '6' || verificationCycle === '12') {
+        const vPlan = await SubscriptionPlan.findOne({ planId: `v${verificationCycle}` });
+        let vMonths = parseInt(verificationCycle, 10);
+        let vAmount = 0;
+        if (vPlan) {
+          vAmount = vPlan.pricePerMonth * vPlan.months;
+        } else {
+          if (verificationCycle === '1') vAmount = 49.00;
+          else if (verificationCycle === '6') vAmount = 234.00; // 39 * 6
+          else vAmount = 348.00; // 29 * 12
+        }
+        amount += vAmount;
+        verificationMonths = vMonths;
+        planName += ` + ${vMonths}-Month Verification Badge`;
+      }
+    }
+
     // Handle $0 setup / free trial plans
     if (amount <= 0) {
       return NextResponse.json({
@@ -84,7 +115,14 @@ export async function POST(req: NextRequest) {
         isFreeSetup: true,
         amount: 0,
         planName,
-        months
+        months,
+        userRole: user.role,
+        specialDiscount: user.specialDiscount && user.specialDiscount.pricePerMonth !== null ? {
+          pricePerMonth: user.specialDiscount.pricePerMonth,
+          totalPrice: user.specialDiscount.totalPrice,
+          months: user.specialDiscount.months,
+          expiresAt: user.specialDiscount.expiresAt
+        } : null
       });
     }
 
@@ -103,6 +141,8 @@ export async function POST(req: NextRequest) {
             userId: payload.userId,
             planType: planType.toString(),
             months: months.toString(),
+            verificationMonths: verificationMonths.toString(),
+            verificationIncluded,
             savedCardUsed: 'true',
           },
         });
@@ -115,13 +155,14 @@ export async function POST(req: NextRequest) {
           amount,
           planName,
           months,
+          userRole: user.role,
           savedCard: {
             brand: user.stripeCardBrand,
             last4: user.stripeCardLast4
           }
         });
       } catch (err) {
-        // If card fails off-session, fall back to normal checkout creation below
+        // If card fails off-session, fall back to normal elements checkout below
         console.warn('Saved card confirm failed, falling back to elements form:', err);
       }
     }
@@ -136,6 +177,8 @@ export async function POST(req: NextRequest) {
         userId: payload.userId,
         planType: planType.toString(),
         months: months.toString(),
+        verificationMonths: verificationMonths.toString(),
+        verificationIncluded,
         saveCard: saveCard ? 'true' : 'false',
       },
     };
@@ -154,6 +197,7 @@ export async function POST(req: NextRequest) {
       amount,
       planName,
       months,
+      userRole: user.role,
       savedCard: user.stripePaymentMethodId ? {
         brand: user.stripeCardBrand,
         last4: user.stripeCardLast4

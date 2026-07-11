@@ -11,7 +11,7 @@ export async function PUT(req: NextRequest) {
     }
 
     await dbConnect();
-    const { planId, pricePerMonth } = await req.json();
+    const { planId, pricePerMonth, includesVerification } = await req.json();
 
     if (!planId || pricePerMonth === undefined || pricePerMonth === null) {
       return NextResponse.json({ error: 'Missing planId or pricePerMonth' }, { status: 400 });
@@ -22,9 +22,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid price value' }, { status: 400 });
     }
 
+    const updateData: any = { pricePerMonth: numPrice };
+    if (includesVerification !== undefined) {
+      updateData.includesVerification = !!includesVerification;
+    }
+
     const updatedPlan = await SubscriptionPlan.findOneAndUpdate(
       { planId },
-      { $set: { pricePerMonth: numPrice } },
+      { $set: updateData },
       { new: true }
     );
 

@@ -16,6 +16,7 @@ const UserSchema = new Schema({
   isFrozen: { type: Boolean, default: false },
   isManuallyLinked: { type: Boolean, default: false },
   isVerified: { type: Boolean, default: false },
+  verifiedUntil: { type: Date, default: null },
   billingStartDate: { type: Date, default: Date.now },
   extendedUntil: { type: Date, default: null },
   cyclePeriod: { type: Number, default: 1 },

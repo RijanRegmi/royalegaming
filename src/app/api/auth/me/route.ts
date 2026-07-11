@@ -30,6 +30,13 @@ export async function GET(req: NextRequest) {
     // Run dynamic billing freeze check
     user = await checkAndApplyFreeze(user);
 
+    // Auto-expire verification badge if needed
+    if (user.verifiedUntil && new Date(user.verifiedUntil) < new Date() && user.isVerified) {
+      user.isVerified = false;
+      user.verifiedUntil = null;
+      await user.save();
+    }
+
     const inviteCode = (user.role === 'admin' || user.role === 'super_admin')
       ? encryptSlug(user.username || user._id.toString())
       : '';
@@ -82,6 +89,8 @@ export async function GET(req: NextRequest) {
         billingStartDate: user.billingStartDate || null,
         extendedUntil: user.extendedUntil || null,
         specialDiscount: user.specialDiscount || null,
+        isVerified: user.isVerified || false,
+        verifiedUntil: user.verifiedUntil || null,
       },
     });
   } catch (error) {

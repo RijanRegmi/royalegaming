@@ -8,6 +8,7 @@ export interface ISubscriptionPlan extends Document {
   months: number;
   features: string[];
   isPopular: boolean;
+  includesVerification: boolean;
 }
 
 const SubscriptionPlanSchema: Schema = new Schema({
@@ -17,7 +18,8 @@ const SubscriptionPlanSchema: Schema = new Schema({
   pricePerMonth: { type: Number, required: true },
   months: { type: Number, required: true },
   features: { type: [String], default: [] },
-  isPopular: { type: Boolean, default: false }
+  isPopular: { type: Boolean, default: false },
+  includesVerification: { type: Boolean, default: false }
 }, { timestamps: true });
 
 export default mongoose.models.SubscriptionPlan || mongoose.model<ISubscriptionPlan>('SubscriptionPlan', SubscriptionPlanSchema);

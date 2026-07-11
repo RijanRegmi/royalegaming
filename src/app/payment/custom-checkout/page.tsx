@@ -66,8 +66,12 @@ function CheckoutForm({
   savedCard,
   planType,
   plans,
+  verificationPlans,
   specialDiscount,
-  onChangePlan
+  userRole,
+  verificationCycle,
+  onChangePlan,
+  onChangeVerification
 }: { 
   clientSecret: string | null; 
   paymentIntentId: string | null;
@@ -78,8 +82,12 @@ function CheckoutForm({
   savedCard: { brand: string; last4: string } | null;
   planType: string;
   plans: any[];
+  verificationPlans: any[];
   specialDiscount: any;
+  userRole: string;
+  verificationCycle: string | null;
   onChangePlan: (type: string) => void;
+  onChangeVerification: (cycle: string | null) => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -123,6 +131,21 @@ function CheckoutForm({
     : 0;
   const specialMonths = specialDiscount ? specialDiscount.months : 1;
 
+  // Check if current subscription plan already includes verification
+  const currentPlan = plans.find(p => p.planId === planType);
+  const planIncludesVerification = currentPlan ? !!currentPlan.includesVerification : false;
+
+  // Load verification options from database
+  const v1Plan = verificationPlans.find(vp => vp.planId === 'v1');
+  const v6Plan = verificationPlans.find(vp => vp.planId === 'v6');
+  const v12Plan = verificationPlans.find(vp => vp.planId === 'v12');
+
+  const v1Cost = v1Plan ? v1Plan.pricePerMonth : 49;
+  const v6Cost = v6Plan ? v6Plan.pricePerMonth * v6Plan.months : 234;
+  const v12Cost = v12Plan ? v12Plan.pricePerMonth * v12Plan.months : 348;
+
+  const isAllowedVerification = userRole === 'admin' || userRole === 'super_admin';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
@@ -152,7 +175,7 @@ function CheckoutForm({
         const payRes = await fetch('/api/payments/stripe/intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planType, useSavedCard: true }),
+          body: JSON.stringify({ planType, useSavedCard: true, verificationCycle }),
         });
         const payData = await payRes.json();
         if (!payRes.ok) {
@@ -389,6 +412,96 @@ function CheckoutForm({
           </div>
         )}
       </div>
+
+      {/* Verification Badge Option for Admins */}
+      {isAllowedVerification && (
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {planIncludesVerification ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '13.5px', fontWeight: 700 }}>
+              <Check size={16} style={{ strokeWidth: 3 }} />
+              <span>Verified Account Badge included automatically in this plan!</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', fontSize: '14px', fontWeight: 700, color: '#fff', margin: 0 }}>
+                <input 
+                  type="checkbox"
+                  checked={verificationCycle !== null}
+                  onChange={(e) => onChangeVerification(e.target.checked ? '1' : null)}
+                  style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: '#10b981' }}
+                />
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  Add Verified Account Badge
+                </span>
+              </label>
+
+              {verificationCycle !== null && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
+                  {/* v1 toggle */}
+                  <div 
+                    onClick={() => onChangeVerification('1')}
+                    style={{ 
+                      cursor: 'pointer', 
+                      padding: '12px 10px', 
+                      borderRadius: '12px', 
+                      background: 'rgba(0,0,0,0.15)',
+                      border: verificationCycle === '1' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.06)',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>1 Month</span>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>${v1Cost}</span>
+                  </div>
+
+                  {/* v6 toggle */}
+                  <div 
+                    onClick={() => onChangeVerification('6')}
+                    style={{ 
+                      cursor: 'pointer', 
+                      padding: '12px 10px', 
+                      borderRadius: '12px', 
+                      background: 'rgba(0,0,0,0.15)',
+                      border: verificationCycle === '6' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.06)',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>6 Months</span>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>${v6Cost}</span>
+                  </div>
+
+                  {/* v12 toggle */}
+                  <div 
+                    onClick={() => onChangeVerification('12')}
+                    style={{ 
+                      cursor: 'pointer', 
+                      padding: '12px 10px', 
+                      borderRadius: '12px', 
+                      background: 'rgba(0,0,0,0.15)',
+                      border: verificationCycle === '12' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.06)',
+                      textAlign: 'center',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>12 Months</span>
+                    <span style={{ fontSize: '11px', color: '#10b981', fontWeight: 600 }}>${v12Cost}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Order Summary Details */}
       <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', padding: '20px 24px' }}>
@@ -696,12 +809,14 @@ function CustomCheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [planType, setPlanType] = useState(searchParams.get('planType') || '1');
+  const [verificationCycle, setVerificationCycle] = useState<string | null>(null);
   const token = searchParams.get('token');
 
   const [loading, setLoading] = useState(true);
   const [submittingPlan, setSubmittingPlan] = useState(false);
   const [initData, setInitData] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
+  const [verificationPlans, setVerificationPlans] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -716,14 +831,15 @@ function CustomCheckoutContent() {
         const plansRes = await fetch('/api/payments/plans');
         const plansData = await plansRes.json();
         if (plansRes.ok && plansData.success) {
-          setPlans(plansData.plans);
+          setPlans(plansData.plans || []);
+          setVerificationPlans(plansData.verificationPlans || []);
         }
 
-        // Fetch PaymentIntent init details
+        // Fetch PaymentIntent init details with standard plan and verification cycle parameters
         const res = await fetch('/api/payments/stripe/intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ planType }),
+          body: JSON.stringify({ planType, verificationCycle }),
         });
         const data = await res.json();
         if (!res.ok) {
@@ -739,12 +855,18 @@ function CustomCheckoutContent() {
     };
 
     initCheckout();
-  }, [planType, token]);
+  }, [planType, token, verificationCycle]);
 
   const handleChangePlan = (newPlanType: string) => {
     if (newPlanType === planType || submittingPlan) return;
     setSubmittingPlan(true);
     setPlanType(newPlanType);
+  };
+
+  const handleChangeVerification = (newCycle: string | null) => {
+    if (newCycle === verificationCycle || submittingPlan) return;
+    setSubmittingPlan(true);
+    setVerificationCycle(newCycle);
   };
 
   if (loading) {
@@ -806,8 +928,12 @@ function CustomCheckoutContent() {
           savedCard={initData.savedCard}
           planType={planType}
           plans={plans}
+          verificationPlans={verificationPlans}
           specialDiscount={initData.specialDiscount}
+          userRole={initData.userRole}
+          verificationCycle={verificationCycle}
           onChangePlan={handleChangePlan}
+          onChangeVerification={handleChangeVerification}
         />
       ) : (
         <Elements stripe={stripePromise} options={{ clientSecret: initData.clientSecret }}>
@@ -821,8 +947,12 @@ function CustomCheckoutContent() {
             savedCard={initData.savedCard}
             planType={planType}
             plans={plans}
+            verificationPlans={verificationPlans}
             specialDiscount={initData.specialDiscount}
+            userRole={initData.userRole}
+            verificationCycle={verificationCycle}
             onChangePlan={handleChangePlan}
+            onChangeVerification={handleChangeVerification}
           />
         </Elements>
       )}
