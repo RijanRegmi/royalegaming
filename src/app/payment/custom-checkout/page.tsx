@@ -65,6 +65,7 @@ function CheckoutForm({
   isFreeSetup,
   savedCard,
   planType,
+  plans,
   onChangePlan
 }: { 
   clientSecret: string | null; 
@@ -75,6 +76,7 @@ function CheckoutForm({
   isFreeSetup: boolean; 
   savedCard: { brand: string; last4: string } | null;
   planType: string;
+  plans: any[];
   onChangePlan: (type: string) => void;
 }) {
   const stripe = useStripe();
@@ -96,6 +98,17 @@ function CheckoutForm({
   const [isNumFocused, setIsNumFocused] = useState(false);
   const [isExpFocused, setIsExpFocused] = useState(false);
   const [isCvcFocused, setIsCvcFocused] = useState(false);
+
+  // Find standard 1-Month and 12-Month pricing dynamically from the database plans
+  const dbMonthlyPlan = plans.find(p => p.planId === '1');
+  const dbYearlyPlan = plans.find(p => p.planId === '12');
+
+  const monthlyPricePerMonth = dbMonthlyPlan ? dbMonthlyPlan.pricePerMonth : 299;
+  const yearlyPricePerMonth = dbYearlyPlan ? dbYearlyPlan.pricePerMonth : 199;
+  const yearlyTotalCost = dbYearlyPlan ? dbYearlyPlan.pricePerMonth * dbYearlyPlan.months : 2388;
+
+  // Calculate discount percentage based on monthly rate vs yearly rate
+  const discountPercent = Math.round((1 - (yearlyPricePerMonth / monthlyPricePerMonth)) * 100);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,73 +238,77 @@ function CheckoutForm({
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Plan Toggles - Clone of Claude radio options */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-        {/* Monthly Card Option */}
-        <div 
-          onClick={() => onChangePlan('1')}
-          style={{ 
-            cursor: 'pointer', 
-            padding: '16px', 
-            borderRadius: '16px', 
-            background: 'rgba(255,255,255,0.01)', 
-            border: planType === '1' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            position: 'relative',
-            transition: 'border-color 0.2s'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '18px', 
-              height: '18px', 
-              borderRadius: '50%', 
-              border: planType === '1' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
-              background: '#0b0f19',
+      {/* Plan Toggles - Only show if it's a standard plan (not special plan) */}
+      {planType !== 'special' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          {/* Monthly Card Option */}
+          <div 
+            onClick={() => onChangePlan('1')}
+            style={{ 
+              cursor: 'pointer', 
+              padding: '16px', 
+              borderRadius: '16px', 
+              background: 'rgba(255,255,255,0.01)', 
+              border: planType === '1' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              position: 'relative',
               transition: 'border-color 0.2s'
-            }} />
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Monthly</span>
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '18px', 
+                height: '18px', 
+                borderRadius: '50%', 
+                border: planType === '1' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
+                background: '#0b0f19',
+                transition: 'border-color 0.2s'
+              }} />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Monthly</span>
+            </div>
+            <span style={{ fontSize: '13px', color: '#94a3b8' }}>${monthlyPricePerMonth}/month + tax</span>
           </div>
-          <span style={{ fontSize: '13px', color: '#94a3b8' }}>$5.99/month + tax</span>
-        </div>
 
-        {/* Yearly Card Option */}
-        <div 
-          onClick={() => onChangePlan('12')}
-          style={{ 
-            cursor: 'pointer', 
-            padding: '16px', 
-            borderRadius: '16px', 
-            background: planType === '12' ? 'rgba(168, 85, 247, 0.02)' : 'rgba(255,255,255,0.01)', 
-            border: planType === '12' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            position: 'relative',
-            transition: 'border-color 0.2s'
-          }}
-        >
-          {/* Discount Badge */}
-          <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
-            Save 17%
-          </div>
-          
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '18px', 
-              height: '18px', 
-              borderRadius: '50%', 
-              border: planType === '12' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
-              background: '#0b0f19',
+          {/* Yearly Card Option */}
+          <div 
+            onClick={() => onChangePlan('12')}
+            style={{ 
+              cursor: 'pointer', 
+              padding: '16px', 
+              borderRadius: '16px', 
+              background: planType === '12' ? 'rgba(168, 85, 247, 0.02)' : 'rgba(255,255,255,0.01)', 
+              border: planType === '12' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              position: 'relative',
               transition: 'border-color 0.2s'
-            }} />
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Yearly</span>
+            }}
+          >
+            {/* Dynamic Discount Savings Badge */}
+            {discountPercent > 0 && (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
+                Save {discountPercent}%
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '18px', 
+                height: '18px', 
+                borderRadius: '50%', 
+                border: planType === '12' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
+                background: '#0b0f19',
+                transition: 'border-color 0.2s'
+              }} />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Yearly</span>
+            </div>
+            <span style={{ fontSize: '13px', color: '#94a3b8' }}>${yearlyTotalCost}/year + tax</span>
           </div>
-          <span style={{ fontSize: '13px', color: '#94a3b8' }}>$59.88/year + tax</span>
         </div>
-      </div>
+      )}
 
       {/* Order Summary Details */}
       <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', padding: '20px 24px' }}>
@@ -604,6 +621,7 @@ function CustomCheckoutContent() {
   const [loading, setLoading] = useState(true);
   const [submittingPlan, setSubmittingPlan] = useState(false);
   const [initData, setInitData] = useState<any>(null);
+  const [plans, setPlans] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -614,6 +632,14 @@ function CustomCheckoutContent() {
 
     const initCheckout = async () => {
       try {
+        // Fetch all plans dynamically from the database
+        const plansRes = await fetch('/api/payments/plans');
+        const plansData = await plansRes.json();
+        if (plansRes.ok && plansData.success) {
+          setPlans(plansData.plans);
+        }
+
+        // Fetch PaymentIntent init details
         const res = await fetch('/api/payments/stripe/intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -670,7 +696,7 @@ function CustomCheckoutContent() {
       
       {/* Loading overlay when toggling between plans */}
       {submittingPlan && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(11,15,25,0.7)', backdropFilter: 'blur(2px)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '24px' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(17,17,17,0.7)', backdropFilter: 'blur(2px)', zIndex: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '24px' }}>
           <Loader2 className="animate-spin" style={{ color: '#a855f7' }} size={32} />
         </div>
       )}
@@ -699,6 +725,7 @@ function CustomCheckoutContent() {
           isFreeSetup={true}
           savedCard={initData.savedCard}
           planType={planType}
+          plans={plans}
           onChangePlan={handleChangePlan}
         />
       ) : (
@@ -712,6 +739,7 @@ function CustomCheckoutContent() {
             isFreeSetup={false}
             savedCard={initData.savedCard}
             planType={planType}
+            plans={plans}
             onChangePlan={handleChangePlan}
           />
         </Elements>
