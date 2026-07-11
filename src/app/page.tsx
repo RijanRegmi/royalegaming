@@ -990,12 +990,12 @@ export default function Home() {
         >
           <div ref={ringRef} className="carousel-3d-ring">
             {(gamesList && gamesList.length > 0 ? gamesList : [
-              { name: 'Fire Kirin', image: '/games/fire_kirin.png' },
-              { name: 'Orion Stars', image: '/games/orion_stars.png' },
-              { name: 'Ultra Panda', image: '/games/ultra_panda.png' },
-              { name: 'eSports Arena', image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600&auto=format&fit=crop' },
-              { name: 'Cyber Realm', image: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?q=80&w=600&auto=format&fit=crop' },
-              { name: 'Neon Arcade', image: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=600&auto=format&fit=crop' },
+              { name: 'TaskFlow', image: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?q=80&w=400&auto=format&fit=crop' },
+              { name: 'TeamSync', image: 'https://images.unsplash.com/photo-1531538606174-0f90ff5dce83?q=80&w=400&auto=format&fit=crop' },
+              { name: 'DocuShare', image: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?q=80&w=400&auto=format&fit=crop' },
+              { name: 'CloudVault', image: 'https://images.unsplash.com/photo-1600132806370-bf17e65e942f?q=80&w=400&auto=format&fit=crop' },
+              { name: 'BoardHub', image: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=400&auto=format&fit=crop' },
+              { name: 'ProjectSpace', image: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=400&auto=format&fit=crop' },
             ]).map((game, idx, arr) => {
               const count = arr.length;
               const angle = (360 / count) * idx;

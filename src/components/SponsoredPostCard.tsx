@@ -51,7 +51,7 @@ export default function SponsoredPostCard({ style }: SponsoredPostCardProps) {
         </div>
       </div>
       <p style={{ color: '#e9edef', fontSize: '14px', lineHeight: '1.5', margin: '0 0 12px 0' }}>
-        Join the next big tournament! Compete with players worldwide and win big prizes. High speed servers, verified anti-cheat, and massive prize pools await.
+        Unlock Rilogram Premium Channels! Connect with verified administrators, customize your profile avatars, and enjoy ad-free secure communication.
       </p>
       <AdSenseBanner 
         adSlot={adSlot} 
