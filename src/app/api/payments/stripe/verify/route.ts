@@ -17,38 +17,49 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get('session_id');
+    const paymentIntentId = searchParams.get('payment_intent_id') || (sessionId?.startsWith('pi_') ? sessionId : null);
 
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Missing session_id' }, { status: 400 });
+    if (!sessionId && !paymentIntentId) {
+      return NextResponse.json({ error: 'Missing session_id or payment_intent_id' }, { status: 400 });
     }
 
     await dbConnect();
 
-    // Retrieve the session from Stripe
-    const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
+    let isPaid = false;
+    let targetUserId = '';
+    let months = 1;
 
-    // Handle both payment mode and setup mode ($0 plans)
-    const isFreeSetup = session.metadata?.isFreeSetup === 'true';
-
-    if (isFreeSetup) {
-      // For setup mode, verify setup_intent status
-      if (session.status !== 'complete') {
-        return NextResponse.json({ success: false, message: 'Card setup not completed yet' });
+    if (paymentIntentId) {
+      // Verify via PaymentIntent
+      const intent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      if (!intent) {
+        return NextResponse.json({ error: 'Payment Intent not found' }, { status: 404 });
       }
+      isPaid = intent.status === 'succeeded';
+      targetUserId = intent.metadata?.userId || '';
+      months = parseInt(intent.metadata?.months || '1', 10);
     } else {
-      // For payment mode, verify payment status
-      if (session.payment_status !== 'paid') {
-        return NextResponse.json({ success: false, message: 'Payment not completed yet' });
+      // Verify via Checkout Session
+      const session = await stripe.checkout.sessions.retrieve(sessionId!);
+      if (!session) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
       }
+
+      const isFreeSetup = session.metadata?.isFreeSetup === 'true';
+      if (isFreeSetup) {
+        isPaid = session.status === 'complete';
+      } else {
+        isPaid = session.payment_status === 'paid';
+      }
+      targetUserId = session.metadata?.userId || '';
+      months = parseInt(session.metadata?.months || '1', 10);
     }
 
-    const sessionUserId = session.metadata?.userId;
-    const months = parseInt(session.metadata?.months || '1', 10);
+    if (!isPaid) {
+      return NextResponse.json({ success: false, message: 'Transaction not completed yet' });
+    }
 
-    if (sessionUserId !== payload.userId) {
+    if (targetUserId !== payload.userId) {
       return NextResponse.json({ error: 'Session user mismatch' }, { status: 403 });
     }
 

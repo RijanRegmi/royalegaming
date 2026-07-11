@@ -3,7 +3,6 @@ import Stripe from 'stripe';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
 import { getUserFromRequest } from '@/lib/auth';
-
 import SubscriptionPlan from '@/models/SubscriptionPlan';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_key_to_avoid_build_error_if_not_present');
@@ -63,23 +62,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid planType specified' }, { status: 400 });
     }
 
-    const origin = req.headers.get('origin') || 'https://royalegamingg.com';
+    // Handle $0 setup / free trial plans
+    if (amount <= 0) {
+      return NextResponse.json({
+        success: true,
+        isFreeSetup: true,
+        amount: 0,
+        planName,
+        months
+      });
+    }
 
-    // Retrieve the authorization token from headers or cookies
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader && authHeader.startsWith('Bearer ') 
-      ? authHeader.substring(7) 
-      : req.cookies.get('auth_token')?.value;
-
-    const sessionUrl = `${origin}/payment/custom-checkout?planType=${planType}${token ? `&token=${token}` : ''}`;
+    // Create Stripe PaymentIntent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(amount * 100), // Stripe expects cents
+      currency: 'usd',
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        userId: payload.userId,
+        planType: planType.toString(),
+        months: months.toString(),
+      },
+    });
 
     return NextResponse.json({
       success: true,
-      sessionUrl,
-      sessionId: `pi_temp_${Date.now()}`, // Send placeholder sessionId
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      amount,
+      planName,
+      months
     });
   } catch (error) {
-    console.error('Stripe session creation error:', error);
-    return NextResponse.json({ error: (error as Error).message || 'Failed to initiate checkout session' }, { status: 500 });
+    console.error('Stripe PaymentIntent creation error:', error);
+    return NextResponse.json({ error: (error as Error).message || 'Failed to initiate payment intent' }, { status: 500 });
   }
 }
