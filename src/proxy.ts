@@ -124,7 +124,11 @@ export function proxy(request: NextRequest) {
         '/api/auth/me',
         '/api/auth/link-admin',
         '/api/auth/logout',
-        '/api/payments/stripe/webhook'
+        '/api/payments/stripe/webhook',
+        '/api/payments/plans',
+        '/api/payments/stripe/intent',
+        '/api/payments/stripe/session',
+        '/api/payments/stripe/verify'
       ];
       
       const isAllowedApi = allowedPaths.some(p => pathname.startsWith(p));
