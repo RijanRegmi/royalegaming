@@ -267,126 +267,95 @@ function CheckoutForm({
 
   const getRenewalDate = () => {
     const d = new Date();
-    d.setMonth(d.getMonth() + months);
+    const activeMonths = planType === 'verification' ? parseInt(verificationCycle || '1', 10) : months;
+    d.setMonth(d.getMonth() + activeMonths);
     return d.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
   };
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       
-      {/* Plan Selection Toggles Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
-        
-        {/* Monthly Card Option */}
-        <div 
-          onClick={() => onChangePlan('1')}
-          style={{ 
-            cursor: 'pointer', 
-            padding: '16px', 
-            borderRadius: '16px', 
-            background: 'rgba(255,255,255,0.01)', 
-            border: planType === '1' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            position: 'relative',
-            transition: 'border-color 0.2s'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '18px', 
-              height: '18px', 
-              borderRadius: '50%', 
-              border: planType === '1' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
-              background: '#0b0f19',
-              transition: 'border-color 0.2s'
-            }} />
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Monthly</span>
-          </div>
-          <span style={{ fontSize: '13px', color: '#94a3b8' }}>${monthlyPricePerMonth}/month</span>
-        </div>
-
-        {/* 6 Month Card Option */}
-        <div 
-          onClick={() => onChangePlan('6')}
-          style={{ 
-            cursor: 'pointer', 
-            padding: '16px', 
-            borderRadius: '16px', 
-            background: 'rgba(255,255,255,0.01)', 
-            border: planType === '6' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            position: 'relative',
-            transition: 'border-color 0.2s'
-          }}
-        >
-          {sixMonthDiscountPercent > 0 && (
-            <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
-              Save {sixMonthDiscountPercent}%
+      {planType === 'verification' ? (
+        /* Render Verification Only Primary Selection Toggles */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 700, color: '#fff' }}>
+            Select Verification Badge Cycle
+          </h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+            {/* v1 card */}
+            <div 
+              onClick={() => onChangeVerification('1')}
+              style={{ 
+                cursor: 'pointer', 
+                padding: '16px 12px', 
+                borderRadius: '16px', 
+                background: 'rgba(255,255,255,0.01)', 
+                border: verificationCycle === '1' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>1 Month</span>
+              <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>${v1Cost} total</span>
             </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '18px', 
-              height: '18px', 
-              borderRadius: '50%', 
-              border: planType === '6' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
-              background: '#0b0f19',
-              transition: 'border-color 0.2s'
-            }} />
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>6 Months</span>
-          </div>
-          <span style={{ fontSize: '13px', color: '#94a3b8' }}>${sixMonthTotalCost} total</span>
-        </div>
 
-        {/* Yearly Card Option */}
-        <div 
-          onClick={() => onChangePlan('12')}
-          style={{ 
-            cursor: 'pointer', 
-            padding: '16px', 
-            borderRadius: '16px', 
-            background: 'rgba(255,255,255,0.01)', 
-            border: planType === '12' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            position: 'relative',
-            transition: 'border-color 0.2s'
-          }}
-        >
-          {discountPercent > 0 && (
-            <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
-              Save {discountPercent}%
+            {/* v6 card */}
+            <div 
+              onClick={() => onChangeVerification('6')}
+              style={{ 
+                cursor: 'pointer', 
+                padding: '16px 12px', 
+                borderRadius: '16px', 
+                background: 'rgba(255,255,255,0.01)', 
+                border: verificationCycle === '6' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>6 Months</span>
+              <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>${v6Cost} total</span>
             </div>
-          )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ 
-              width: '18px', 
-              height: '18px', 
-              borderRadius: '50%', 
-              border: planType === '12' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
-              background: '#0b0f19',
-              transition: 'border-color 0.2s'
-            }} />
-            <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Yearly</span>
-          </div>
-          <span style={{ fontSize: '13px', color: '#94a3b8' }}>${yearlyTotalCost} total</span>
-        </div>
 
-        {/* Special Offer Card Option (Render dynamically if user has a special discount) */}
-        {hasSpecialDiscount && (
+            {/* v12 card */}
+            <div 
+              onClick={() => onChangeVerification('12')}
+              style={{ 
+                cursor: 'pointer', 
+                padding: '16px 12px', 
+                borderRadius: '16px', 
+                background: 'rgba(255,255,255,0.01)', 
+                border: verificationCycle === '12' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s'
+              }}
+            >
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>12 Months</span>
+              <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>${v12Cost} total</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Plan Selection Toggles Grid */
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          
+          {/* Monthly Card Option */}
           <div 
-            onClick={() => onChangePlan('special')}
+            onClick={() => onChangePlan('1')}
             style={{ 
               cursor: 'pointer', 
               padding: '16px', 
               borderRadius: '16px', 
-              background: planType === 'special' ? 'rgba(16,185,129,0.02)' : 'rgba(255,255,255,0.01)', 
-              border: planType === 'special' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(255,255,255,0.01)', 
+              border: planType === '1' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
               display: 'flex',
               flexDirection: 'column',
               gap: '6px',
@@ -394,27 +363,129 @@ function CheckoutForm({
               transition: 'border-color 0.2s'
             }}
           >
-            <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
-              Special Offer
-            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ 
                 width: '18px', 
                 height: '18px', 
                 borderRadius: '50%', 
-                border: planType === 'special' ? '5px solid #10b981' : '2px solid rgba(255,255,255,0.2)',
+                border: planType === '1' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
                 background: '#0b0f19',
                 transition: 'border-color 0.2s'
               }} />
-              <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Special</span>
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Monthly</span>
             </div>
-            <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>${specialPrice} total ({specialMonths} mo)</span>
+            <span style={{ fontSize: '13px', color: '#94a3b8' }}>${monthlyPricePerMonth}/month</span>
           </div>
-        )}
-      </div>
+
+          {/* 6 Month Card Option */}
+          <div 
+            onClick={() => onChangePlan('6')}
+            style={{ 
+              cursor: 'pointer', 
+              padding: '16px', 
+              borderRadius: '16px', 
+              background: 'rgba(255,255,255,0.01)', 
+              border: planType === '6' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              position: 'relative',
+              transition: 'border-color 0.2s'
+            }}
+          >
+            {sixMonthDiscountPercent > 0 && (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
+                Save {sixMonthDiscountPercent}%
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '18px', 
+                height: '18px', 
+                borderRadius: '50%', 
+                border: planType === '6' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
+                background: '#0b0f19',
+                transition: 'border-color 0.2s'
+              }} />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>6 Months</span>
+            </div>
+            <span style={{ fontSize: '13px', color: '#94a3b8' }}>${sixMonthTotalCost} total</span>
+          </div>
+
+          {/* Yearly Card Option */}
+          <div 
+            onClick={() => onChangePlan('12')}
+            style={{ 
+              cursor: 'pointer', 
+              padding: '16px', 
+              borderRadius: '16px', 
+              background: 'rgba(255,255,255,0.01)', 
+              border: planType === '12' ? '2px solid #a855f7' : '1px solid rgba(255,255,255,0.08)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '6px',
+              position: 'relative',
+              transition: 'border-color 0.2s'
+            }}
+          >
+            {discountPercent > 0 && (
+              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(168, 85, 247, 0.15)', color: '#c084fc', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
+                Save {discountPercent}%
+              </div>
+            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ 
+                width: '18px', 
+                height: '18px', 
+                borderRadius: '50%', 
+                border: planType === '12' ? '5px solid #a855f7' : '2px solid rgba(255,255,255,0.2)',
+                background: '#0b0f19',
+                transition: 'border-color 0.2s'
+              }} />
+              <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Yearly</span>
+            </div>
+            <span style={{ fontSize: '13px', color: '#94a3b8' }}>${yearlyTotalCost} total</span>
+          </div>
+
+          {/* Special Offer Card Option (Render dynamically if user has a special discount) */}
+          {hasSpecialDiscount && (
+            <div 
+              onClick={() => onChangePlan('special')}
+              style={{ 
+                cursor: 'pointer', 
+                padding: '16px', 
+                borderRadius: '16px', 
+                background: planType === 'special' ? 'rgba(16,185,129,0.02)' : 'rgba(255,255,255,0.01)', 
+                border: planType === 'special' ? '2px solid #10b981' : '1px solid rgba(255,255,255,0.08)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                position: 'relative',
+                transition: 'border-color 0.2s'
+              }}
+            >
+              <div style={{ position: 'absolute', top: '10px', right: '10px', background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', fontSize: '10.5px', fontWeight: 700, padding: '2px 8px', borderRadius: '8px' }}>
+                Special Offer
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ 
+                  width: '18px', 
+                  height: '18px', 
+                  borderRadius: '50%', 
+                  border: planType === 'special' ? '5px solid #10b981' : '2px solid rgba(255,255,255,0.2)',
+                  background: '#0b0f19',
+                  transition: 'border-color 0.2s'
+                }} />
+                <span style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Special</span>
+              </div>
+              <span style={{ fontSize: '13px', color: '#10b981', fontWeight: 600 }}>${specialPrice} total ({specialMonths} mo)</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Verification Badge Option for Admins */}
-      {isAllowedVerification && (
+      {planType !== 'verification' && isAllowedVerification && (
         <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: '16px', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {planIncludesVerification ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#10b981', fontSize: '13.5px', fontWeight: 700 }}>
@@ -528,10 +599,16 @@ function CheckoutForm({
       {/* Auto-renew warning message */}
       {!isFreeSetup && (
         <div style={{ display: 'flex', gap: '10px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '12px', padding: '14px', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5' }}>
-          <Shield size={16} style={{ flexShrink: 0, marginTop: '2px', color: '#a855f7' }} />
-          <span>
-            Your subscription will auto renew on <strong>{getRenewalDate()}</strong>. You will be charged ${amount.toFixed(2)}/{months === 12 ? 'year' : 'month'} + tax.
-          </span>
+          <Shield size={16} style={{ flexShrink: 0, marginTop: '2px', color: planType === 'verification' ? '#10b981' : '#a855f7' }} />
+          {planType === 'verification' ? (
+            <span>
+              Your verification status badge will remain active on your profile until <strong>{getRenewalDate()}</strong>.
+            </span>
+          ) : (
+            <span>
+              Your subscription will auto renew on <strong>{getRenewalDate()}</strong>. You will be charged ${amount.toFixed(2)}/{months === 12 ? 'year' : 'month'} + tax.
+            </span>
+          )}
         </div>
       )}
 
@@ -809,7 +886,9 @@ function CustomCheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [planType, setPlanType] = useState(searchParams.get('planType') || '1');
-  const [verificationCycle, setVerificationCycle] = useState<string | null>(null);
+  const [verificationCycle, setVerificationCycle] = useState<string | null>(
+    searchParams.get('verificationCycle') || (searchParams.get('planType') === 'verification' ? '1' : null)
+  );
   const token = searchParams.get('token');
 
   const [loading, setLoading] = useState(true);
@@ -861,6 +940,11 @@ function CustomCheckoutContent() {
     if (newPlanType === planType || submittingPlan) return;
     setSubmittingPlan(true);
     setPlanType(newPlanType);
+    if (newPlanType === 'verification') {
+      setVerificationCycle(verificationCycle || '1');
+    } else {
+      setVerificationCycle(null);
+    }
   };
 
   const handleChangeVerification = (newCycle: string | null) => {

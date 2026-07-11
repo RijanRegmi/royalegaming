@@ -49,6 +49,7 @@ export default function BecomeAdminPage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [plans, setPlans] = useState<any[]>([]);
+  const [verificationPlans, setVerificationPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [submittingPlan, setSubmittingPlan] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +71,7 @@ export default function BecomeAdminPage() {
         const plansData = await plansRes.json();
         if (plansRes.ok && plansData.success) {
           setPlans(plansData.plans || []);
+          setVerificationPlans(plansData.verificationPlans || []);
         }
       } catch (err) {
         console.error('Fetch user or plans error:', err);
@@ -115,6 +117,14 @@ export default function BecomeAdminPage() {
     (!user.specialDiscount.expiresAt || new Date(user.specialDiscount.expiresAt) > new Date());
 
   const specialMonths = hasSpecialDiscount ? user.specialDiscount.months : null;
+
+  const v1Plan = verificationPlans.find(vp => vp.planId === 'v1');
+  const v6Plan = verificationPlans.find(vp => vp.planId === 'v6');
+  const v12Plan = verificationPlans.find(vp => vp.planId === 'v12');
+
+  const v1Cost = v1Plan ? v1Plan.pricePerMonth : 49;
+  const v6Cost = v6Plan ? v6Plan.pricePerMonth * v6Plan.months : 234;
+  const v12Cost = v12Plan ? v12Plan.pricePerMonth * v12Plan.months : 348;
 
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: 'radial-gradient(circle at center, #0b0f19 0%, #030712 100%)', color: '#fff', padding: '50px 20px', fontFamily: "'Outfit', 'Inter', sans-serif", position: 'relative', overflowX: 'hidden' }}>
@@ -381,6 +391,78 @@ export default function BecomeAdminPage() {
             );
           })}
         </div>
+
+        {/* Verification Badge Add-on Section for active Admins */}
+        {isAlreadyAdmin && (
+          <div style={{ 
+            background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.04) 0%, rgba(6, 182, 212, 0.02) 100%)',
+            border: '2px solid rgba(16, 185, 129, 0.25)', 
+            borderRadius: '28px', 
+            padding: '40px',
+            marginBottom: '48px',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 10px 30px rgba(16, 185, 129, 0.05)'
+          }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '6px 14px', borderRadius: '30px', fontSize: '11px', fontWeight: 700, color: '#34d399', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '16px' }}>
+              <Shield size={12} style={{ strokeWidth: 3 }} /> Verified Account Add-On
+            </div>
+            
+            <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 10px 0', color: '#fff' }}>
+              Get Verified Badge Only
+            </h2>
+            <p style={{ fontSize: '14px', color: '#94a3b8', maxWidth: '640px', margin: '0 0 24px 0', lineHeight: '1.6' }}>
+              Already have an active subscription but want to add verification status? Obtain the golden verification badge next to your profile. Select your cycle duration to complete the upgrade.
+            </p>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '12px' }}>
+              {/* 1 Month Verification Card */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', transition: 'all 0.3s' }}>
+                <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>1 Month Badge</span>
+                <span style={{ fontSize: '28px', fontWeight: 900, color: '#10b981' }}>${v1Cost} total</span>
+                <button 
+                  onClick={() => router.push('/payment/custom-checkout?planType=verification&verificationCycle=1')}
+                  className="btn-checkout secondary"
+                  style={{ padding: '10px', fontSize: '12px', margin: 0 }}
+                >
+                  Buy 1 Month
+                </button>
+              </div>
+
+              {/* 6 Month Verification Card */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', transition: 'all 0.3s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>6 Month Badge</span>
+                  <span style={{ fontSize: '9px', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '8px' }}>Save {Math.round((1 - (v6Cost / (v1Cost * 6))) * 100)}%</span>
+                </div>
+                <span style={{ fontSize: '28px', fontWeight: 900, color: '#10b981' }}>${v6Cost} total</span>
+                <button 
+                  onClick={() => router.push('/payment/custom-checkout?planType=verification&verificationCycle=6')}
+                  className="btn-checkout secondary"
+                  style={{ padding: '10px', fontSize: '12px', margin: 0 }}
+                >
+                  Buy 6 Months
+                </button>
+              </div>
+
+              {/* 12 Month Verification Card */}
+              <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '20px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px', transition: 'all 0.3s' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '15px', fontWeight: 700, color: '#fff' }}>12 Month Badge</span>
+                  <span style={{ fontSize: '9px', fontWeight: 800, background: 'rgba(16, 185, 129, 0.15)', color: '#10b981', padding: '2px 8px', borderRadius: '8px' }}>Save {Math.round((1 - (v12Cost / (v1Cost * 12))) * 100)}%</span>
+                </div>
+                <span style={{ fontSize: '28px', fontWeight: 900, color: '#10b981' }}>${v12Cost} total</span>
+                <button 
+                  onClick={() => router.push('/payment/custom-checkout?planType=verification&verificationCycle=12')}
+                  className="btn-checkout primary"
+                  style={{ padding: '10px', fontSize: '12px', margin: 0 }}
+                >
+                  Buy 12 Months
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Global Features Section */}
         <div style={{ background: 'rgba(17, 24, 39, 0.2)', border: '1px solid rgba(255,255,255,0.03)', borderRadius: '32px', padding: '48px 36px', backdropFilter: 'blur(20px)' }}>
