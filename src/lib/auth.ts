@@ -7,6 +7,7 @@ export interface TokenPayload {
   userId: string;
   role: 'super_admin' | 'admin' | 'user';
   passwordHash?: string;
+  hasLinkedAdmins?: boolean;
 }
 
 export function signToken(payload: TokenPayload): string {

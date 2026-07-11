@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
     const token = signToken({ 
       userId: user._id.toString(), 
       role: user.role,
+      hasLinkedAdmins: user.role !== 'user' || (user.linkedAdmins && user.linkedAdmins.length > 0),
       passwordHash: user.password ? user.password.substring(user.password.length - 10) : undefined
     });
 

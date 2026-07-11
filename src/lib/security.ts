@@ -1,13 +1,37 @@
 import { NextRequest } from 'next/server';
 
 /**
- * Recursively removes any keys starting with '$' to prevent MongoDB NoSQL Injection.
+ * Strip dangerous HTML tags and event handlers to prevent XSS (Cross-Site Scripting).
  */
-export function sanitize<T>(val: T): T {
+export function sanitizeXss(val: string): string {
+  if (!val) return val;
+  // Remove script, iframe, style, and object tags and their contents
+  let cleaned = val
+    .replace(/<script[^>]*>([\s\S]*?)<\/script>/gi, '')
+    .replace(/<iframe[^>]*>([\s\S]*?)<\/iframe>/gi, '')
+    .replace(/<style[^>]*>([\s\S]*?)<\/style>/gi, '')
+    .replace(/<object[^>]*>([\s\S]*?)<\/object>/gi, '')
+    .replace(/<!--[\s\S]*?-->/g, '');
+
+  // Strip inline event handlers like onload, onerror, onclick, etc.
+  cleaned = cleaned.replace(/\bon[a-z]+\s*=\s*('[^']*'|"[^"]*"|[^\s>]+)/gi, '');
+  
+  // Strip javascript: pseudo-protocol links
+  cleaned = cleaned.replace(/href\s*=\s*('[^']*javascript:[^']*'|"[^"]*javascript:[^"]*"|[^\s>]*javascript:[^\s>]*)/gi, 'href="#"');
+  cleaned = cleaned.replace(/src\s*=\s*('[^']*javascript:[^']*'|"[^"]*javascript:[^"]*"|[^\s>]*javascript:[^\s>]*)/gi, 'src="#"');
+
+  return cleaned;
+}
+
+/**
+ * Recursively removes any keys starting with '$' to prevent MongoDB NoSQL Injection,
+ * and sanitizes user-facing string fields for XSS.
+ */
+export function sanitize<T>(val: T, keyName?: string): T {
   if (val === null || val === undefined) return val;
 
   if (Array.isArray(val)) {
-    return val.map(sanitize) as unknown as T;
+    return val.map(v => sanitize(v, keyName)) as unknown as T;
   }
 
   if (typeof val === 'object') {
@@ -16,9 +40,19 @@ export function sanitize<T>(val: T): T {
       if (key.startsWith('$')) {
         continue; // Strip MongoDB query operators
       }
-      cleaned[key] = sanitize((val as any)[key]);
+      cleaned[key] = sanitize((val as any)[key], key);
     }
     return cleaned as T;
+  }
+
+  if (typeof val === 'string' && keyName) {
+    const lowerKey = keyName.toLowerCase();
+    // Exclude security-sensitive, file, or image keys that must remain raw
+    const excludeKeys = ['password', 'token', 'secret', 'key', 'fcmtoken', 'stripe', 'session_id', 'payment_intent_id', 'avatar'];
+    const shouldExclude = excludeKeys.some(k => lowerKey.includes(k));
+    if (!shouldExclude) {
+      return sanitizeXss(val) as unknown as T;
+    }
   }
 
   return val;

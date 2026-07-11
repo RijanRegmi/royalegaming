@@ -19,7 +19,8 @@ export async function GET(req: NextRequest) {
     const sessionId = searchParams.get('session_id');
     const paymentIntentId = searchParams.get('payment_intent_id') || (sessionId?.startsWith('pi_') ? sessionId : null);
 
-    if (!sessionId && !paymentIntentId) {
+    const txId = paymentIntentId || sessionId;
+    if (!txId) {
       return NextResponse.json({ error: 'Missing session_id or payment_intent_id' }, { status: 400 });
     }
 
@@ -80,6 +81,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Prevent double verification / replay attacks
+    if (user.processedPayments && user.processedPayments.includes(txId)) {
+      return NextResponse.json({
+        success: true,
+        message: 'Transaction already processed and applied successfully.',
+        user: {
+          role: user.role,
+          isFrozen: user.isFrozen,
+          extendedUntil: user.extendedUntil,
+        }
+      });
+    }
+
     const now = new Date();
     let newExtendedUntil: Date;
 
@@ -127,6 +141,12 @@ export async function GET(req: NextRequest) {
       months: null,
       expiresAt: null,
     };
+
+    if (!user.processedPayments) {
+      user.processedPayments = [txId];
+    } else if (!user.processedPayments.includes(txId)) {
+      user.processedPayments.push(txId);
+    }
 
     await user.save();
 

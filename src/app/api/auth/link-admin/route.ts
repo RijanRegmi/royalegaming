@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import User from '@/models/User';
-import { getUserFromRequest, TokenPayload } from '@/lib/auth';
+import { getUserFromRequest, TokenPayload, signToken } from '@/lib/auth';
 import { decryptSlug } from '@/lib/crypto';
 import { getSafeJson, getSafeQueryParam } from '@/lib/security';
 
@@ -140,10 +140,25 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // If user is logged in, link immediately in the database
     if (payload && payload.userId) {
       const userRecord = await User.findById(payload.userId);
       if (userRecord) {
+        // Re-sign token to reflect updated linkage state in cookies
+        const newToken = signToken({
+          userId: payload.userId,
+          role: payload.role,
+          hasLinkedAdmins: true,
+          passwordHash: payload.passwordHash
+        });
+
+        response.cookies.set('auth_token', newToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 7 * 24 * 60 * 60, // 7 days
+          path: '/',
+        });
+
         const alreadyLinked = userRecord.linkedAdmins?.some((id: any) => id.toString() === admin._id.toString());
         if (!alreadyLinked) {
           // Link admin to the user in DB

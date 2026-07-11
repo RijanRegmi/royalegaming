@@ -31,6 +31,7 @@ const UserSchema = new Schema({
   stripePaymentMethodId: { type: String, default: null },
   stripeCardBrand: { type: String, default: null },
   stripeCardLast4: { type: String, default: null },
+  processedPayments: { type: [String], default: [] },
 }, { timestamps: true });
 
 const User = models.User || model('User', UserSchema);
