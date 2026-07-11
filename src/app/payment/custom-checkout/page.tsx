@@ -2,12 +2,59 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Lock, Shield, Check, Loader2, CreditCard, HelpCircle } from 'lucide-react';
+import { ArrowLeft, Lock, Shield, Check, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
-import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { 
+  Elements, 
+  CardNumberElement, 
+  CardExpiryElement, 
+  CardCvcElement, 
+  useStripe, 
+  useElements 
+} from '@stripe/react-stripe-js';
 
 // Initialize Stripe with the publishable key
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_placeholder_key_to_avoid_build_error_if_not_present');
+
+// Inline SVGs for Card Brands to match Claude's layout
+function VisaLogo() {
+  return (
+    <svg width="28" height="18" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: '2px' }}>
+      <rect width="28" height="18" rx="2" fill="#1434CB"/>
+      <path d="M7.7 12.8L9.2 6H11.2L9.7 12.8H7.7ZM15.1 6.2C14.7 6 14 5.9 13.3 5.9C11.3 5.9 9.9 6.8 9.9 8.2C9.9 9.2 10.9 9.8 11.6 10.1C12.3 10.4 12.5 10.6 12.5 10.9C12.5 11.4 11.9 11.6 11.3 11.6C10.5 11.6 10.1 11.4 9.7 11.2L9.3 12.6C9.8 12.8 10.5 13 11.2 13C13.3 13 14.7 12.1 14.7 10.7C14.7 9.6 13.9 9.1 12.8 8.6C12.1 8.3 11.8 8.1 11.8 7.8C11.8 7.4 12.3 7.2 12.9 7.2C13.5 7.2 14 7.3 14.4 7.5L14.7 6.2H15.1ZM19.2 8.7L20.2 6H22.1L20.4 12.8H18.7L16.2 6.8H18.2L19.2 8.7ZM5.2 6H2L1.8 6.9C3.1 7.2 4.1 7.6 4.9 8.2L4 12.8H6L9.1 6H7.1L5.2 6Z" fill="white"/>
+    </svg>
+  );
+}
+
+function MastercardLogo() {
+  return (
+    <svg width="28" height="18" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: '2px' }}>
+      <rect width="28" height="18" rx="2" fill="#222222"/>
+      <circle cx="11" cy="9" r="6" fill="#EB001B"/>
+      <circle cx="17" cy="9" r="6" fill="#F79E1B" fillOpacity="0.85"/>
+      <path d="M14 5.3C13 6.3 12.5 7.6 12.5 9C12.5 10.4 13 11.7 14 12.7C15 11.7 15.5 10.4 15.5 9C15.5 7.6 15 6.3 14 5.3Z" fill="#FF5F00"/>
+    </svg>
+  );
+}
+
+function AmexLogo() {
+  return (
+    <svg width="28" height="18" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: '2px' }}>
+      <rect width="28" height="18" rx="2" fill="#0070CD"/>
+      <path d="M2.5 12.8L4.3 6H6.1L4.3 12.8H2.5ZM13.8 6.2C13.4 6 12.8 5.9 12 5.9C9.8 5.9 8.2 6.8 8.2 8.5C8.2 9.7 9.4 10.3 10.3 10.7C11.1 11.1 11.4 11.3 11.4 11.7C11.4 12.3 10.7 12.6 9.9 12.6C9 12.6 8.5 12.4 8 12.1L7.5 13.7C8.2 14 9.1 14.2 9.9 14.2C12.3 14.2 13.9 13.1 13.9 11.4C13.9 10.1 13 9.5 11.7 8.9C10.9 8.5 10.6 8.3 10.6 7.9C10.6 7.4 11.2 7.2 11.8 7.2C12.5 7.2 13.1 7.4 13.5 7.6L13.8 6.2H13.8ZM21.2 10L22.2 6H24.3L22.4 12.8H20.4L17.7 6.8H19.8L21.2 10ZM15 6H17.8L16.2 12.8H13.4L15 6Z" fill="white"/>
+    </svg>
+  );
+}
+
+function DiscoverLogo() {
+  return (
+    <svg width="28" height="18" viewBox="0 0 28 18" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ borderRadius: '2px' }}>
+      <rect width="28" height="18" rx="2" fill="#F4F4F4"/>
+      <path d="M2 13V6H3.8C4.8 6 5.5 6.6 5.5 7.5V11.5C5.5 12.4 4.8 13 3.8 13H2ZM3 12H3.7C4.1 12 4.5 11.7 4.5 11.3V7.7C4.5 7.3 4.1 7 3.7 7H3V12ZM6.5 13V6H7.5V13H6.5ZM11.5 6.2C11.1 6 10.5 5.9 9.7 5.9C7.5 5.9 5.9 6.8 5.9 8.5C5.9 9.7 7.1 10.3 8 10.7C8.8 11.1 9.1 11.3 9.1 11.7C9.1 12.3 8.4 12.6 7.6 12.6C6.7 12.6 6.2 12.4 5.7 12.1L5.2 13.7C5.9 14 6.8 14.2 7.6 14.2C10 14.2 11.6 13.1 11.6 11.4C11.6 10.1 10.7 9.5 9.4 8.9C8.6 8.5 8.3 8.3 8.3 7.9C8.3 7.9 8.3 7.8 8.3 7.8C8.3 7.4 8.9 7.2 9.5 7.2C10.2 7.2 10.8 7.4 11.2 7.6L11.5 6.2H11.5ZM15.5 13V6H17.3C18.3 6 19 6.6 19 7.5V11.5C19 12.4 18.3 13 17.3 13H15.5ZM16.5 12H17.2C17.6 12 18 11.7 18 11.3V7.7C18 7.3 17.6 7 17.2 7H16.5V12ZM20 13V6H23.5V7H21V9H23V10H21V12H23.5V13H20ZM24.5 13V6H25.5V13H24.5Z" fill="#111111"/>
+      <circle cx="13" cy="9.5" r="2.5" fill="#FF6600"/>
+    </svg>
+  );
+}
 
 function CheckoutForm({ 
   clientSecret, 
@@ -30,20 +77,30 @@ function CheckoutForm({
 
   const [cardholderName, setCardholderName] = useState('');
   const [country, setCountry] = useState('US');
+  const [address, setAddress] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [isCardFocused, setIsCardFocused] = useState(false);
+
+  // States to handle border styling dynamically on focus
+  const [isNumFocused, setIsNumFocused] = useState(false);
+  const [isExpFocused, setIsExpFocused] = useState(false);
+  const [isCvcFocused, setIsCvcFocused] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (submitting) return;
+
+    if (!isFreeSetup && !agreeTerms) {
+      setErrorMessage('You must agree to the subscription terms to proceed.');
+      return;
+    }
 
     setSubmitting(true);
     setErrorMessage(null);
 
     try {
       if (isFreeSetup) {
-        // For $0 setup plans, directly verify with the backend
         const verifyRes = await fetch(`/api/payments/stripe/verify?session_id=${paymentIntentId}`);
         const verifyData = await verifyRes.json();
         if (verifyRes.ok && verifyData.success) {
@@ -58,19 +115,20 @@ function CheckoutForm({
         throw new Error('Stripe is not fully initialized. Please try again.');
       }
 
-      const cardElement = elements.getElement(CardElement);
-      if (!cardElement) {
-        throw new Error('Payment input elements not found.');
+      const cardNumberElement = elements.getElement(CardNumberElement);
+      if (!cardNumberElement) {
+        throw new Error('Card Number element not found.');
       }
 
-      // Confirm payment with Stripe directly (Card details never touch our server)
+      // Confirm payment with Stripe directly (PCI-DSS compliant)
       const { paymentIntent, error } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: cardElement,
+          card: cardNumberElement,
           billing_details: {
             name: cardholderName || undefined,
             address: {
               country: country,
+              line1: address || undefined,
             },
           },
         },
@@ -81,7 +139,6 @@ function CheckoutForm({
       }
 
       if (paymentIntent && paymentIntent.status === 'succeeded') {
-        // Send PaymentIntent ID to our backend for verification and role upgrade
         const verifyRes = await fetch(`/api/payments/stripe/verify?payment_intent_id=${paymentIntent.id}`);
         const verifyData = await verifyRes.json();
 
@@ -99,7 +156,7 @@ function CheckoutForm({
     }
   };
 
-  const cardElementOptions = {
+  const elementOptions = {
     style: {
       base: {
         color: '#ffffff',
@@ -107,7 +164,7 @@ function CheckoutForm({
         fontSmoothing: 'antialiased',
         fontSize: '15px',
         '::placeholder': {
-          color: '#6b7280',
+          color: '#555f7d',
         },
       },
       invalid: {
@@ -117,7 +174,6 @@ function CheckoutForm({
     },
   };
 
-  // Calculate renewal date
   const getRenewalDate = () => {
     const d = new Date();
     d.setMonth(d.getMonth() + months);
@@ -161,13 +217,13 @@ function CheckoutForm({
 
       {/* Payment details form */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-        <h3 style={{ margin: '0 0 4px 0', fontSize: '15px', fontWeight: 700, color: '#fff' }}>
+        <h3 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: 700, color: '#fff' }}>
           Payment method
         </h3>
 
-        {/* Cardholder Name */}
+        {/* Full Name */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Cardholder Name</label>
+          <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Full name</label>
           <input
             type="text"
             required
@@ -179,28 +235,6 @@ function CheckoutForm({
             onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
           />
         </div>
-
-        {/* Stripe CardElement input */}
-        {!isFreeSetup && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Card details</label>
-            <div 
-              style={{ 
-                padding: '14px 16px', 
-                background: 'rgba(255,255,255,0.03)', 
-                border: isCardFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
-                borderRadius: '12px', 
-                transition: 'border-color 0.2s' 
-              }}
-            >
-              <CardElement 
-                options={cardElementOptions} 
-                onFocus={() => setIsCardFocused(true)}
-                onBlur={() => setIsCardFocused(false)}
-              />
-            </div>
-          </div>
-        )}
 
         {/* Country Selector */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -220,6 +254,127 @@ function CheckoutForm({
             <option value="NP">Nepal</option>
           </select>
         </div>
+
+        {/* Address */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Address</label>
+          <input
+            type="text"
+            placeholder="Billing street address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            style={{ width: '100%', padding: '14px 16px', background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: '12px', color: '#fff', fontSize: '15px', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.2s' }}
+            onFocus={(e) => e.target.style.borderColor = 'rgba(168, 85, 247, 0.5)'}
+            onBlur={(e) => e.target.style.borderColor = 'rgba(255,255,255,0.06)'}
+          />
+        </div>
+
+        {!isFreeSetup && (
+          <>
+            {/* Card Number Input (Split Element) with Brand Logos */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Card number</label>
+              <div 
+                style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '14px 16px', 
+                  background: 'rgba(255,255,255,0.03)', 
+                  border: isNumFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
+                  borderRadius: '12px', 
+                  transition: 'border-color 0.2s' 
+                }}
+              >
+                <div style={{ flex: 1 }}>
+                  <CardNumberElement 
+                    options={elementOptions} 
+                    onFocus={() => setIsNumFocused(true)}
+                    onBlur={() => setIsNumFocused(false)}
+                  />
+                </div>
+                {/* Static brand logos to match Claude's layout */}
+                <div style={{ display: 'flex', gap: '4px', marginLeft: '12px', opacity: 0.85, flexShrink: 0 }}>
+                  <VisaLogo />
+                  <MastercardLogo />
+                  <AmexLogo />
+                  <DiscoverLogo />
+                </div>
+              </div>
+            </div>
+
+            {/* Expiration and CVC side-by-side */}
+            <div style={{ display: 'flex', gap: '16px' }}>
+              
+              {/* Expiration date */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Expiration date</label>
+                <div 
+                  style={{ 
+                    padding: '14px 16px', 
+                    background: 'rgba(255,255,255,0.03)', 
+                    border: isExpFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
+                    borderRadius: '12px', 
+                    transition: 'border-color 0.2s' 
+                  }}
+                >
+                  <CardExpiryElement 
+                    options={elementOptions}
+                    onFocus={() => setIsExpFocused(true)}
+                    onBlur={() => setIsExpFocused(false)}
+                  />
+                </div>
+              </div>
+
+              {/* Security code */}
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <label style={{ fontSize: '12.5px', color: '#94a3b8', fontWeight: 600 }}>Security code</label>
+                <div 
+                  style={{ 
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '14px 16px', 
+                    background: 'rgba(255,255,255,0.03)', 
+                    border: isCvcFocused ? '1px solid rgba(168, 85, 247, 0.5)' : '1px solid rgba(255,255,255,0.06)', 
+                    borderRadius: '12px', 
+                    transition: 'border-color 0.2s' 
+                  }}
+                >
+                  <div style={{ flex: 1 }}>
+                    <CardCvcElement 
+                      options={elementOptions}
+                      onFocus={() => setIsCvcFocused(true)}
+                      onBlur={() => setIsCvcFocused(false)}
+                    />
+                  </div>
+                  {/* Static CVC indicator icon */}
+                  <svg width="20" height="13" viewBox="0 0 20 13" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginLeft: '8px', opacity: 0.5 }}>
+                    <rect width="20" height="13" rx="2" fill="#555F7D"/>
+                    <rect y="3" width="20" height="2" fill="#1F2937"/>
+                    <rect x="14" y="7" width="4" height="4" rx="0.5" fill="#E5E7EB"/>
+                    <path d="M12.5 9.5H13" stroke="white" strokeWidth="0.75" strokeLinecap="round"/>
+                  </svg>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Checkboxes */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginTop: '10px' }}>
+              {/* Checkbox: terms agreement */}
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', fontSize: '12.5px', color: '#94a3b8', lineHeight: '1.5' }}>
+                <input 
+                  type="checkbox" 
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  style={{ marginTop: '3px', cursor: 'pointer', width: '15px', height: '15px', accentColor: '#a855f7' }}
+                />
+                <span>
+                  You agree that Rilogram will charge your card in the amount above now and on a recurring basis until you cancel. You can cancel at any time in your account settings.
+                </span>
+              </label>
+            </div>
+          </>
+        )}
       </div>
 
       {errorMessage && (
@@ -244,7 +399,7 @@ function CheckoutForm({
         ) : (
           <>
             <Lock size={15} />
-            <span>Pay ${amount.toFixed(2)}</span>
+            <span>Subscribe</span>
           </>
         )}
       </button>
@@ -269,7 +424,7 @@ function CustomCheckoutContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 1. If auth token is present in the URL (mobile WebView app flow), save to cookies
+    // If auth token is present in the URL (mobile WebView app flow), save to cookies
     if (token) {
       document.cookie = `auth_token=${token}; path=/; max-age=604800; Secure; SameSite=Strict`;
     }
@@ -363,6 +518,19 @@ function CustomCheckoutContent() {
 }
 
 export default function CustomCheckoutPage() {
+  useEffect(() => {
+    // Enable body scrolling by overriding global layout overflow: hidden
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'auto';
+    document.documentElement.style.overflow = 'auto';
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
+  }, []);
+
   return (
     <div style={{ minHeight: '100vh', background: 'radial-gradient(circle at center, #0b0f19 0%, #030712 100%)', color: '#fff', padding: '40px 20px', fontFamily: "'Outfit', 'Inter', sans-serif" }}>
       <Suspense fallback={
